@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista de Separação — Full</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --surface: #FFFFFF;
+    --surface-2: #F1F4F6;
+    --border: #D7DEE3;
+    --text: #16232D;
+    --text-muted: #5B6B77;
+    --accent: #16191C;
+    --accent-strong: #000000;
+    --accent-contrast: #FFFFFF;
+    --brand-yellow: #F5AD00;
+    --danger: #D32F2F;
+    --danger-bg: #FBE1E1;
+    --focus: #16191C;
+    --shadow: 0 1px 3px rgba(20, 34, 43, 0.08), 0 6px 18px rgba(20, 34, 43, 0.09);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 16.5px;
+    line-height: 1.45;
+    min-height: 100vh;
+  }
+  h1, h2, h3 { font-family: "Archivo", system-ui, sans-serif; text-wrap: balance; margin: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea, button { font-size: 14px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+  a { color: inherit; }
+
+  .topbar { background: linear-gradient(180deg, var(--accent-strong), var(--accent)); color: var(--accent-contrast); padding: 18px 20px; }
+  .topbar-inner { max-width: 1040px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; }
+  .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+  .brand-mark { flex: none; width: 38px; height: 38px; display: grid; place-items: center; background: rgba(244,249,251,0.14); border: 1px solid rgba(244,249,251,0.28); border-radius: 10px; }
+  .back-link { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(244,249,251,0.72); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+  .back-link:hover { color: #FFFFFF; }
+  .back-link svg { width: 12px; height: 12px; }
+  .brand h1 { font-size: 23px; font-weight: 800; letter-spacing: 0.2px; color: var(--brand-yellow); }
+  .brand p { margin: 2px 0 0; font-size: 13.5px; color: #FFFFFF; }
+  .user-info { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #FFFFFF; font-weight: 600; }
+  .today-btn { border: 1px solid rgba(244,249,251,0.3); background: rgba(244,249,251,0.1); color: var(--accent-contrast); border-radius: 999px; padding: 8px 16px; font-weight: 600; font-size: 13px; }
+  .today-btn:hover { background: rgba(244,249,251,0.22); }
+
+  main { max-width: 720px; margin: 0 auto; padding: 22px 20px 60px; display: flex; flex-direction: column; gap: 22px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 22px; }
+
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 14px; padding: 36px 20px;
+    text-align: center; color: var(--text-muted); cursor: pointer; transition: border-color .15s ease, background .15s ease;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--brand-yellow); background: var(--surface-2); }
+  .upload-zone svg { width: 34px; height: 34px; margin-bottom: 10px; color: var(--text-muted); }
+  .upload-zone strong { color: var(--text); }
+  .upload-zone input[type="file"] { display: none; }
+
+  .file-chip {
+    display: flex; align-items: center; gap: 10px; margin-top: 14px;
+    background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: 13.5px;
+  }
+  .file-chip svg { width: 18px; height: 18px; flex: none; color: var(--text-muted); }
+  .file-chip .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-chip button { background: none; border: none; color: var(--text-muted); font-size: 13px; text-decoration: underline; }
+
+  .add-btn {
+    background: var(--accent); color: var(--accent-contrast); border: none; border-radius: 999px;
+    padding: 12px 26px; font-weight: 700; font-size: 15px; white-space: nowrap; height: 46px; margin-top: 16px;
+  }
+  .add-btn:hover { background: var(--accent-strong); }
+  .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .form-msg { font-size: 13px; font-weight: 600; color: var(--danger); margin-top: 10px; }
+  .form-ok { font-size: 13px; font-weight: 600; color: #1E8E3E; margin-top: 10px; }
+
+  .spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+    animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+  footer.note { text-align: center; color: var(--text-muted); font-size: 11.5px; padding-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<div id="appScreen" hidden>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </span>
+        <div>
+          <a class="back-link" href="full.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Full
+          </a>
+          <h1>Lista de Separação</h1>
+          <p>Suba o PDF do envio e gere o PDF de separação, agrupado por marca</p>
+        </div>
+      </div>
+      <div class="user-info">
+        <span id="userGreeting">—</span>
+        <button type="button" id="logoutBtn" class="today-btn">Sair</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <div class="panel">
+      <div class="upload-zone" id="uploadZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        <div><strong>Clique para escolher o PDF</strong> ou arraste aqui</div>
+        <div style="font-size:12.5px;margin-top:4px;">preparation instructions do Mercado Livre Full</div>
+        <input type="file" id="fileInput" accept="application/pdf">
+      </div>
+      <div class="file-chip" id="fileChip" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <span class="name" id="fileName"></span>
+        <button type="button" id="clearFile">remover</button>
+      </div>
+      <button type="button" class="add-btn" id="processarBtn" disabled>Gerar Lista de Separação (PDF)</button>
+      <div class="form-msg" id="formMsg"></div>
+      <div class="form-ok" id="formOk"></div>
+    </div>
+
+    <footer class="note">Lista de Separação · Full · Hub Lisfer</footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  const el = (id) => document.getElementById(id);
+  let arquivoSelecionado = null;
+
+  el('logoutBtn').addEventListener('click', () => HubAuth.logout());
+
+  HubAuth.requireAuth((user) => {
+    el('userGreeting').textContent = 'Olá, ' + (HubAuth.nomeDe(user.id) || user.email);
+    el('appScreen').hidden = false;
+  });
+
+  const uploadZone = el('uploadZone');
+  const fileInput = el('fileInput');
+  const fileChip = el('fileChip');
+  const processarBtn = el('processarBtn');
+  const formMsg = el('formMsg');
+  const formOk = el('formOk');
+
+  function selecionarArquivo(file) {
+    if (!file || file.type !== 'application/pdf') {
+      formMsg.textContent = 'Selecione um arquivo PDF.';
+      return;
+    }
+    arquivoSelecionado = file;
+    el('fileName').textContent = file.name;
+    fileChip.hidden = false;
+    uploadZone.hidden = true;
+    processarBtn.disabled = false;
+    formMsg.textContent = '';
+    formOk.textContent = '';
+  }
+
+  uploadZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => selecionarArquivo(e.target.files[0]));
+
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    selecionarArquivo(e.dataTransfer.files[0]);
+  });
+
+  el('clearFile').addEventListener('click', () => {
+    arquivoSelecionado = null;
+    fileInput.value = '';
+    fileChip.hidden = true;
+    uploadZone.hidden = false;
+    processarBtn.disabled = true;
+  });
+
+  function arrayBufferParaBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  processarBtn.addEventListener('click', async () => {
+    if (!arquivoSelecionado) return;
+    formMsg.textContent = '';
+    formOk.textContent = '';
+    processarBtn.disabled = true;
+    processarBtn.innerHTML = '<span class="spinner"></span>Gerando PDF...';
+
+    try {
+      const { data } = await sb.auth.getSession();
+      const token = data.session ? data.session.access_token : null;
+
+      const buffer = await arquivoSelecionado.arrayBuffer();
+      const pdfBase64 = arrayBufferParaBase64(buffer);
+
+      const resp = await fetch('/api/lista-separacao', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify({ pdf_base64: pdfBase64 }),
+      });
+
+      if (!resp.ok) {
+        const json = await resp.json().catch(() => ({}));
+        formMsg.textContent = (json.erro || 'Não foi possível gerar a lista.') + (json.debug ? ' [' + json.debug + ']' : '');
+        return;
+      }
+
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      formOk.textContent = 'Lista de separação gerada — abrindo em uma nova aba para você conferir e imprimir.';
+    } catch (err) {
+      console.error(err);
+      formMsg.textContent = 'Erro de conexão ao gerar a lista. Tente novamente.';
+    } finally {
+      processarBtn.disabled = false;
+      processarBtn.textContent = 'Gerar Lista de Separação (PDF)';
+    }
+  });
+})();
+</script>
+</body>
+</html>
