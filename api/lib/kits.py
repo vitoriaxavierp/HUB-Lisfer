@@ -11,13 +11,20 @@ Ordem de confianca (da especificacao do Analista de Compras FULL):
      PDF sugere claramente um kit de N pecas (contem "kit" e o numero N).
      Fora isso, o sufixo numerico faz parte do codigo normalmente (ex:
      "109671-02" e "109671-16" sao SKUs pai distintos, nao kits).
-  c) Combina os dois casos acima.
+  c) "BASE1-N1/BASE2-N2/..." (varios trechos separados por "/", cada um
+     com seu proprio sufixo numerico) = a combinacao dos dois casos acima.
+     Aqui o "-N" de cada trecho JA E a quantidade daquele componente (ex:
+     "LX-0105-1/LX-0106-1/LX-0107-1" = 1 peca de LX-0105 + 1 de LX-0106 +
+     1 de LX-0107) - nao precisa o nome confirmar "kit de N pecas" como no
+     caso (b), porque a propria estrutura com varios componentes diferentes
+     ja e a confirmacao. So exige que cada BASE exista sozinha no cadastro.
 
-Quando um trecho bate com o padrao "BASE-N" e a base existe sozinha no
-cadastro mas o nome NAO confirma claramente um kit de N pecas, o item fica
-marcado como pendente de confirmacao manual - nunca inventamos a
-composicao nesse caso, so aplicamos o fallback seguro (tratar como SKU
-proprio, multiplicador 1) e avisamos.
+Quando ha um UNICO trecho (sem "/") no formato "BASE-N", a base existe
+sozinha no cadastro, mas o nome NAO confirma claramente um kit de N pecas,
+o item fica marcado como pendente de confirmacao manual - nunca inventamos
+a composicao nesse caso, so aplicamos o fallback seguro (tratar como SKU
+proprio, multiplicador 1) e avisamos. Esse caso so se aplica ao (b); no
+caso (c), com varias partes, a decomposicao e aplicada direto.
 """
 
 import re
@@ -38,12 +45,14 @@ def decompor_sku_kit(sku_kit, nome_produto, sku_existe_no_catalogo):
 
     Devolve (componentes, pendente_confirmacao):
         componentes: lista de {"sku": str, "multiplicador": int}
-        pendente_confirmacao: bool - True se algum trecho do codigo bateu
-            com o padrao "base+sufixo numerico" e a base existe sozinha no
-            catalogo, mas o nome do produto nao confirmou claramente que e
-            um kit repetido - nesse caso o item precisa de revisao manual.
+        pendente_confirmacao: bool - True se um UNICO trecho (sem "/")
+            bateu com o padrao "base+sufixo numerico", a base existe
+            sozinha no catalogo, mas o nome do produto nao confirmou
+            claramente que e um kit repetido - nesse caso o item precisa
+            de revisao manual.
     """
     partes = [p.strip() for p in sku_kit.split("/") if p.strip()]
+    varias_partes = len(partes) > 1
     componentes = []
     pendente_confirmacao = False
 
@@ -56,7 +65,12 @@ def decompor_sku_kit(sku_kit, nome_produto, sku_existe_no_catalogo):
             n = int(n_str)
             base_existe_sozinha = sku_existe_no_catalogo(base)
             if base_existe_sozinha:
-                if _nome_confirma_kit_de_n_pecas(nome_produto, n):
+                if varias_partes:
+                    # regra (c): a propria estrutura "base-n/base-n/..."
+                    # ja e a confirmacao, nao precisa o nome citar "kit".
+                    componentes.append({"sku": base, "multiplicador": n})
+                    tratado_como_kit_repetido = True
+                elif _nome_confirma_kit_de_n_pecas(nome_produto, n):
                     componentes.append({"sku": base, "multiplicador": n})
                     tratado_como_kit_repetido = True
                 else:
