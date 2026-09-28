@@ -75,7 +75,7 @@ def gerar_lista_compras(caminho_pdf):
         marca = None
         if info.get("produto_id"):
             detalhe = tiny.obter_produto(info["empresa_do_produto"], info["produto_id"])
-            marca = (detalhe.get("marca") or "").strip() or None
+            marca = kits.normalizar_marca((detalhe.get("marca") or "").strip()) or None
         if not marca:
             # fallback: o campo "marca" do Tiny as vezes vem vazio - nesse
             # caso usa a heuristica pelo nome do produto

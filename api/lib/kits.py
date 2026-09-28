@@ -87,5 +87,18 @@ def extrair_marca(nome_produto):
     nome do produto (ex: 'Sacador ... Gdi Dt-sac07' sem marca -> desconhecida;
     'Hélice ... - Super Soldas' -> 'Super Soldas')."""
     if " - " in nome_produto:
-        return nome_produto.rsplit(" - ", 1)[1].strip()
+        return normalizar_marca(nome_produto.rsplit(" - ", 1)[1].strip())
     return "Marca não identificada"
+
+
+_SUFIXOS_MARCA_IGNORAR = re.compile(
+    r"\s*[-/]?\s*(promo(cional)?|promoção)\s*$", re.IGNORECASE
+)
+
+
+def normalizar_marca(marca):
+    """Remove variações tipo 'PROMO'/'PROMOÇÃO' do nome da marca, para que
+    'Kitest' e 'Kitest Promo' caiam no mesmo grupo na lista de compras."""
+    if not marca:
+        return marca
+    return _SUFIXOS_MARCA_IGNORAR.sub("", marca).strip()
