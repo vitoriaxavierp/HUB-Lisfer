@@ -4,7 +4,10 @@ Ordem de confianca (da especificacao do Analista de Compras FULL):
 
   a) "SKU1/SKU2/SKU3" (codigos diferentes separados por "/") = 1 peca de
      cada SKU listado por kit vendido. So aplicavel quando cada SKUn,
-     sozinho, existe como produto individual no cadastro.
+     sozinho, existe como produto individual no cadastro - se QUALQUER
+     pedaco nao existir sozinho (ex: "KA015/17" onde "17" nao e um produto
+     de verdade, so faz parte do codigo "KA015/17"), o codigo inteiro e
+     mantido como UM UNICO produto, sem decompor nada.
   b) "BASE-N" (um unico codigo-base com sufixo numerico, SEM barra) pode
      significar N pecas do SKU base por kit - MAS SO quando (i) o codigo
      sem o sufixo existe sozinho no cadastro E (ii) o nome do produto no
@@ -52,34 +55,54 @@ def decompor_sku_kit(sku_kit, nome_produto, sku_existe_no_catalogo):
             de revisao manual.
     """
     partes = [p.strip() for p in sku_kit.split("/") if p.strip()]
-    varias_partes = len(partes) > 1
-    componentes = []
-    pendente_confirmacao = False
 
+    if len(partes) == 1:
+        # caso (b): um unico trecho, sem "/"
+        parte = partes[0]
+        m = _PADRAO_BASE_N.match(parte)
+        if m:
+            base, n_str = m.group(1), m.group(2)
+            n = int(n_str)
+            if sku_existe_no_catalogo(base):
+                if _nome_confirma_kit_de_n_pecas(nome_produto, n):
+                    return [{"sku": base, "multiplicador": n}], False
+                # ambiguo: base existe, mas o nome nao confirma o kit de N
+                # pecas - fallback seguro (SKU proprio) + pede confirmacao
+                return [{"sku": parte, "multiplicador": 1}], True
+        return [{"sku": parte, "multiplicador": 1}], False
+
+    # varios trechos separados por "/": candidato as regras (a)/(c). So
+    # aplicamos a decomposicao se CADA trecho puder ser confirmado como um
+    # componente de verdade - senao, o codigo inteiro vira um unico item.
+    componentes_candidatos = []
     for parte in partes:
         m = _PADRAO_BASE_N.match(parte)
-        tratado_como_kit_repetido = False
+        confirmado = False
 
         if m:
             base, n_str = m.group(1), m.group(2)
             n = int(n_str)
-            base_existe_sozinha = sku_existe_no_catalogo(base)
-            if base_existe_sozinha:
-                if varias_partes:
-                    # regra (c): a propria estrutura "base-n/base-n/..."
-                    # ja e a confirmacao, nao precisa o nome citar "kit".
-                    componentes.append({"sku": base, "multiplicador": n})
-                    tratado_como_kit_repetido = True
-                elif _nome_confirma_kit_de_n_pecas(nome_produto, n):
-                    componentes.append({"sku": base, "multiplicador": n})
-                    tratado_como_kit_repetido = True
-                else:
-                    pendente_confirmacao = True
+            if sku_existe_no_catalogo(base):
+                # regra (c): a propria estrutura "base-n/base-n/..." ja e a
+                # confirmacao, nao precisa o nome citar "kit".
+                componentes_candidatos.append({"sku": base, "multiplicador": n})
+                confirmado = True
 
-        if not tratado_como_kit_repetido:
-            componentes.append({"sku": parte, "multiplicador": 1})
+        if not confirmado:
+            # regra (a): o trecho so conta como componente proprio se ELE
+            # MESMO existir sozinho no cadastro (ex: "LF-0213" e valido por
+            # si so; "17" em "KA015/17" nao e).
+            if sku_existe_no_catalogo(parte):
+                componentes_candidatos.append({"sku": parte, "multiplicador": 1})
+                confirmado = True
 
-    return componentes, pendente_confirmacao
+        if not confirmado:
+            # nao deu pra confirmar este trecho com seguranca - o codigo
+            # inteiro (com a barra e tudo) e mantido como UM UNICO produto,
+            # nunca inventamos a composicao.
+            return [{"sku": sku_kit, "multiplicador": 1}], False
+
+    return componentes_candidatos, False
 
 
 def extrair_marca(nome_produto):
