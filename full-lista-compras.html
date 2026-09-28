@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lista de Compras — Full</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --surface: #FFFFFF;
+    --surface-2: #F1F4F6;
+    --surface-3: #EAEFF2;
+    --border: #D7DEE3;
+    --text: #16232D;
+    --text-muted: #5B6B77;
+    --accent: #16191C;
+    --accent-strong: #000000;
+    --accent-contrast: #FFFFFF;
+    --brand-yellow: #F5AD00;
+    --pending: #E08E00;
+    --pending-bg: #FFF1D6;
+    --collected: #1E8E3E;
+    --collected-bg: #E1F3E4;
+    --danger: #D32F2F;
+    --danger-bg: #FBE1E1;
+    --focus: #16191C;
+    --shadow: 0 1px 3px rgba(20, 34, 43, 0.08), 0 6px 18px rgba(20, 34, 43, 0.09);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 16.5px;
+    line-height: 1.45;
+    min-height: 100vh;
+  }
+  h1, h2, h3 { font-family: "Archivo", system-ui, sans-serif; text-wrap: balance; margin: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea, button { font-size: 14px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+  a { color: inherit; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  .topbar { background: linear-gradient(180deg, var(--accent-strong), var(--accent)); color: var(--accent-contrast); padding: 18px 20px; }
+  .topbar-inner { max-width: 1040px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; }
+  .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+  .brand-mark { flex: none; width: 38px; height: 38px; display: grid; place-items: center; background: rgba(244,249,251,0.14); border: 1px solid rgba(244,249,251,0.28); border-radius: 10px; }
+  .back-link { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(244,249,251,0.72); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+  .back-link:hover { color: #FFFFFF; }
+  .back-link svg { width: 12px; height: 12px; }
+  .brand h1 { font-size: 23px; font-weight: 800; letter-spacing: 0.2px; color: var(--brand-yellow); }
+  .brand p { margin: 2px 0 0; font-size: 13.5px; color: #FFFFFF; }
+  .user-info { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #FFFFFF; font-weight: 600; }
+  .today-btn { border: 1px solid rgba(244,249,251,0.3); background: rgba(244,249,251,0.1); color: var(--accent-contrast); border-radius: 999px; padding: 8px 16px; font-weight: 600; font-size: 13px; }
+  .today-btn:hover { background: rgba(244,249,251,0.22); }
+
+  main { max-width: 1040px; margin: 0 auto; padding: 22px 20px 60px; display: flex; flex-direction: column; gap: 22px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 22px; }
+
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 14px; padding: 36px 20px;
+    text-align: center; color: var(--text-muted); cursor: pointer; transition: border-color .15s ease, background .15s ease;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--brand-yellow); background: var(--surface-2); }
+  .upload-zone svg { width: 34px; height: 34px; margin-bottom: 10px; color: var(--text-muted); }
+  .upload-zone strong { color: var(--text); }
+  .upload-zone input[type="file"] { display: none; }
+
+  .file-chip {
+    display: flex; align-items: center; gap: 10px; margin-top: 14px;
+    background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: 13.5px;
+  }
+  .file-chip svg { width: 18px; height: 18px; flex: none; color: var(--text-muted); }
+  .file-chip .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-chip button { background: none; border: none; color: var(--text-muted); font-size: 13px; text-decoration: underline; }
+
+  .add-btn {
+    background: var(--accent); color: var(--accent-contrast); border: none; border-radius: 999px;
+    padding: 12px 26px; font-weight: 700; font-size: 15px; white-space: nowrap; height: 46px; margin-top: 16px;
+  }
+  .add-btn:hover { background: var(--accent-strong); }
+  .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .form-msg { font-size: 13px; font-weight: 600; color: var(--danger); margin-top: 10px; }
+
+  .spinner {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
+    animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+  .stats-row { display: flex; flex-wrap: wrap; gap: 16px; }
+  .stat-card { flex: 1 1 140px; background: var(--surface-2); border-radius: 12px; padding: 16px; }
+  .stat-card .num { font-family: "Archivo", sans-serif; font-weight: 800; font-size: 26px; }
+  .stat-card .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
+
+  .section-label { font-size: 18px; font-weight: 800; margin-bottom: 14px; }
+
+  .marca-group { margin-bottom: 18px; }
+  .marca-title { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; margin-bottom: 10px; }
+  .marca-title .count { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--text-muted); font-weight: 600; }
+
+  .compra-row {
+    display: flex; align-items: center; gap: 14px; padding: 12px 14px;
+    background: var(--pending-bg); border: 1px solid var(--border); border-left: 4px solid var(--pending);
+    border-radius: 10px; margin-bottom: 8px; flex-wrap: wrap;
+  }
+  .compra-row .nome { font-weight: 700; flex: 1 1 220px; min-width: 0; }
+  .compra-row .sku { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--text-muted); }
+  .compra-row .qtd { font-family: "Archivo", sans-serif; font-weight: 800; font-size: 20px; color: var(--pending); white-space: nowrap; }
+  .compra-row .qtd .lbl { font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; display: block; }
+  .compra-row .custo { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; }
+
+  .empty-state { padding: 22px 14px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
+
+  table.consolidado { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.consolidado th { text-align: left; background: var(--accent); color: #fff; padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  table.consolidado td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  table.consolidado tr:last-child td { border-bottom: none; }
+  .badge-ok { color: var(--collected); font-weight: 700; }
+  .badge-comprar { color: var(--pending); font-weight: 700; }
+  .table-wrap { overflow-x: auto; }
+
+  .alerta-pendente {
+    background: var(--danger-bg); border: 1px solid var(--danger); border-radius: 10px;
+    padding: 12px 14px; font-size: 13.5px; color: var(--danger); margin-bottom: 8px;
+  }
+  .alerta-pendente strong { display: block; margin-bottom: 4px; }
+
+  footer.note { text-align: center; color: var(--text-muted); font-size: 11.5px; padding-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<div id="appScreen" hidden>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
+        </span>
+        <div>
+          <a class="back-link" href="full.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Full
+          </a>
+          <h1>Lista de Compras</h1>
+          <p>Suba o PDF do envio e receba a lista já desmembrada e cruzada com o estoque</p>
+        </div>
+      </div>
+      <div class="user-info">
+        <span id="userGreeting">—</span>
+        <button type="button" id="logoutBtn" class="today-btn">Sair</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <div class="panel">
+      <div class="upload-zone" id="uploadZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        <div><strong>Clique para escolher o PDF</strong> ou arraste aqui</div>
+        <div style="font-size:12.5px;margin-top:4px;">preparation instructions do Mercado Livre Full</div>
+        <input type="file" id="fileInput" accept="application/pdf">
+      </div>
+      <div class="file-chip" id="fileChip" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+        <span class="name" id="fileName"></span>
+        <button type="button" id="clearFile">remover</button>
+      </div>
+      <button type="button" class="add-btn" id="processarBtn" disabled>Gerar lista de compras</button>
+      <div class="form-msg" id="formMsg"></div>
+    </div>
+
+    <div id="resultado" hidden>
+      <div class="panel">
+        <div class="stats-row">
+          <div class="stat-card"><div class="num tabular" id="statFrete">—</div><div class="label">Frete</div></div>
+          <div class="stat-card"><div class="num tabular" id="statProdutos">—</div><div class="label">Produtos no envio</div></div>
+          <div class="stat-card"><div class="num tabular" id="statUnidades">—</div><div class="label">Unidades no envio</div></div>
+          <div class="stat-card"><div class="num tabular" id="statComprar">—</div><div class="label">SKUs p/ comprar</div></div>
+        </div>
+        <button type="button" class="add-btn" id="exportarBtn" style="margin-top:18px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px;"><path d="M12 3v12M12 15l-4-4M12 15l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          Exportar Excel
+        </button>
+        <div class="form-msg" id="exportMsg"></div>
+      </div>
+
+      <div id="pendentesWrap"></div>
+
+      <div class="panel">
+        <div class="section-label">Lista de compras (por marca/fornecedor)</div>
+        <div id="listaPorMarca"></div>
+      </div>
+
+      <div class="panel">
+        <div class="section-label">Consolidado — todos os SKUs componentes</div>
+        <div class="table-wrap">
+          <table class="consolidado" id="tabelaConsolidado">
+            <thead>
+              <tr><th>SKU</th><th>Produto</th><th>Marca</th><th>Necessário</th><th>Estoque</th><th>Comprar</th><th>Situação</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <footer class="note">Lista de Compras · Full · Hub Lisfer</footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  const el = (id) => document.getElementById(id);
+  let arquivoSelecionado = null;
+  let ultimoResultado = null;
+
+  el('logoutBtn').addEventListener('click', () => HubAuth.logout());
+
+  HubAuth.requireAuth((user) => {
+    el('userGreeting').textContent = 'Olá, ' + (HubAuth.nomeDe(user.id) || user.email);
+    el('appScreen').hidden = false;
+  });
+
+  const uploadZone = el('uploadZone');
+  const fileInput = el('fileInput');
+  const fileChip = el('fileChip');
+  const processarBtn = el('processarBtn');
+  const formMsg = el('formMsg');
+
+  function selecionarArquivo(file) {
+    if (!file || file.type !== 'application/pdf') {
+      formMsg.textContent = 'Selecione um arquivo PDF.';
+      return;
+    }
+    arquivoSelecionado = file;
+    el('fileName').textContent = file.name;
+    fileChip.hidden = false;
+    uploadZone.hidden = true;
+    processarBtn.disabled = false;
+    formMsg.textContent = '';
+  }
+
+  uploadZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => selecionarArquivo(e.target.files[0]));
+
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    selecionarArquivo(e.dataTransfer.files[0]);
+  });
+
+  el('clearFile').addEventListener('click', () => {
+    arquivoSelecionado = null;
+    fileInput.value = '';
+    fileChip.hidden = true;
+    uploadZone.hidden = false;
+    processarBtn.disabled = true;
+  });
+
+  function arrayBufferParaBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function formatarNumero(n) {
+    if (n == null) return '—';
+    return Number.isInteger(n) ? String(n) : n.toFixed(2);
+  }
+
+  function renderResultado(r) {
+    ultimoResultado = r;
+    el('resultado').hidden = false;
+    el('statFrete').textContent = r.frete || '—';
+    el('statProdutos').textContent = r.produtos_declarados != null ? r.produtos_declarados : '—';
+    el('statUnidades').textContent = r.total_unidades_declarado != null ? r.total_unidades_declarado : '—';
+
+    const paraComprar = r.itens_consolidados.filter((i) => i.quantidade_comprar > 0);
+    el('statComprar').textContent = paraComprar.length;
+
+    const pendentesWrap = el('pendentesWrap');
+    pendentesWrap.innerHTML = '';
+    if (r.pendentes_confirmacao && r.pendentes_confirmacao.length) {
+      const panel = document.createElement('div');
+      panel.className = 'panel';
+      panel.innerHTML = '<div class="section-label">Precisa de confirmação manual</div>';
+      r.pendentes_confirmacao.forEach((p) => {
+        const box = document.createElement('div');
+        box.className = 'alerta-pendente';
+        box.innerHTML = '<strong>' + escapeHtml(p.sku_kit) + ' — ' + escapeHtml(p.nome) + '</strong>' + escapeHtml(p.motivo);
+        panel.appendChild(box);
+      });
+      pendentesWrap.appendChild(panel);
+    }
+
+    const listaPorMarca = el('listaPorMarca');
+    listaPorMarca.innerHTML = '';
+    const marcas = Object.keys(r.lista_compras_por_marca || {});
+    if (marcas.length === 0) {
+      const vazio = document.createElement('div');
+      vazio.className = 'empty-state';
+      vazio.textContent = 'Nenhuma compra necessária — o estoque cobre todo o envio.';
+      listaPorMarca.appendChild(vazio);
+    } else {
+      marcas.forEach((marca) => {
+        const itens = r.lista_compras_por_marca[marca];
+        const grupo = document.createElement('div');
+        grupo.className = 'marca-group';
+        const titulo = document.createElement('div');
+        titulo.className = 'marca-title';
+        titulo.innerHTML = '<span>' + escapeHtml(marca) + '</span><span class="count">' + itens.length + ' SKU(s)</span>';
+        grupo.appendChild(titulo);
+        itens.forEach((i) => {
+          const row = document.createElement('div');
+          row.className = 'compra-row';
+          row.innerHTML =
+            '<div class="nome">' + escapeHtml(i.nome) + '<div class="sku">' + escapeHtml(i.sku) + '</div></div>' +
+            '<div class="custo">' + (i.custo_unitario != null ? 'R$ ' + i.custo_unitario.toFixed(2) + ' / un.' : 'sem custo cadastrado') + '</div>' +
+            '<div class="qtd"><span class="lbl">Comprar</span>' + formatarNumero(i.quantidade_comprar) + '</div>';
+          grupo.appendChild(row);
+        });
+        listaPorMarca.appendChild(grupo);
+      });
+    }
+
+    const tbody = document.querySelector('#tabelaConsolidado tbody');
+    tbody.innerHTML = '';
+    r.itens_consolidados.forEach((i) => {
+      const tr = document.createElement('tr');
+      const situacaoClasse = i.quantidade_comprar > 0 ? 'badge-comprar' : 'badge-ok';
+      tr.innerHTML =
+        '<td>' + escapeHtml(i.sku) + (i.sku_nao_cadastrado_no_tiny ? ' ⚠' : '') + '</td>' +
+        '<td>' + escapeHtml(i.nome) + '</td>' +
+        '<td>' + escapeHtml(i.marca) + '</td>' +
+        '<td>' + formatarNumero(i.necessario) + '</td>' +
+        '<td>' + (i.sku_nao_cadastrado_no_tiny ? 'não encontrado' : formatarNumero(i.estoque_atual)) + '</td>' +
+        '<td>' + formatarNumero(i.quantidade_comprar) + '</td>' +
+        '<td class="' + situacaoClasse + '">' + escapeHtml(i.situacao) + '</td>';
+      tbody.appendChild(tr);
+    });
+  }
+
+  processarBtn.addEventListener('click', async () => {
+    if (!arquivoSelecionado) return;
+    formMsg.textContent = '';
+    processarBtn.disabled = true;
+    processarBtn.innerHTML = '<span class="spinner"></span>Processando... isso pode levar até 1 minuto';
+
+    try {
+      const { data } = await sb.auth.getSession();
+      const token = data.session ? data.session.access_token : null;
+
+      const buffer = await arquivoSelecionado.arrayBuffer();
+      const pdfBase64 = arrayBufferParaBase64(buffer);
+
+      const resp = await fetch('/api/lista-compras', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify({ pdf_base64: pdfBase64 }),
+      });
+
+      const json = await resp.json();
+      if (!resp.ok) {
+        formMsg.textContent = (json.erro || 'Não foi possível processar o PDF.') + (json.debug ? ' [' + json.debug + ']' : '');
+        return;
+      }
+      renderResultado(json);
+    } catch (err) {
+      console.error(err);
+      formMsg.textContent = 'Erro de conexão ao processar o PDF. Tente novamente.';
+    } finally {
+      processarBtn.disabled = false;
+      processarBtn.textContent = 'Gerar lista de compras';
+    }
+  });
+
+  el('exportarBtn').addEventListener('click', async () => {
+    if (!ultimoResultado) return;
+    const exportarBtn = el('exportarBtn');
+    const exportMsg = el('exportMsg');
+    exportMsg.textContent = '';
+    exportarBtn.disabled = true;
+    const textoOriginal = exportarBtn.innerHTML;
+    exportarBtn.innerHTML = '<span class="spinner"></span>Gerando Excel...';
+
+    try {
+      const { data } = await sb.auth.getSession();
+      const token = data.session ? data.session.access_token : null;
+
+      const resp = await fetch('/api/exportar-excel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify(ultimoResultado),
+      });
+
+      if (!resp.ok) {
+        const json = await resp.json().catch(() => ({}));
+        exportMsg.textContent = json.erro || 'Não foi possível gerar o Excel.';
+        return;
+      }
+
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'lista-de-compras-full-' + (ultimoResultado.frete || 'lista') + '.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      exportMsg.textContent = 'Erro de conexão ao gerar o Excel.';
+    } finally {
+      exportarBtn.disabled = false;
+      exportarBtn.innerHTML = textoOriginal;
+    }
+  });
+})();
+</script>
+</body>
+</html>
