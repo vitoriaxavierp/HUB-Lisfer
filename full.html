@@ -193,6 +193,11 @@
           <div class="stat-card"><div class="num tabular" id="statUnidades">—</div><div class="label">Unidades no envio</div></div>
           <div class="stat-card"><div class="num tabular" id="statComprar">—</div><div class="label">SKUs p/ comprar</div></div>
         </div>
+        <button type="button" class="add-btn" id="exportarBtn" style="margin-top:18px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px;"><path d="M12 3v12M12 15l-4-4M12 15l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          Exportar Excel
+        </button>
+        <div class="form-msg" id="exportMsg"></div>
       </div>
 
       <div id="pendentesWrap"></div>
@@ -223,6 +228,7 @@
 (function () {
   const el = (id) => document.getElementById(id);
   let arquivoSelecionado = null;
+  let ultimoResultado = null;
 
   el('logoutBtn').addEventListener('click', () => HubAuth.logout());
 
@@ -289,6 +295,7 @@
   }
 
   function renderResultado(r) {
+    ultimoResultado = r;
     el('resultado').hidden = false;
     el('statFrete').textContent = r.frete || '—';
     el('statProdutos').textContent = r.produtos_declarados != null ? r.produtos_declarados : '—';
@@ -393,6 +400,52 @@
     } finally {
       processarBtn.disabled = false;
       processarBtn.textContent = 'Gerar lista de compras';
+    }
+  });
+
+  el('exportarBtn').addEventListener('click', async () => {
+    if (!ultimoResultado) return;
+    const exportarBtn = el('exportarBtn');
+    const exportMsg = el('exportMsg');
+    exportMsg.textContent = '';
+    exportarBtn.disabled = true;
+    const textoOriginal = exportarBtn.innerHTML;
+    exportarBtn.innerHTML = '<span class="spinner"></span>Gerando Excel...';
+
+    try {
+      const { data } = await sb.auth.getSession();
+      const token = data.session ? data.session.access_token : null;
+
+      const resp = await fetch('/api/exportar-excel', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify(ultimoResultado),
+      });
+
+      if (!resp.ok) {
+        const json = await resp.json().catch(() => ({}));
+        exportMsg.textContent = json.erro || 'Não foi possível gerar o Excel.';
+        return;
+      }
+
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'lista-de-compras-full-' + (ultimoResultado.frete || 'lista') + '.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      exportMsg.textContent = 'Erro de conexão ao gerar o Excel.';
+    } finally {
+      exportarBtn.disabled = false;
+      exportarBtn.innerHTML = textoOriginal;
     }
   });
 })();
