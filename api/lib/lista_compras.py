@@ -77,9 +77,12 @@ def gerar_lista_compras(caminho_pdf):
             detalhe = tiny.obter_produto(info["empresa_do_produto"], info["produto_id"])
             marca = kits.normalizar_marca((detalhe.get("marca") or "").strip()) or None
         if not marca:
-            # fallback: o campo "marca" do Tiny as vezes vem vazio - nesse
-            # caso usa a heuristica pelo nome do produto
-            marca = kits.extrair_marca(nome)
+            # fallback: o campo "marca" do Tiny esta vazio (ou o SKU nem
+            # esta cadastrado) - tenta prefixo do SKU, depois palavra-chave
+            # no nome do produto, depois a heuristica do ' - '
+            marca = kits.resolver_marca(sku, nome)
+        if not marca:
+            marca = "Marca não identificada"
 
         itens_finais.append(
             {

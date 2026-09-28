@@ -88,7 +88,53 @@ def extrair_marca(nome_produto):
     'Hélice ... - Super Soldas' -> 'Super Soldas')."""
     if " - " in nome_produto:
         return normalizar_marca(nome_produto.rsplit(" - ", 1)[1].strip())
-    return "Marca não identificada"
+    return None
+
+
+# Prefixo do codigo do SKU -> marca (convencao interna: cada marca propria
+# usa um prefixo fixo de codigo).
+_PREFIXO_MARCA = [
+    (re.compile(r"^(KA|KF)", re.IGNORECASE), "Kitest"),
+    (re.compile(r"^LF", re.IGNORECASE), "Lisfer"),
+    (re.compile(r"^LX", re.IGNORECASE), "Loxer"),
+]
+
+# Marcas conhecidas que podem aparecer em qualquer parte do nome do
+# produto (nao so depois de ' - ').
+_MARCAS_CONHECIDAS = [
+    "Lisfer", "Loxer", "Kitest", "Raven", "Delta", "Fame", "Vonder",
+    "Mave", "Super Soldas", "Potente", "Chiaperini",
+]
+
+
+def _marca_por_prefixo_sku(sku):
+    for padrao, marca in _PREFIXO_MARCA:
+        if padrao.match(sku):
+            return marca
+    return None
+
+
+def _marca_por_palavra_no_nome(nome):
+    for marca in _MARCAS_CONHECIDAS:
+        if re.search(rf"\b{re.escape(marca)}\b", nome, re.IGNORECASE):
+            return marca
+    return None
+
+
+def resolver_marca(sku, nome_produto):
+    """Tenta identificar a marca/fornecedor quando o campo 'marca' do
+    proprio Tiny nao estiver preenchido, nesta ordem:
+      1) prefixo do codigo do SKU (KA-/KF- = Kitest, LF- = Lisfer, LX- = Loxer)
+      2) uma marca conhecida citada em qualquer parte do nome do produto
+         (ex: 'Teste De Pressão De Bomba De Combustível Kitest-ka015' -> Kitest)
+      3) o texto depois do ultimo ' - ' no nome (heuristica mais antiga)
+    Devolve None se nenhuma das tres encontrar nada - nesse caso o
+    chamador decide o rotulo final ("Marca não identificada")."""
+    return (
+        _marca_por_prefixo_sku(sku)
+        or _marca_por_palavra_no_nome(nome_produto)
+        or extrair_marca(nome_produto)
+    )
 
 
 _SUFIXOS_MARCA_IGNORAR = re.compile(
