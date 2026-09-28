@@ -97,6 +97,13 @@ def obter_estoque(empresa, produto_id):
     return body.get("produto", {})
 
 
+def obter_produto(empresa, produto_id):
+    """Detalhe completo de um produto (inclui campos que a busca em lote
+    nao traz, como 'marca', 'id_fornecedor', 'categoria')."""
+    body = _post("produto.obter.php", _token(empresa), id=produto_id)
+    return body.get("produto", {})
+
+
 def _cache_arquivo(empresa, pesquisa):
     chave = f"{empresa}_{pesquisa or 'todos'}".replace("/", "_")
     return os.path.join(_CACHE_DIR, f"{chave}.json")
@@ -158,6 +165,8 @@ def estoque_e_custo_por_sku(skus, indices_por_empresa=None, pausa=0.3):
             "preco": None,
             "cadastrado_em": [],
             "nome": None,
+            "produto_id": None,
+            "empresa_do_produto": None,
         }
         produto_para_consultar = None
         empresa_para_consultar = None
@@ -181,6 +190,8 @@ def estoque_e_custo_por_sku(skus, indices_por_empresa=None, pausa=0.3):
                 info["nome"] = produto.get("nome")
 
         if produto_para_consultar is not None:
+            info["produto_id"] = produto_para_consultar["id"]
+            info["empresa_do_produto"] = empresa_para_consultar
             estoque = obter_estoque(empresa_para_consultar, produto_para_consultar["id"])
             info["estoque_total"] = float(estoque.get("saldo", 0) or 0)
             time.sleep(pausa)

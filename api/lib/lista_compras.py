@@ -72,11 +72,20 @@ def gerar_lista_compras(caminho_pdf):
             # componente em si nao foi encontrado no cadastro
             nome = origem_por_componente[sku][0]["nome_kit"]
 
+        marca = None
+        if info.get("produto_id"):
+            detalhe = tiny.obter_produto(info["empresa_do_produto"], info["produto_id"])
+            marca = (detalhe.get("marca") or "").strip() or None
+        if not marca:
+            # fallback: o campo "marca" do Tiny as vezes vem vazio - nesse
+            # caso usa a heuristica pelo nome do produto
+            marca = kits.extrair_marca(nome)
+
         itens_finais.append(
             {
                 "sku": sku,
                 "nome": nome,
-                "marca": kits.extrair_marca(nome),
+                "marca": marca,
                 "necessario": necessario,
                 "estoque_atual": estoque,
                 "quantidade_comprar": qtd_comprar,
