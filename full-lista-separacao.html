@@ -240,8 +240,14 @@
 
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      formOk.textContent = 'Lista de separação gerada — abrindo em uma nova aba para você conferir e imprimir.';
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'lista-de-separacao-full.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      formOk.textContent = 'Lista de separação baixada — abra o arquivo pra conferir e imprimir.';
     } catch (err) {
       console.error(err);
       formMsg.textContent = 'Erro de conexão ao gerar a lista. Tente novamente.';
