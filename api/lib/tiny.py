@@ -27,6 +27,12 @@ def _token(empresa):
     return token
 
 
+_MENSAGENS_SEM_RESULTADO = (
+    "não retornou registros",
+    "nenhum registro encontrado",
+)
+
+
 def _post(endpoint, token, **params):
     data = {"token": token, "formato": "json", **params}
     resp = requests.post(f"{BASE_URL}/{endpoint}", data=data, timeout=30)
@@ -35,6 +41,12 @@ def _post(endpoint, token, **params):
     if body.get("status") == "Erro":
         erros = body.get("erros", [])
         msg = "; ".join(e.get("erro", "") for e in erros) or "erro desconhecido"
+        # O Tiny usa "status: Erro" tambem para dizer "a busca nao encontrou
+        # nada" (ex: SKU nao cadastrado nesta empresa) - isso e uma situacao
+        # normal, nao uma falha real. Trata como resultado vazio.
+        if any(m in msg.lower() for m in _MENSAGENS_SEM_RESULTADO):
+            body["produtos"] = []
+            return body
         raise RuntimeError(f"Tiny API ({endpoint}) retornou erro: {msg}")
     return body
 
