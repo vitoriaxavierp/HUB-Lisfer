@@ -172,15 +172,11 @@
     <div class="panel">
       <div class="upload-zone" id="uploadZone">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-        <div><strong>Clique para escolher o PDF</strong> ou arraste aqui</div>
-        <div style="font-size:12.5px;margin-top:4px;">preparation instructions do Mercado Livre Full</div>
-        <input type="file" id="fileInput" accept="application/pdf">
+        <div><strong>Clique para escolher o(s) PDF(s)</strong> ou arraste aqui</div>
+        <div style="font-size:12.5px;margin-top:4px;">preparation instructions do Mercado Livre Full — pode selecionar mais de um, se forem envios da mesma semana</div>
+        <input type="file" id="fileInput" accept="application/pdf" multiple>
       </div>
-      <div class="file-chip" id="fileChip" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-        <span class="name" id="fileName"></span>
-        <button type="button" id="clearFile">remover</button>
-      </div>
+      <div id="fileList"></div>
       <button type="button" class="add-btn" id="processarBtn" disabled>Gerar lista de compras</button>
       <div class="form-msg" id="formMsg"></div>
     </div>
@@ -188,7 +184,7 @@
     <div id="resultado" hidden>
       <div class="panel">
         <div class="stats-row">
-          <div class="stat-card"><div class="num tabular" id="statFrete">—</div><div class="label">Frete</div></div>
+          <div class="stat-card"><div class="num tabular" id="statFrete" style="font-size:18px;">—</div><div class="label">Frete(s)</div></div>
           <div class="stat-card"><div class="num tabular" id="statProdutos">—</div><div class="label">Produtos no envio</div></div>
           <div class="stat-card"><div class="num tabular" id="statUnidades">—</div><div class="label">Unidades no envio</div></div>
           <div class="stat-card"><div class="num tabular" id="statComprar">—</div><div class="label">SKUs p/ comprar</div></div>
@@ -227,7 +223,7 @@
 <script>
 (function () {
   const el = (id) => document.getElementById(id);
-  let arquivoSelecionado = null;
+  let arquivosSelecionados = [];
   let ultimoResultado = null;
 
   el('logoutBtn').addEventListener('click', () => HubAuth.logout());
@@ -239,40 +235,52 @@
 
   const uploadZone = el('uploadZone');
   const fileInput = el('fileInput');
-  const fileChip = el('fileChip');
+  const fileList = el('fileList');
   const processarBtn = el('processarBtn');
   const formMsg = el('formMsg');
 
-  function selecionarArquivo(file) {
-    if (!file || file.type !== 'application/pdf') {
-      formMsg.textContent = 'Selecione um arquivo PDF.';
+  function escapeHtmlLocal(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function renderFileList() {
+    fileList.innerHTML = '';
+    arquivosSelecionados.forEach((file, i) => {
+      const chip = document.createElement('div');
+      chip.className = 'file-chip';
+      chip.innerHTML =
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>' +
+        '<span class="name">' + escapeHtmlLocal(file.name) + '</span>' +
+        '<button type="button" data-i="' + i + '">remover</button>';
+      chip.querySelector('button').addEventListener('click', () => {
+        arquivosSelecionados.splice(i, 1);
+        renderFileList();
+      });
+      fileList.appendChild(chip);
+    });
+    processarBtn.disabled = arquivosSelecionados.length === 0;
+  }
+
+  function adicionarArquivos(fileListObj) {
+    const novos = Array.from(fileListObj || []).filter((f) => f.type === 'application/pdf');
+    if (novos.length === 0) {
+      formMsg.textContent = 'Selecione arquivo(s) PDF.';
       return;
     }
-    arquivoSelecionado = file;
-    el('fileName').textContent = file.name;
-    fileChip.hidden = false;
-    uploadZone.hidden = true;
-    processarBtn.disabled = false;
+    arquivosSelecionados = arquivosSelecionados.concat(novos);
     formMsg.textContent = '';
+    renderFileList();
   }
 
   uploadZone.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', (e) => selecionarArquivo(e.target.files[0]));
+  fileInput.addEventListener('change', (e) => { adicionarArquivos(e.target.files); fileInput.value = ''; });
 
   uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
   uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
   uploadZone.addEventListener('drop', (e) => {
     e.preventDefault();
     uploadZone.classList.remove('dragover');
-    selecionarArquivo(e.dataTransfer.files[0]);
-  });
-
-  el('clearFile').addEventListener('click', () => {
-    arquivoSelecionado = null;
-    fileInput.value = '';
-    fileChip.hidden = true;
-    uploadZone.hidden = false;
-    processarBtn.disabled = true;
+    adicionarArquivos(e.dataTransfer.files);
   });
 
   function arrayBufferParaBase64(buffer) {
@@ -367,7 +375,7 @@
   }
 
   processarBtn.addEventListener('click', async () => {
-    if (!arquivoSelecionado) return;
+    if (arquivosSelecionados.length === 0) return;
     formMsg.textContent = '';
     processarBtn.disabled = true;
     processarBtn.innerHTML = '<span class="spinner"></span>Processando... isso pode levar até 1 minuto';
@@ -376,8 +384,11 @@
       const { data } = await sb.auth.getSession();
       const token = data.session ? data.session.access_token : null;
 
-      const buffer = await arquivoSelecionado.arrayBuffer();
-      const pdfBase64 = arrayBufferParaBase64(buffer);
+      const arquivos = [];
+      for (const file of arquivosSelecionados) {
+        const buffer = await file.arrayBuffer();
+        arquivos.push({ nome: file.name, pdf_base64: arrayBufferParaBase64(buffer) });
+      }
 
       const resp = await fetch('/api/lista-compras', {
         method: 'POST',
@@ -385,7 +396,7 @@
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + token,
         },
-        body: JSON.stringify({ pdf_base64: pdfBase64 }),
+        body: JSON.stringify({ arquivos: arquivos }),
       });
 
       const json = await resp.json();
@@ -435,7 +446,8 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'lista-de-compras-full-' + (ultimoResultado.frete || 'lista') + '.xlsx';
+      const nomeFretes = (ultimoResultado.frete || 'lista').replace(/\s*\+\s*/g, '-');
+      a.download = 'lista-de-compras-full-' + nomeFretes + '.xlsx';
       document.body.appendChild(a);
       a.click();
       a.remove();

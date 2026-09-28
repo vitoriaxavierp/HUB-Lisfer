@@ -9,7 +9,32 @@ import tiny
 
 
 def gerar_lista_compras(caminho_pdf):
-    dados_pdf = full_pdf.ler_pdf_full(caminho_pdf)
+    """Mantido por compatibilidade: gera a lista a partir de um unico PDF."""
+    return gerar_lista_compras_de_varios([caminho_pdf])
+
+
+def gerar_lista_compras_de_varios(caminhos_pdfs, nomes_arquivos=None):
+    """Mesma coisa, mas aceita VARIOS PDFs do Full (ex: dois envios da
+    mesma semana) e junta tudo numa unica lista de compras combinada -
+    cada PDF continua validado individualmente (soma das unidades bate com
+    o total declarado nele), mas a necessidade de compra e' somada entre
+    todos antes de cruzar com o estoque, evitando comprar demais ou de
+    menos por tratar os envios separadamente."""
+    nomes_arquivos = nomes_arquivos or [None] * len(caminhos_pdfs)
+
+    dados_pdfs = []
+    for caminho, nome_arquivo in zip(caminhos_pdfs, nomes_arquivos):
+        try:
+            dados_pdfs.append(full_pdf.ler_pdf_full(caminho))
+        except ValueError as e:
+            rotulo = nome_arquivo or "arquivo"
+            raise ValueError(f"{rotulo}: {e}") from e
+
+    todos_itens = []
+    for dados in dados_pdfs:
+        todos_itens.extend(dados["itens"])
+
+    fretes = [d.get("frete") for d in dados_pdfs if d.get("frete")]
 
     _cache_existencia = {}
 
@@ -25,7 +50,7 @@ def gerar_lista_compras(caminho_pdf):
     origem_por_componente = defaultdict(list)  # p/ rastreabilidade (aba "desmembramento")
     pendentes_confirmacao = []
 
-    for item in dados_pdf["itens"]:
+    for item in todos_itens:
         componentes, pendente = kits.decompor_sku_kit(item["sku"], item["nome"], sku_existe)
         if pendente:
             pendentes_confirmacao.append(
@@ -106,10 +131,11 @@ def gerar_lista_compras(caminho_pdf):
         por_marca[item["marca"]].append(item)
 
     return {
-        "frete": dados_pdf.get("frete"),
-        "produtos_declarados": dados_pdf.get("produtos_declarados"),
-        "total_unidades_declarado": dados_pdf.get("total_unidades_declarado"),
-        "itens_pdf": dados_pdf["itens"],
+        "fretes": fretes,
+        "frete": " + ".join(fretes) if fretes else None,
+        "produtos_declarados": sum(d.get("produtos_declarados") or 0 for d in dados_pdfs),
+        "total_unidades_declarado": sum(d.get("total_unidades_declarado") or 0 for d in dados_pdfs),
+        "itens_pdf": todos_itens,
         "itens_consolidados": itens_finais,
         "lista_compras_por_marca": dict(por_marca),
         "pendentes_confirmacao": pendentes_confirmacao,

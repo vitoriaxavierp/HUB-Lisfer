@@ -54,13 +54,20 @@ class handler(BaseHTTPRequestHandler):
             comprimento = int(self.headers.get("Content-Length", 0))
             corpo = self.rfile.read(comprimento)
             payload = json.loads(corpo or b"{}")
-            pdf_base64 = payload.get("pdf_base64")
-            if not pdf_base64:
+
+            # aceita um unico PDF (formato antigo) ou uma lista de PDFs
+            # (varios envios do Full na mesma semana, somados numa unica lista)
+            arquivos = payload.get("arquivos")
+            if not arquivos and payload.get("pdf_base64"):
+                arquivos = [{"nome": None, "pdf_base64": payload["pdf_base64"]}]
+            if not arquivos:
                 self._responder(400, {"erro": "Nenhum PDF enviado."})
                 return
 
-            pdf_bytes = base64.b64decode(pdf_base64)
-            resultado = lista_compras.gerar_lista_compras(io.BytesIO(pdf_bytes))
+            caminhos = [io.BytesIO(base64.b64decode(a["pdf_base64"])) for a in arquivos]
+            nomes = [a.get("nome") for a in arquivos]
+
+            resultado = lista_compras.gerar_lista_compras_de_varios(caminhos, nomes)
             self._responder(200, resultado)
         except ValueError as e:
             # erro esperado: ex. soma das unidades nao bate com o total do PDF

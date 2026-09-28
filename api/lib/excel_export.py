@@ -40,7 +40,7 @@ def gerar_excel_lista_compras(resultado):
     ws.title = "Lista de Compras"
     ws.sheet_view.showGridLines = False
 
-    _titulo(ws, 1, f"Lista de Compras — Frete #{resultado.get('frete') or '-'}")
+    _titulo(ws, 1, f"Lista de Compras — Frete(s) #{resultado.get('frete') or '-'}")
     _subtitulo(
         ws, 2,
         f"{resultado.get('produtos_declarados') or 0} produtos no envio · "
