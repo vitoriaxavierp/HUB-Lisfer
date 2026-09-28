@@ -2,11 +2,14 @@
 exatamente como estao no envio (kit continua kit, sem desmembrar) e agrupa
 por marca/fornecedor para facilitar quem vai buscar no estoque."""
 
+import time
 from collections import defaultdict
 
 import full_pdf
 import kits
 import tiny
+
+_PAUSA = 0.3
 
 
 def _marca_do_item(sku, nome, cache):
@@ -16,8 +19,10 @@ def _marca_do_item(sku, nome, cache):
     marca = None
     for empresa in tiny.EMPRESAS:
         produto = tiny.buscar_produto_por_codigo(empresa, sku)
+        time.sleep(_PAUSA)
         if produto:
             detalhe = tiny.obter_produto(empresa, produto["id"])
+            time.sleep(_PAUSA)
             marca = kits.normalizar_marca((detalhe.get("marca") or "").strip()) or None
             break
 
