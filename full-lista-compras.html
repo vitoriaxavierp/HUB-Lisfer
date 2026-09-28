@@ -120,6 +120,7 @@
   }
   .compra-row .nome { font-weight: 700; flex: 1 1 220px; min-width: 0; }
   .compra-row .sku { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--text-muted); }
+  .compra-row .estoque-detalhe { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
   .compra-row .qtd { font-family: "Archivo", sans-serif; font-weight: 800; font-size: 20px; color: var(--pending); white-space: nowrap; }
   .compra-row .qtd .lbl { font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; display: block; }
   .compra-row .custo { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; }
@@ -208,7 +209,7 @@
         <div class="table-wrap">
           <table class="consolidado" id="tabelaConsolidado">
             <thead>
-              <tr><th>SKU</th><th>Produto</th><th>Marca</th><th>Necessário</th><th>Estoque</th><th>Comprar</th><th>Situação</th></tr>
+              <tr><th>SKU</th><th>Produto</th><th>Marca</th><th>Necessário</th><th>Lisfer</th><th>Lalfer</th><th>Multiempresa</th><th>Comprar</th><th>Situação</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -348,7 +349,8 @@
           const row = document.createElement('div');
           row.className = 'compra-row';
           row.innerHTML =
-            '<div class="nome">' + escapeHtml(i.nome) + '<div class="sku">' + escapeHtml(i.sku) + '</div></div>' +
+            '<div class="nome">' + escapeHtml(i.nome) + '<div class="sku">' + escapeHtml(i.sku) + '</div>' +
+            '<div class="estoque-detalhe">Lisfer: ' + formatarNumero(i.estoque_lisfer) + ' · Lalfer: ' + formatarNumero(i.estoque_lalfer) + ' · Multiempresa: ' + formatarNumero(i.estoque_atual) + '</div></div>' +
             '<div class="custo">' + (i.custo_unitario != null ? 'R$ ' + i.custo_unitario.toFixed(2) + ' / un.' : 'sem custo cadastrado') + '</div>' +
             '<div class="qtd"><span class="lbl">Comprar</span>' + formatarNumero(i.quantidade_comprar) + '</div>';
           grupo.appendChild(row);
@@ -367,6 +369,8 @@
         '<td>' + escapeHtml(i.nome) + '</td>' +
         '<td>' + escapeHtml(i.marca) + '</td>' +
         '<td>' + formatarNumero(i.necessario) + '</td>' +
+        '<td>' + (i.sku_nao_cadastrado_no_tiny ? '—' : formatarNumero(i.estoque_lisfer)) + '</td>' +
+        '<td>' + (i.sku_nao_cadastrado_no_tiny ? '—' : formatarNumero(i.estoque_lalfer)) + '</td>' +
         '<td>' + (i.sku_nao_cadastrado_no_tiny ? 'não encontrado' : formatarNumero(i.estoque_atual)) + '</td>' +
         '<td>' + formatarNumero(i.quantidade_comprar) + '</td>' +
         '<td class="' + situacaoClasse + '">' + escapeHtml(i.situacao) + '</td>';

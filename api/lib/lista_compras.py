@@ -116,6 +116,8 @@ def gerar_lista_compras_de_varios(caminhos_pdfs, nomes_arquivos=None):
                 "marca": marca,
                 "necessario": necessario,
                 "estoque_atual": estoque,
+                "estoque_lisfer": info.get("estoque_lisfer"),
+                "estoque_lalfer": info.get("estoque_lalfer"),
                 "quantidade_comprar": qtd_comprar,
                 "custo_unitario": info.get("custo"),
                 "situacao": "COMPRAR" if qtd_comprar > 0 else "OK - estoque cobre",

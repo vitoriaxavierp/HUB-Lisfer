@@ -90,6 +90,20 @@ def buscar_produto_por_codigo(empresa, sku):
     return None
 
 
+def saldos_por_empresa(estoque_resposta):
+    """A partir da resposta de obter_estoque (que ja vem com uma visao
+    combinada das duas empresas, gracas a extensao MultiEmpresas), extrai o
+    saldo do deposito 'proprio' de cada empresa (o deposito cujo nome bate
+    com o nome da empresa: 'Lisfer' -> lisfer, 'Lalfer' -> lalfer)."""
+    saldos = {empresa: 0.0 for empresa in EMPRESAS}
+    for item in estoque_resposta.get("depositos", []):
+        dep = item.get("deposito", item)
+        nome_dep = (dep.get("nome") or "").strip().lower()
+        if nome_dep in saldos:
+            saldos[nome_dep] = float(dep.get("saldo", 0) or 0)
+    return saldos
+
+
 def obter_estoque(empresa, produto_id):
     """Estoque (saldo, deposito por deposito) de um produto especifico,
     usando o ID interno do Tiny daquela empresa."""
@@ -161,6 +175,8 @@ def estoque_e_custo_por_sku(skus, indices_por_empresa=None, pausa=0.3):
     for sku in skus:
         info = {
             "estoque_total": None,
+            "estoque_lisfer": None,
+            "estoque_lalfer": None,
             "custo": None,
             "preco": None,
             "cadastrado_em": [],
@@ -194,6 +210,9 @@ def estoque_e_custo_por_sku(skus, indices_por_empresa=None, pausa=0.3):
             info["empresa_do_produto"] = empresa_para_consultar
             estoque = obter_estoque(empresa_para_consultar, produto_para_consultar["id"])
             info["estoque_total"] = float(estoque.get("saldo", 0) or 0)
+            saldos = saldos_por_empresa(estoque)
+            info["estoque_lisfer"] = saldos.get("lisfer", 0.0)
+            info["estoque_lalfer"] = saldos.get("lalfer", 0.0)
             time.sleep(pausa)
 
         resultado[sku] = info
