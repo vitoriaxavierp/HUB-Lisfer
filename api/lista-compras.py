@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import traceback
+import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler
 
@@ -17,22 +18,27 @@ import lista_compras  # noqa: E402
 def _verificar_sessao(token):
     """Confirma que o token pertence a uma sessao valida do Supabase (ou
     seja, alguem realmente logado no Hub) antes de processar qualquer PDF
-    ou consultar o Tiny."""
+    ou consultar o Tiny. Devolve (ok, motivo_do_erro)."""
     if not token:
-        return False
+        return False, "nenhum token recebido do navegador"
     url = os.environ.get("SUPABASE_URL")
     anon_key = os.environ.get("SUPABASE_ANON_KEY")
-    if not url or not anon_key:
-        return False
+    if not url:
+        return False, "SUPABASE_URL nao configurada no servidor"
+    if not anon_key:
+        return False, "SUPABASE_ANON_KEY nao configurada no servidor"
     req = urllib.request.Request(
         f"{url}/auth/v1/user",
         headers={"Authorization": f"Bearer {token}", "apikey": anon_key},
     )
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            return resp.status == 200
-    except Exception:
-        return False
+            return resp.status == 200, f"status {resp.status}"
+    except urllib.error.HTTPError as e:
+        detalhe = e.read().decode("utf-8", errors="replace")
+        return False, f"HTTPError {e.code}: {detalhe[:300]}"
+    except Exception as e:
+        return False, f"{type(e).__name__}: {e}"
 
 
 class handler(BaseHTTPRequestHandler):
@@ -40,8 +46,9 @@ class handler(BaseHTTPRequestHandler):
         try:
             auth_header = self.headers.get("Authorization", "")
             token = auth_header.replace("Bearer ", "").strip()
-            if not _verificar_sessao(token):
-                self._responder(401, {"erro": "Sessão inválida. Faça login novamente."})
+            ok, motivo = _verificar_sessao(token)
+            if not ok:
+                self._responder(401, {"erro": "Sessão inválida. Faça login novamente.", "debug": motivo})
                 return
 
             comprimento = int(self.headers.get("Content-Length", 0))

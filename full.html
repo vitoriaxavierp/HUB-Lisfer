@@ -383,7 +383,7 @@
 
       const json = await resp.json();
       if (!resp.ok) {
-        formMsg.textContent = json.erro || 'Não foi possível processar o PDF.';
+        formMsg.textContent = (json.erro || 'Não foi possível processar o PDF.') + (json.debug ? ' [' + json.debug + ']' : '');
         return;
       }
       renderResultado(json);
