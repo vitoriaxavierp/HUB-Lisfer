@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calculadora de Preço de Venda — Lisfer</title>
+<title>Calculadora de Lucratividade — Lisfer</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
@@ -17,6 +17,7 @@
     --lisfer-cinza-claro: #6E6E6E;
     --lisfer-borda: #E5E5E5;
     --lisfer-fundo: #F7F7F5;
+    --lisfer-prejuizo: #B3261E;
   }
   * { box-sizing: border-box; }
   body {
@@ -74,16 +75,6 @@
     padding: 28px 28px 32px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
-  .checkbox-field {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-    font-size: 13px;
-    color: var(--lisfer-preto);
-  }
-  .checkbox-field input { width: auto; height: auto; accent-color: var(--lisfer-amarelo); }
-  .checkbox-field label { margin: 0; font-weight: 500; color: var(--lisfer-preto); }
   h2.section-title {
     max-width: 1420px;
     margin: 44px auto 12px;
@@ -143,6 +134,10 @@
     box-shadow: 0 0 0 3px rgba(251,190,40,0.25);
   }
   .field { margin-bottom: 14px; }
+  .field.destaque-campo input {
+    border-color: var(--lisfer-preto);
+    font-weight: 700;
+  }
   button {
     width: 100%;
     height: 44px;
@@ -183,12 +178,21 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
   }
-  .destaque p:last-child {
+  .destaque p:nth-child(2) {
     font-size: 28px;
     font-weight: 800;
     margin: 0;
     color: #ffffff;
   }
+  .destaque p.valor-abs {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 4px 0 0;
+    color: rgba(255,255,255,0.75);
+  }
+  .destaque.prejuizo { background: var(--lisfer-prejuizo); }
+  .destaque.prejuizo p:first-child { color: #FFE1DE; }
+  .destaque.prejuizo p.valor-abs { color: rgba(255,255,255,0.85); }
   table {
     width: 100%;
     font-size: 13px;
@@ -231,21 +235,26 @@
 <h2 class="section-title">Mercado Livre &amp; Loja Própria</h2>
 <div class="calculadoras">
 <div class="card">
-  <h1>Calculadora de preço de venda</h1>
-  <p class="subtitle">Mercado Livre — custo, comissão, imposto, frete e lucro</p>
+  <h1>Calculadora de lucratividade</h1>
+  <p class="subtitle">Mercado Livre — informe o preço que você pratica e veja o lucro real</p>
 
   <div class="row">
     <div class="field">
       <label for="custo">Custo do produto (R$)</label>
       <input type="text" id="custo" placeholder="Ex: 25,00" inputmode="decimal">
     </div>
-    <div class="field">
-      <label for="modalidade">Modalidade do anúncio</label>
-      <select id="modalidade">
-        <option value="0.17">Premium (17%)</option>
-        <option value="0.12">Clássico (12%)</option>
-      </select>
+    <div class="field destaque-campo">
+      <label for="precoVenda">Preço de venda praticado (R$)</label>
+      <input type="text" id="precoVenda" placeholder="Ex: 55,00" inputmode="decimal">
     </div>
+  </div>
+
+  <div class="field">
+    <label for="modalidade">Modalidade do anúncio</label>
+    <select id="modalidade">
+      <option value="0.17">Premium (17%)</option>
+      <option value="0.12">Clássico (12%)</option>
+    </select>
   </div>
 
   <div class="field">
@@ -286,14 +295,16 @@
 
   <p class="erro" id="erro"></p>
 
-  <button id="calcular">Calcular preço de venda</button>
+  <button id="calcular">Calcular lucratividade</button>
 
   <div class="resultado" id="resultado">
-    <div class="destaque">
-      <p>Preço de venda sugerido</p>
-      <p id="precoFinal">R$ 0,00</p>
+    <div class="destaque" id="destaque">
+      <p id="statusLabel">Lucro</p>
+      <p id="statusPct">0,0%</p>
+      <p class="valor-abs" id="statusValor">R$ 0,00</p>
     </div>
     <table>
+      <tr><td>Preço de venda praticado</td><td id="rPreco"></td></tr>
       <tr><td>Custo do produto</td><td id="rCusto"></td></tr>
       <tr><td>Comissão do anúncio</td><td id="rComissao"></td></tr>
       <tr id="linhaImpostoDet"><td>Imposto (13%)</td><td id="rImposto"></td></tr>
@@ -306,43 +317,49 @@
       <tr id="linhaCustoFlex" style="display: none;"><td>Custo Flex</td><td id="rCustoFlex"></td></tr>
       <tr id="linhaAbono" style="display: none;"><td>Abono Mercado Livre</td><td id="rAbono"></td></tr>
       <tr id="linhaFreteSimp" style="display:none;"><td>Custo fixo da faixa de preço</td><td id="rFreteSimp"></td></tr>
-      <tr class="total"><td>Lucro (10%)</td><td id="rLucro"></td></tr>
     </table>
   </div>
 
-  <p class="footer-note" id="footerML">Cálculo iterativo: como o frete depende da faixa de preço final, e o preço final depende dele, a calculadora recalcula até o valor convergir. No Flex, até R$ 78,99 considera-se Frete + R$ 12,00 − abono; a partir de R$ 79,00, o frete é desconsiderado e mantém-se apenas R$ 12,00 − abono. O custo operacional (3%) também é calculado sobre o preço final de venda.</p>
+  <p class="footer-note" id="footerML">No Flex, até R$ 78,99 considera-se Frete + R$ 12,00 − abono; a partir de R$ 79,00, o frete é desconsiderado e mantém-se apenas R$ 12,00 − abono. O custo operacional (3%) também é calculado sobre o preço de venda praticado.</p>
 </div>
 
 <div class="card nuvemshop-card">
-  <h1>Calculadora de preço de venda</h1>
-  <p class="subtitle">Nuvemshop — pagamento, sistema, impostos e lucro</p>
+  <h1>Calculadora de lucratividade</h1>
+  <p class="subtitle">Nuvemshop — informe o preço que você pratica e veja o lucro real</p>
 
-  <div class="field">
-    <label for="custoNuvemshop">Custo do produto (R$)</label>
-    <input type="text" id="custoNuvemshop" placeholder="Ex: 25,00" inputmode="decimal">
+  <div class="row">
+    <div class="field">
+      <label for="custoNuvemshop">Custo do produto (R$)</label>
+      <input type="text" id="custoNuvemshop" placeholder="Ex: 25,00" inputmode="decimal">
+    </div>
+    <div class="field destaque-campo">
+      <label for="precoVendaNuvemshop">Preço de venda praticado (R$)</label>
+      <input type="text" id="precoVendaNuvemshop" placeholder="Ex: 55,00" inputmode="decimal">
+    </div>
   </div>
 
   <p class="erro" id="erroNuvemshop"></p>
 
-  <button id="calcularNuvemshop">Calcular preço de venda</button>
+  <button id="calcularNuvemshop">Calcular lucratividade</button>
 
   <div class="resultado" id="resultadoNuvemshop">
-    <div class="destaque">
-      <p>Preço de venda sugerido</p>
-      <p id="precoFinalNuvemshop">R$ 0,00</p>
+    <div class="destaque" id="destaqueNuvemshop">
+      <p id="statusLabelNuvemshop">Lucro</p>
+      <p id="statusPctNuvemshop">0,0%</p>
+      <p class="valor-abs" id="statusValorNuvemshop">R$ 0,00</p>
     </div>
     <table>
+      <tr><td>Preço de venda praticado</td><td id="rPrecoNuvemshop"></td></tr>
       <tr><td>Custo do produto</td><td id="rCustoNuvemshop"></td></tr>
       <tr><td>Custos de pagamento MP (17%)</td><td id="rPagamentoNuvemshop"></td></tr>
       <tr><td>Embalagem (1,5%)</td><td id="rEmbalagemNuvemshop"></td></tr>
       <tr><td>Impostos (13%)</td><td id="rImpostoNuvemshop"></td></tr>
       <tr><td>Sistema</td><td id="rSistemaNuvemshop"></td></tr>
       <tr><td>Custo fixo (&lt; R$ 79)</td><td id="rFixoNuvemshop"></td></tr>
-      <tr class="total"><td>Lucro (13%)</td><td id="rLucroNuvemshop"></td></tr>
     </table>
   </div>
 
-  <p class="footer-note">O custo fixo de R$ 4,00 é aplicado apenas quando o pedido fica abaixo de R$ 79,00. Se a inclusão desse custo ultrapassar esse limite, a sugestão fica em R$ 79,00 para evitar a cobrança.</p>
+  <p class="footer-note">O custo fixo de R$ 4,00 é considerado apenas quando o preço praticado fica abaixo de R$ 79,00.</p>
 </div>
 </div>
 
@@ -351,7 +368,7 @@
 
 <!-- SHOPEE -->
 <div class="card shopee-card">
-  <h1>Calculadora de preço de venda</h1>
+  <h1>Calculadora de lucratividade</h1>
   <p class="subtitle">Shopee — estrutura real Lisfer (2 contas)</p>
 
   <div class="row">
@@ -359,41 +376,47 @@
       <label for="custoShopee">Custo do produto (R$)</label>
       <input type="text" id="custoShopee" placeholder="Ex: 25,00" inputmode="decimal">
     </div>
-    <div class="field">
-      <label for="contaShopee">Conta</label>
-      <select id="contaShopee">
-        <option value="lisfer">Shopee - Lisfer</option>
-        <option value="lalfer">Shopee - Lalfer</option>
-      </select>
+    <div class="field destaque-campo">
+      <label for="precoVendaShopee">Preço de venda praticado (R$)</label>
+      <input type="text" id="precoVendaShopee" placeholder="Ex: 55,00" inputmode="decimal">
     </div>
+  </div>
+
+  <div class="field">
+    <label for="contaShopee">Conta</label>
+    <select id="contaShopee">
+      <option value="lisfer">Shopee - Lisfer</option>
+      <option value="lalfer">Shopee - Lalfer</option>
+    </select>
   </div>
 
   <p class="erro" id="erroShopee"></p>
 
-  <button id="calcularShopee">Calcular preço de venda</button>
+  <button id="calcularShopee">Calcular lucratividade</button>
 
   <div class="resultado" id="resultadoShopee">
-    <div class="destaque">
-      <p>Preço de venda sugerido</p>
-      <p id="precoFinalShopee">R$ 0,00</p>
+    <div class="destaque" id="destaqueShopee">
+      <p id="statusLabelShopee">Lucro</p>
+      <p id="statusPctShopee">0,0%</p>
+      <p class="valor-abs" id="statusValorShopee">R$ 0,00</p>
     </div>
     <table>
+      <tr><td>Preço de venda praticado</td><td id="rPrecoShopee"></td></tr>
       <tr><td>Custo do produto</td><td id="rCustoShopee"></td></tr>
       <tr><td>Comissão Shopee (<span id="rPctComissaoShopee"></span>)</td><td id="rComissaoShopee"></td></tr>
       <tr><td>Custo fixo por item (frete)</td><td id="rTaxaFixaShopee"></td></tr>
       <tr><td>Imposto (<span id="rPctImpostoShopee"></span>)</td><td id="rImpostoShopee"></td></tr>
       <tr><td>Embalagem e Operacional (2,5%)</td><td id="rEmbOperShopee"></td></tr>
       <tr><td>Sistema</td><td id="rSistemaShopee"></td></tr>
-      <tr class="total"><td>Lucro (10%)</td><td id="rLucroShopee"></td></tr>
     </table>
   </div>
 
-  <p class="footer-note">Estrutura CNPJ confirmada por você: até R$ 79,99 → 20% + R$ 4,00; R$ 80,00 a R$ 99,99 → 14% + R$ 16,00; R$ 100,00 a R$ 199,99 → 14% + R$ 20,00; a partir de R$ 200,00 → 14% + R$ 26,00 (mesmo valor da faixa anterior, sem variação até acima de R$ 500,00). Imposto e Embalagem/Operacional seguem a planilha interna (12,5% e 2,5%). Sistema R$ 0,80/pedido.</p>
+  <p class="footer-note">Faixas: até R$ 79,99 → 20% + R$ 4,00; R$ 80,00 a R$ 99,99 → 14% + R$ 16,00; R$ 100,00 a R$ 199,99 → 14% + R$ 20,00; a partir de R$ 200,00 → 14% + R$ 26,00.</p>
 </div>
 
 <!-- AMAZON -->
 <div class="card amazon-card">
-  <h1>Calculadora de preço de venda</h1>
+  <h1>Calculadora de lucratividade</h1>
   <p class="subtitle">Amazon — estrutura real Lisfer (2 contas)</p>
 
   <div class="row">
@@ -401,6 +424,13 @@
       <label for="custoAmazon">Custo do produto (R$)</label>
       <input type="text" id="custoAmazon" placeholder="Ex: 25,00" inputmode="decimal">
     </div>
+    <div class="field destaque-campo">
+      <label for="precoVendaAmazon">Preço de venda praticado (R$)</label>
+      <input type="text" id="precoVendaAmazon" placeholder="Ex: 55,00" inputmode="decimal">
+    </div>
+  </div>
+
+  <div class="row">
     <div class="field">
       <label for="contaAmazon">Conta</label>
       <select id="contaAmazon">
@@ -408,39 +438,39 @@
         <option value="lalfer">Amazon - Lalfer</option>
       </select>
     </div>
-  </div>
-
-  <div class="field">
-    <label for="freteAcimaAmazon">Custo de frete p/ pedidos ≥ R$ 79,00 (R$, opcional)</label>
-    <input type="text" id="freteAcimaAmazon" placeholder="Ex: 8,50 (consulte o Seller Central)" inputmode="decimal">
+    <div class="field">
+      <label for="freteAcimaAmazon">Custo de frete p/ preços ≥ R$ 79,00 (R$, opcional)</label>
+      <input type="text" id="freteAcimaAmazon" placeholder="Ex: 8,50 (consulte o Seller Central)" inputmode="decimal">
+    </div>
   </div>
 
   <p class="erro" id="erroAmazon"></p>
 
-  <button id="calcularAmazon">Calcular preço de venda</button>
+  <button id="calcularAmazon">Calcular lucratividade</button>
 
   <div class="resultado" id="resultadoAmazon">
-    <div class="destaque">
-      <p>Preço de venda sugerido</p>
-      <p id="precoFinalAmazon">R$ 0,00</p>
+    <div class="destaque" id="destaqueAmazon">
+      <p id="statusLabelAmazon">Lucro</p>
+      <p id="statusPctAmazon">0,0%</p>
+      <p class="valor-abs" id="statusValorAmazon">R$ 0,00</p>
     </div>
     <table>
+      <tr><td>Preço de venda praticado</td><td id="rPrecoAmazon"></td></tr>
       <tr><td>Custo do produto</td><td id="rCustoAmazon"></td></tr>
       <tr><td>Comissão Amazon (15%)</td><td id="rComissaoAmazon"></td></tr>
-      <tr id="linhaFreteAmazon"><td id="labelFreteAmazon">Tarifa DBA (frete)</td><td id="rFreteAmazon"></td></tr>
+      <tr><td id="labelFreteAmazon">Tarifa DBA (frete)</td><td id="rFreteAmazon"></td></tr>
       <tr><td>Imposto (13%)</td><td id="rImpostoAmazon"></td></tr>
       <tr><td>Embalagem e Operacional (<span id="rPctEmbOperAmazon"></span>)</td><td id="rEmbOperAmazon"></td></tr>
       <tr><td>Sistema</td><td id="rSistemaAmazon"></td></tr>
-      <tr class="total"><td>Lucro (10%)</td><td id="rLucroAmazon"></td></tr>
     </table>
   </div>
 
-  <p class="footer-note">Tarifa DBA oficial (venda.amazon.com.br/precos, atualizada em 01/08/2025): abaixo de R$ 30,00 → R$ 4,50; R$ 30,00 a R$ 49,99 → R$ 6,50; R$ 50,00 a R$ 78,99 → R$ 6,75. A partir de R$ 79,00 a Amazon <strong>não cobra zero</strong> — a tarifa vira variável por peso e estado de origem (tabela só disponível dentro do Seller Central). Preencha o campo acima com esse valor se você já tiver esse dado; deixando em branco, a calculadora assume R$ 0,00 nessa faixa, o que pode subestimar levemente o preço sugerido para produtos ≥ R$ 79. Comissão 15% e Sistema R$ 1,00/pedido vêm da planilha interna; confirme se sua categoria (Ferramentas e Construção, Automotivo) realmente está enquadrada em 15% — a tabela oficial de comissões lista taxas de 11% a 12% para essas categorias.</p>
+  <p class="footer-note">Tarifa DBA: abaixo de R$ 30,00 → R$ 4,50; R$ 30,00 a R$ 49,99 → R$ 6,50; R$ 50,00 a R$ 78,99 → R$ 6,75. A partir de R$ 79,00 preencha o campo de frete se souber o valor cobrado pela Amazon; em branco assume-se R$ 0,00.</p>
 </div>
 
 <!-- MAGALU -->
 <div class="card magalu-card">
-  <h1>Calculadora de preço de venda</h1>
+  <h1>Calculadora de lucratividade</h1>
   <p class="subtitle">Magalu — estrutura real Lisfer (2 contas)</p>
 
   <div class="row">
@@ -448,13 +478,17 @@
       <label for="custoMagalu">Custo do produto (R$)</label>
       <input type="text" id="custoMagalu" placeholder="Ex: 25,00" inputmode="decimal">
     </div>
-    <div class="field">
-      <label for="pesoMagalu">Peso considerado (kg)</label>
-      <input type="text" id="pesoMagalu" placeholder="Ex: 0,8" inputmode="decimal">
+    <div class="field destaque-campo">
+      <label for="precoVendaMagalu">Preço de venda praticado (R$)</label>
+      <input type="text" id="precoVendaMagalu" placeholder="Ex: 55,00" inputmode="decimal">
     </div>
   </div>
 
   <div class="row">
+    <div class="field">
+      <label for="pesoMagalu">Peso considerado (kg)</label>
+      <input type="text" id="pesoMagalu" placeholder="Ex: 0,8" inputmode="decimal">
+    </div>
     <div class="field">
       <label for="contaMagalu">Conta</label>
       <select id="contaMagalu">
@@ -462,26 +496,29 @@
         <option value="lalfer">Magalu - Lalfer</option>
       </select>
     </div>
-    <div class="field">
-      <label for="despachoMagalu">Índice de Despacho no Prazo</label>
-      <select id="despachoMagalu">
-        <option value="0">Abaixo de 87% (sem desconto)</option>
-        <option value="1">Entre 87% e 97% (desconto de 25%)</option>
-        <option value="2">Acima de 97% (desconto de 50%)</option>
-      </select>
-    </div>
+  </div>
+
+  <div class="field">
+    <label for="despachoMagalu">Índice de Despacho no Prazo</label>
+    <select id="despachoMagalu">
+      <option value="0">Abaixo de 87% (sem desconto)</option>
+      <option value="1">Entre 87% e 97% (desconto de 25%)</option>
+      <option value="2">Acima de 97% (desconto de 50%)</option>
+    </select>
   </div>
 
   <p class="erro" id="erroMagalu"></p>
 
-  <button id="calcularMagalu">Calcular preço de venda</button>
+  <button id="calcularMagalu">Calcular lucratividade</button>
 
   <div class="resultado" id="resultadoMagalu">
-    <div class="destaque">
-      <p>Preço de venda sugerido</p>
-      <p id="precoFinalMagalu">R$ 0,00</p>
+    <div class="destaque" id="destaqueMagalu">
+      <p id="statusLabelMagalu">Lucro</p>
+      <p id="statusPctMagalu">0,0%</p>
+      <p class="valor-abs" id="statusValorMagalu">R$ 0,00</p>
     </div>
     <table>
+      <tr><td>Preço de venda praticado</td><td id="rPrecoMagalu"></td></tr>
       <tr><td>Custo do produto</td><td id="rCustoMagalu"></td></tr>
       <tr><td>Comissão Magalu (18%)</td><td id="rComissaoMagalu"></td></tr>
       <tr><td>Custo fixo por pedido</td><td id="rTarifaMagalu"></td></tr>
@@ -489,16 +526,15 @@
       <tr><td>Imposto (<span id="rPctImpostoMagalu"></span>)</td><td id="rImpostoMagalu"></td></tr>
       <tr><td>Embalagem e Operacional (2%)</td><td id="rEmbOperMagalu"></td></tr>
       <tr><td>Sistema</td><td id="rSistemaMagalu"></td></tr>
-      <tr class="total"><td>Lucro (10%)</td><td id="rLucroMagalu"></td></tr>
     </table>
   </div>
 
-  <p class="footer-note">Frete real Magalu Entregas (tabela do Preço Certo): calculado pelo maior peso entre o real e o cubado. Peso cubado (produtos leves) = Altura × Largura × Comprimento (m) × 167; para produtos pesados, use fator 300. Informe aqui já o maior dos dois. O valor do frete depende da faixa de peso e do seu índice de Despacho no Prazo (quanto maior o índice, maior o desconto — até 50%). Comissão 18% e custo fixo de R$ 5,00/pedido continuam vindos da planilha interna; o Imposto muda por conta (12,5% Lisfer / 13% Lalfer). Sistema R$ 0,80/pedido.</p>
+  <p class="footer-note">Frete real Magalu Entregas pelo maior peso entre o real e o cubado. Comissão 18% e custo fixo de R$ 5,00/pedido; Imposto muda por conta (12,5% Lisfer / 13% Lalfer). Sistema R$ 0,80/pedido.</p>
 </div>
 
 <!-- TIKTOK SHOP -->
 <div class="card tiktok-card">
-  <h1>Calculadora de preço de venda</h1>
+  <h1>Calculadora de lucratividade</h1>
   <p class="subtitle">TikTok Shop — estrutura real Lisfer (2 contas)</p>
 
   <div class="row">
@@ -506,25 +542,24 @@
       <label for="custoTiktok">Custo do produto (R$)</label>
       <input type="text" id="custoTiktok" placeholder="Ex: 25,00" inputmode="decimal">
     </div>
-    <div class="field">
-      <label for="contaTiktok">Conta</label>
-      <select id="contaTiktok">
-        <option value="lisfer">TikTok - Lisfer</option>
-        <option value="lalfer">TikTok - Lalfer</option>
-      </select>
+    <div class="field destaque-campo">
+      <label for="precoVendaTiktok">Preço de venda praticado (R$)</label>
+      <input type="text" id="precoVendaTiktok" placeholder="Ex: 55,00" inputmode="decimal">
     </div>
   </div>
 
   <p class="erro" id="erroTiktok"></p>
 
-  <button id="calcularTiktok">Calcular preço de venda</button>
+  <button id="calcularTiktok">Calcular lucratividade</button>
 
   <div class="resultado" id="resultadoTiktok">
-    <div class="destaque">
-      <p>Preço de venda sugerido</p>
-      <p id="precoFinalTiktok">R$ 0,00</p>
+    <div class="destaque" id="destaqueTiktok">
+      <p id="statusLabelTiktok">Lucro</p>
+      <p id="statusPctTiktok">0,0%</p>
+      <p class="valor-abs" id="statusValorTiktok">R$ 0,00</p>
     </div>
     <table>
+      <tr><td>Preço de venda praticado</td><td id="rPrecoTiktok"></td></tr>
       <tr><td>Custo do produto</td><td id="rCustoTiktok"></td></tr>
       <tr><td>Comissão TikTok Shop (<span id="rPctComissaoTiktok"></span>)</td><td id="rComissaoTiktok"></td></tr>
       <tr><td>Custo fixo por item</td><td id="rTaxaFixaTiktok"></td></tr>
@@ -533,21 +568,26 @@
       <tr><td>Imposto (13%)</td><td id="rImpostoTiktok"></td></tr>
       <tr><td>Embalagem e Operacional (2,5%)</td><td id="rEmbOperTiktok"></td></tr>
       <tr><td>Sistema</td><td id="rSistemaTiktok"></td></tr>
-      <tr class="total"><td>Lucro (10%)</td><td id="rLucroTiktok"></td></tr>
     </table>
   </div>
 
-  <p class="footer-note">Estrutura real Lisfer: pedidos abaixo de R$ 50,00 pagam comissão de 10% + custo fixo de R$ 4,00; a partir de R$ 50,00, comissão de 6% + custo fixo de R$ 6,00. Sobre isso soma-se sempre 6% de frete e 8% de comissão de afiliado/creator (padrão da operação Lisfer no canal), além de imposto e embalagem/operacional. Sistema R$ 1,00/pedido. Lisfer e Lalfer usam exatamente a mesma estrutura. Fonte: planilha interna "Precificação Lisfer – Marketplaces", aba TikTok.</p>
+  <p class="footer-note">Preços abaixo de R$ 50,00 pagam comissão de 10% + custo fixo de R$ 4,00; a partir de R$ 50,00, comissão de 6% + custo fixo de R$ 6,00. Soma-se sempre 6% de frete e 8% de afiliado/creator, além de imposto e embalagem/operacional. Sistema R$ 1,00/pedido.</p>
 </div>
 
 <!-- KWAI -->
 <div class="card kwai-card">
-  <h1>Calculadora de preço de venda</h1>
+  <h1>Calculadora de lucratividade</h1>
   <p class="subtitle">Kwai Shop — comissão e taxa fixa por item</p>
 
-  <div class="field">
-    <label for="custoKwai">Custo do produto (R$)</label>
-    <input type="text" id="custoKwai" placeholder="Ex: 25,00" inputmode="decimal">
+  <div class="row">
+    <div class="field">
+      <label for="custoKwai">Custo do produto (R$)</label>
+      <input type="text" id="custoKwai" placeholder="Ex: 25,00" inputmode="decimal">
+    </div>
+    <div class="field destaque-campo">
+      <label for="precoVendaKwai">Preço de venda praticado (R$)</label>
+      <input type="text" id="precoVendaKwai" placeholder="Ex: 55,00" inputmode="decimal">
+    </div>
   </div>
 
   <div class="field">
@@ -560,14 +600,16 @@
 
   <p class="erro" id="erroKwai"></p>
 
-  <button id="calcularKwai">Calcular preço de venda</button>
+  <button id="calcularKwai">Calcular lucratividade</button>
 
   <div class="resultado" id="resultadoKwai">
-    <div class="destaque">
-      <p>Preço de venda sugerido</p>
-      <p id="precoFinalKwai">R$ 0,00</p>
+    <div class="destaque" id="destaqueKwai">
+      <p id="statusLabelKwai">Lucro</p>
+      <p id="statusPctKwai">0,0%</p>
+      <p class="valor-abs" id="statusValorKwai">R$ 0,00</p>
     </div>
     <table>
+      <tr><td>Preço de venda praticado</td><td id="rPrecoKwai"></td></tr>
       <tr><td>Custo do produto</td><td id="rCustoKwai"></td></tr>
       <tr><td>Comissão Kwai</td><td id="rComissaoKwai"></td></tr>
       <tr><td>Taxa fixa por item</td><td id="rTaxaFixaKwai"></td></tr>
@@ -575,16 +617,34 @@
       <tr><td>Embalagem (1%)</td><td id="rEmbalagemKwai"></td></tr>
       <tr><td>Operacional (3%)</td><td id="rOperacionalKwai"></td></tr>
       <tr><td>Sistema</td><td id="rSistemaKwai"></td></tr>
-      <tr class="total"><td>Lucro (10%)</td><td id="rLucroKwai"></td></tr>
     </table>
   </div>
 
-  <p class="footer-note">Comissão padrão de 20% + taxa fixa de R$ 4,00 por item. Vendedores novos costumam ter condição promocional de 14% nos primeiros 45 dias de loja. Não inclui comissão de afiliados/criadores de conteúdo, que é negociada à parte por produto. Confirme sempre as taxas vigentes no seu painel Kwai Shop, pois podem variar por categoria e mudar sem aviso amplo.</p>
+  <p class="footer-note">Comissão padrão de 20% + taxa fixa de R$ 4,00 por item. Vendedores novos costumam ter condição promocional de 14% nos primeiros 45 dias de loja. Não inclui comissão de afiliados/criadores de conteúdo, negociada à parte.</p>
 </div>
 
 </div>
 
 <script>
+function fmt(v) {
+  return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtSigned(v) {
+  return (v < 0 ? '- ' : '') + fmt(Math.abs(v));
+}
+function fmtPct(v) {
+  return (v < 0 ? '-' : '') + Math.abs(v * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+}
+function mostrarStatus(prefixo, lucroValor, precoVenda) {
+  const pct = precoVenda > 0 ? lucroValor / precoVenda : 0;
+  const isPrejuizo = lucroValor < 0;
+  document.getElementById('destaque' + prefixo).classList.toggle('prejuizo', isPrejuizo);
+  document.getElementById('statusLabel' + prefixo).textContent = isPrejuizo ? 'Prejuízo' : 'Lucro';
+  document.getElementById('statusPct' + prefixo).textContent = fmtPct(pct);
+  document.getElementById('statusValor' + prefixo).textContent = fmtSigned(lucroValor);
+}
+
+/* ==================== ML — FRETE DETALHADO (mesma tabela da Calculadora de Preços) ==================== */
 const freteTable = [
   [0.3, [5.65,6.55,7.75,12.35,14.35,16.45,18.45,20.95]],
   [0.5, [5.95,6.65,7.85,13.25,15.45,17.65,19.85,22.55]],
@@ -627,10 +687,12 @@ function getFrete(peso, preco) {
   return row[1][col];
 }
 
-function calcular(custo, peso, comissaoPct, tipoEnvio) {
-  const imposto = 0.13, embalagem = 0.01, lucro = 0.10, operacional = 0.03;
-  const fatorFixo = 1 - (comissaoPct + imposto + embalagem + operacional + lucro);
-  const sistema = 1;
+function calcularLucroML(custo, peso, comissaoPct, tipoEnvio, precoVenda) {
+  const imposto = 0.13, embalagem = 0.01, operacional = 0.03, sistema = 1;
+  const comissao = comissaoPct * precoVenda;
+  const impostoValor = imposto * precoVenda;
+  const embalagemValor = embalagem * precoVenda;
+  const operacionalValor = operacional * precoVenda;
 
   if (tipoEnvio === 'flex') {
     const custoFlex = 12;
@@ -638,61 +700,24 @@ function calcular(custo, peso, comissaoPct, tipoEnvio) {
     const abonoAPartirDe79 = 1.09;
     const limiteFlex = 78.99;
     const tolerancia = 0.000001;
-    let P = custo / fatorFixo;
-    let frete = getFrete(peso, P);
-    let freteAplicado = frete;
-    let abono = abonoAte78;
-
-    for (let i = 0; i < 60; i++) {
-      frete = getFrete(peso, P);
-      const precoComFreteEAbonoAte78 = (custo + sistema + frete + custoFlex - abonoAte78) / fatorFixo;
-      const usaFrete = precoComFreteEAbonoAte78 <= limiteFlex + tolerancia;
-      abono = usaFrete ? abonoAte78 : abonoAPartirDe79;
-      freteAplicado = usaFrete ? frete : 0;
-      P = (custo + sistema + freteAplicado + custoFlex - abono) / fatorFixo;
-    }
-
-    frete = getFrete(peso, P);
-    const precoComFreteEAbonoAte78 = (custo + sistema + frete + custoFlex - abonoAte78) / fatorFixo;
-    const usaFrete = precoComFreteEAbonoAte78 <= limiteFlex + tolerancia;
-    abono = usaFrete ? abonoAte78 : abonoAPartirDe79;
-    freteAplicado = usaFrete ? frete : 0;
-    P = (custo + sistema + freteAplicado + custoFlex - abono) / fatorFixo;
+    const usaFrete = precoVenda <= limiteFlex + tolerancia;
+    const frete = getFrete(peso, precoVenda);
+    const freteAplicado = usaFrete ? frete : 0;
+    const abono = usaFrete ? abonoAte78 : abonoAPartirDe79;
+    const custos = custo + sistema + freteAplicado + custoFlex - abono + comissao + impostoValor + embalagemValor + operacionalValor;
     return {
-      preco: P,
-      comissao: comissaoPct * P,
-      imposto: imposto * P,
-      embalagem: embalagem * P,
-      operacional: operacional * P,
-      sistema,
-      frete: freteAplicado,
-      custoFlex,
-      freteLiquido: freteAplicado + custoFlex - abono,
-      abono,
-      tipoEnvio,
-      lucro: lucro * P
+      lucro: precoVenda - custos,
+      comissao, imposto: impostoValor, embalagem: embalagemValor, operacional: operacionalValor,
+      sistema, frete: freteAplicado, custoFlex, abono, tipoEnvio
     };
   }
 
-  let P = custo / fatorFixo;
-  for (let i = 0; i < 60; i++) {
-    const frete = getFrete(peso, P);
-    P = (custo + sistema + frete) / fatorFixo;
-  }
-  const frete = getFrete(peso, P);
+  const frete = getFrete(peso, precoVenda);
+  const custos = custo + sistema + frete + comissao + impostoValor + embalagemValor + operacionalValor;
   return {
-    preco: P,
-    comissao: comissaoPct * P,
-    imposto: imposto * P,
-    embalagem: embalagem * P,
-    operacional: operacional * P,
-    sistema,
-    frete,
-    custoFlex: 0,
-    freteLiquido: frete,
-    abono: 0,
-    tipoEnvio,
-    lucro: lucro * P
+    lucro: precoVenda - custos,
+    comissao, imposto: impostoValor, embalagem: embalagemValor, operacional: operacionalValor,
+    sistema, frete, custoFlex: 0, abono: 0, tipoEnvio
   };
 }
 
@@ -712,29 +737,18 @@ function freteSimplificadoML(preco) {
   return 0;
 }
 
-function calcularSimplificadoML(custo, comissaoPct, conta) {
+function calcularLucroSimplificadoML(custo, comissaoPct, conta, precoVenda) {
   const c = CONTAS_ML[conta];
-  const fatorFixo = 1 - (comissaoPct + c.imposto + ML_SIMP_EMBOPER + LUCRO);
-  let P = custo / fatorFixo;
-  for (let i = 0; i < 60; i++) {
-    const frete = freteSimplificadoML(P);
-    P = (custo + ML_SIMP_SISTEMA + frete) / fatorFixo;
-  }
-  const frete = freteSimplificadoML(P);
+  const frete = freteSimplificadoML(precoVenda);
+  const comissao = comissaoPct * precoVenda;
+  const impostoValor = c.imposto * precoVenda;
+  const embOperValor = ML_SIMP_EMBOPER * precoVenda;
+  const custos = custo + ML_SIMP_SISTEMA + frete + comissao + impostoValor + embOperValor;
   return {
-    preco: P,
-    comissao: comissaoPct * P,
-    impostoPct: c.imposto,
-    imposto: c.imposto * P,
-    embOper: ML_SIMP_EMBOPER * P,
-    sistema: ML_SIMP_SISTEMA,
-    frete,
-    lucro: LUCRO * P
+    lucro: precoVenda - custos,
+    comissao, impostoPct: c.imposto, imposto: impostoValor, embOper: embOperValor,
+    sistema: ML_SIMP_SISTEMA, frete
   };
-}
-
-function fmt(v) {
-  return 'R$ ' + v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function alternarModeloML() {
@@ -743,14 +757,14 @@ function alternarModeloML() {
   document.getElementById('blocoDetalhadoML').style.display = detalhado ? 'block' : 'none';
   document.getElementById('blocoSimplificadoML').style.display = detalhado ? 'none' : 'block';
   document.getElementById('footerML').textContent = detalhado
-    ? 'Cálculo iterativo: como o frete depende da faixa de preço final, e o preço final depende dele, a calculadora recalcula até o valor convergir. No Flex, até R$ 78,99 considera-se Frete + R$ 12,00 − abono; a partir de R$ 79,00, o frete é desconsiderado e mantém-se apenas R$ 12,00 − abono. O custo operacional (3%) também é calculado sobre o preço final de venda.'
-    : 'Modelo simplificado (planilha interna "Precificação Lisfer – Marketplaces", aba ML 4 Contas): custo fixo por faixa de preço — abaixo de R$ 19,00 → R$ 6,75; R$ 19,00 a R$ 48,99 → R$ 2,00; R$ 49,00 a R$ 78,99 → R$ 3,50; a partir de R$ 79,00 → sem custo fixo. Embalagem e Operacional somados em 2%, Sistema R$ 0,80/pedido. O Imposto muda por conta (12% ou 12,5%), refletindo o regime tributário de cada CNPJ (Lisfer/Lalfer).';
+    ? 'No Flex, até R$ 78,99 considera-se Frete + R$ 12,00 − abono; a partir de R$ 79,00, o frete é desconsiderado e mantém-se apenas R$ 12,00 − abono. O custo operacional (3%) também é calculado sobre o preço de venda praticado.'
+    : 'Modelo simplificado (planilha interna "Precificação Lisfer – Marketplaces", aba ML 4 Contas): custo fixo por faixa de preço — abaixo de R$ 19,00 → R$ 6,75; R$ 19,00 a R$ 48,99 → R$ 2,00; R$ 49,00 a R$ 78,99 → R$ 3,50; a partir de R$ 79,00 → sem custo fixo. Embalagem e Operacional somados em 2%, Sistema R$ 0,80/pedido. O Imposto muda por conta (12% ou 12,5%).';
 }
 document.getElementById('modeloFreteML').addEventListener('change', alternarModeloML);
 
 document.getElementById('calcular').addEventListener('click', () => {
-  const custoInput = document.getElementById('custo').value.replace(',', '.');
-  const custo = parseFloat(custoInput);
+  const custo = parseFloat(document.getElementById('custo').value.replace(',', '.'));
+  const precoVenda = parseFloat(document.getElementById('precoVenda').value.replace(',', '.'));
   const comissaoPct = parseFloat(document.getElementById('modalidade').value);
   const modelo = document.getElementById('modeloFreteML').value;
   const erro = document.getElementById('erro');
@@ -760,26 +774,25 @@ document.getElementById('calcular').addEventListener('click', () => {
   const linhasSimp = ['linhaImpostoSimp', 'linhaEmbOperSimp', 'linhaFreteSimp'];
 
   if (modelo === 'detalhado') {
-    const pesoInput = document.getElementById('peso').value.replace(',', '.');
-    const peso = parseFloat(pesoInput);
+    const peso = parseFloat(document.getElementById('peso').value.replace(',', '.'));
     const tipoEnvio = document.getElementById('tipoEnvio').value;
 
-    if (isNaN(custo) || custo <= 0 || isNaN(peso) || peso <= 0) {
-      erro.textContent = 'Informe o custo do produto e o peso, ambos maiores que zero.';
+    if (isNaN(custo) || custo <= 0 || isNaN(precoVenda) || precoVenda <= 0 || isNaN(peso) || peso <= 0) {
+      erro.textContent = 'Informe o custo, o preço de venda praticado e o peso, todos maiores que zero.';
       erro.style.display = 'block';
       resultado.style.display = 'none';
       return;
     }
     erro.style.display = 'none';
 
-    const r = calcular(custo, peso, comissaoPct, tipoEnvio);
+    const r = calcularLucroML(custo, peso, comissaoPct, tipoEnvio, precoVenda);
 
     linhasSimp.forEach(id => document.getElementById(id).style.display = 'none');
     document.getElementById('linhaImpostoDet').style.display = 'table-row';
     document.getElementById('linhaEmbalagemDet').style.display = 'table-row';
     document.getElementById('linhaOperacionalDet').style.display = 'table-row';
 
-    document.getElementById('precoFinal').textContent = fmt(r.preco);
+    document.getElementById('rPreco').textContent = fmt(precoVenda);
     document.getElementById('rCusto').textContent = fmt(custo);
     document.getElementById('rComissao').textContent = fmt(r.comissao);
     document.getElementById('rImposto').textContent = fmt(r.imposto);
@@ -792,27 +805,27 @@ document.getElementById('calcular').addEventListener('click', () => {
     document.getElementById('rCustoFlex').textContent = r.tipoEnvio === 'flex' ? fmt(r.custoFlex) : '';
     document.getElementById('linhaAbono').style.display = r.tipoEnvio === 'flex' ? 'table-row' : 'none';
     document.getElementById('rAbono').textContent = r.tipoEnvio === 'flex' ? '- ' + fmt(r.abono) : '';
-    document.getElementById('rLucro').textContent = fmt(r.lucro);
+    mostrarStatus('', r.lucro, precoVenda);
     resultado.style.display = 'block';
   } else {
     const conta = document.getElementById('contaML').value;
 
-    if (isNaN(custo) || custo <= 0) {
-      erro.textContent = 'Informe o custo do produto, maior que zero.';
+    if (isNaN(custo) || custo <= 0 || isNaN(precoVenda) || precoVenda <= 0) {
+      erro.textContent = 'Informe o custo e o preço de venda praticado, ambos maiores que zero.';
       erro.style.display = 'block';
       resultado.style.display = 'none';
       return;
     }
     erro.style.display = 'none';
 
-    const r = calcularSimplificadoML(custo, comissaoPct, conta);
+    const r = calcularLucroSimplificadoML(custo, comissaoPct, conta, precoVenda);
 
     linhasDet.forEach(id => document.getElementById(id).style.display = 'none');
     document.getElementById('linhaImpostoSimp').style.display = 'table-row';
     document.getElementById('linhaEmbOperSimp').style.display = 'table-row';
     document.getElementById('linhaFreteSimp').style.display = 'table-row';
 
-    document.getElementById('precoFinal').textContent = fmt(r.preco);
+    document.getElementById('rPreco').textContent = fmt(precoVenda);
     document.getElementById('rCusto').textContent = fmt(custo);
     document.getElementById('rComissao').textContent = fmt(r.comissao);
     document.getElementById('rPctImpostoSimp').textContent = (r.impostoPct * 100).toFixed(1).replace('.0', '') + '%';
@@ -820,86 +833,63 @@ document.getElementById('calcular').addEventListener('click', () => {
     document.getElementById('rEmbOperSimp').textContent = fmt(r.embOper);
     document.getElementById('rSistema').textContent = fmt(r.sistema);
     document.getElementById('rFreteSimp').textContent = fmt(r.frete);
-    document.getElementById('rLucro').textContent = fmt(r.lucro);
+    mostrarStatus('', r.lucro, precoVenda);
     resultado.style.display = 'block';
   }
 });
 
-['custo', 'peso'].forEach(id => {
+['custo', 'precoVenda', 'peso'].forEach(id => {
   document.getElementById(id).addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('calcular').click();
   });
 });
 
-
-function calcularNuvemshop(custo) {
-  const embalagemPct = 0.015;
-  const lucroPct = 0.13;
-  const pagamentoPct = 0.17;
-  const impostoPct = 0.13;
-  const sistema = 1;
-  const custoFixoValor = 4;
-  const limiteCustoFixo = 79;
-  const fatorVariavel = 1 - (embalagemPct + lucroPct + pagamentoPct + impostoPct);
-
-  const precoSemFixo = (custo + sistema) / fatorVariavel;
-  let preco = precoSemFixo;
-  let custoFixo = 0;
-
-  if (precoSemFixo < limiteCustoFixo) {
-    const precoComFixo = (custo + sistema + custoFixoValor) / fatorVariavel;
-    if (precoComFixo < limiteCustoFixo) {
-      preco = precoComFixo;
-      custoFixo = custoFixoValor;
-    } else {
-      preco = limiteCustoFixo;
-    }
-  }
-
-  return {
-    preco,
-    pagamento: pagamentoPct * preco,
-    embalagem: embalagemPct * preco,
-    imposto: impostoPct * preco,
-    sistema,
-    fixo: custoFixo,
-    lucro: lucroPct * preco
-  };
+/* ==================== NUVEMSHOP ==================== */
+function calcularLucroNuvemshop(custo, precoVenda) {
+  const embalagemPct = 0.015, pagamentoPct = 0.17, impostoPct = 0.13;
+  const sistema = 1, custoFixoValor = 4, limiteCustoFixo = 79;
+  const custoFixo = precoVenda < limiteCustoFixo ? custoFixoValor : 0;
+  const pagamento = pagamentoPct * precoVenda;
+  const embalagem = embalagemPct * precoVenda;
+  const imposto = impostoPct * precoVenda;
+  const custos = custo + sistema + custoFixo + pagamento + embalagem + imposto;
+  return { lucro: precoVenda - custos, pagamento, embalagem, imposto, sistema, fixo: custoFixo };
 }
 
 document.getElementById('calcularNuvemshop').addEventListener('click', () => {
-  const custoInput = document.getElementById('custoNuvemshop').value.replace(',', '.');
-  const custo = parseFloat(custoInput);
+  const custo = parseFloat(document.getElementById('custoNuvemshop').value.replace(',', '.'));
+  const precoVenda = parseFloat(document.getElementById('precoVendaNuvemshop').value.replace(',', '.'));
   const erro = document.getElementById('erroNuvemshop');
   const resultado = document.getElementById('resultadoNuvemshop');
 
-  if (isNaN(custo) || custo <= 0) {
-    erro.textContent = 'Informe o custo do produto, maior que zero.';
+  if (isNaN(custo) || custo <= 0 || isNaN(precoVenda) || precoVenda <= 0) {
+    erro.textContent = 'Informe o custo e o preço de venda praticado, ambos maiores que zero.';
     erro.style.display = 'block';
     resultado.style.display = 'none';
     return;
   }
   erro.style.display = 'none';
 
-  const r = calcularNuvemshop(custo);
+  const r = calcularLucroNuvemshop(custo, precoVenda);
 
-  document.getElementById('precoFinalNuvemshop').textContent = fmt(r.preco);
+  document.getElementById('rPrecoNuvemshop').textContent = fmt(precoVenda);
   document.getElementById('rCustoNuvemshop').textContent = fmt(custo);
   document.getElementById('rPagamentoNuvemshop').textContent = fmt(r.pagamento);
   document.getElementById('rEmbalagemNuvemshop').textContent = fmt(r.embalagem);
   document.getElementById('rImpostoNuvemshop').textContent = fmt(r.imposto);
   document.getElementById('rSistemaNuvemshop').textContent = fmt(r.sistema);
   document.getElementById('rFixoNuvemshop').textContent = r.fixo > 0 ? fmt(r.fixo) : '—';
-  document.getElementById('rLucroNuvemshop').textContent = fmt(r.lucro);
+  mostrarStatus('Nuvemshop', r.lucro, precoVenda);
   resultado.style.display = 'block';
 });
 
-document.getElementById('custoNuvemshop').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('calcularNuvemshop').click();
+['custoNuvemshop', 'precoVendaNuvemshop'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('calcularNuvemshop').click();
+  });
 });
 
 /* ==================== CONSTANTES COMUNS ==================== */
-const LUCRO = 0.10;
 
 /* ==================== SHOPEE (dados reais Lisfer) ==================== */
 const CONTAS_SHOPEE = {
@@ -914,45 +904,34 @@ function faixaShopee(preco) {
   return { comissao: 0.14, fixa: 26 };
 }
 
-function calcularShopeeVenda(custo, conta) {
+function calcularLucroShopee(custo, conta, precoVenda) {
   const c = CONTAS_SHOPEE[conta];
-  let P = custo / (1 - (0.20 + c.imposto + c.embOper + LUCRO));
-  for (let i = 0; i < 60; i++) {
-    const f = faixaShopee(P);
-    const fatorFixo = 1 - (f.comissao + c.imposto + c.embOper + LUCRO);
-    P = (custo + c.sistema + f.fixa) / fatorFixo;
-  }
-  const f = faixaShopee(P);
-  return {
-    preco: P,
-    comissaoPct: f.comissao,
-    comissao: f.comissao * P,
-    fixa: f.fixa,
-    impostoPct: c.imposto,
-    imposto: c.imposto * P,
-    embOper: c.embOper * P,
-    sistema: c.sistema,
-    lucro: LUCRO * P
-  };
+  const f = faixaShopee(precoVenda);
+  const comissao = f.comissao * precoVenda;
+  const imposto = c.imposto * precoVenda;
+  const embOper = c.embOper * precoVenda;
+  const custos = custo + c.sistema + f.fixa + comissao + imposto + embOper;
+  return { lucro: precoVenda - custos, comissaoPct: f.comissao, comissao, fixa: f.fixa, impostoPct: c.imposto, imposto, embOper, sistema: c.sistema };
 }
 
 document.getElementById('calcularShopee').addEventListener('click', () => {
   const custo = parseFloat(document.getElementById('custoShopee').value.replace(',', '.'));
+  const precoVenda = parseFloat(document.getElementById('precoVendaShopee').value.replace(',', '.'));
   const conta = document.getElementById('contaShopee').value;
   const erro = document.getElementById('erroShopee');
   const resultado = document.getElementById('resultadoShopee');
 
-  if (isNaN(custo) || custo <= 0) {
-    erro.textContent = 'Informe o custo do produto, maior que zero.';
+  if (isNaN(custo) || custo <= 0 || isNaN(precoVenda) || precoVenda <= 0) {
+    erro.textContent = 'Informe o custo e o preço de venda praticado, ambos maiores que zero.';
     erro.style.display = 'block';
     resultado.style.display = 'none';
     return;
   }
   erro.style.display = 'none';
 
-  const r = calcularShopeeVenda(custo, conta);
+  const r = calcularLucroShopee(custo, conta, precoVenda);
 
-  document.getElementById('precoFinalShopee').textContent = fmt(r.preco);
+  document.getElementById('rPrecoShopee').textContent = fmt(precoVenda);
   document.getElementById('rCustoShopee').textContent = fmt(custo);
   document.getElementById('rPctComissaoShopee').textContent = (r.comissaoPct * 100).toFixed(0) + '%';
   document.getElementById('rComissaoShopee').textContent = fmt(r.comissao);
@@ -961,12 +940,14 @@ document.getElementById('calcularShopee').addEventListener('click', () => {
   document.getElementById('rImpostoShopee').textContent = fmt(r.imposto);
   document.getElementById('rEmbOperShopee').textContent = fmt(r.embOper);
   document.getElementById('rSistemaShopee').textContent = fmt(r.sistema);
-  document.getElementById('rLucroShopee').textContent = fmt(r.lucro);
+  mostrarStatus('Shopee', r.lucro, precoVenda);
   resultado.style.display = 'block';
 });
 
-document.getElementById('custoShopee').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('calcularShopee').click();
+['custoShopee', 'precoVendaShopee'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('calcularShopee').click();
+  });
 });
 
 /* ==================== AMAZON (dados reais Lisfer + tarifa DBA oficial) ==================== */
@@ -983,49 +964,39 @@ function tarifaDbaAmazon(preco, freteAcima) {
   return freteAcima || 0;
 }
 
-function calcularAmazonVenda(custo, conta, freteAcima) {
+function calcularLucroAmazon(custo, conta, freteAcima, precoVenda) {
   const c = CONTAS_AMAZON[conta];
-  const fatorFixo = 1 - (AMAZON_COMISSAO + AMAZON_IMPOSTO + c.embOper + LUCRO);
-  let P = custo / fatorFixo;
-  for (let i = 0; i < 60; i++) {
-    const fixo = tarifaDbaAmazon(P, freteAcima);
-    P = (custo + AMAZON_SISTEMA + fixo) / fatorFixo;
-  }
-  const fixo = tarifaDbaAmazon(P, freteAcima);
-  return {
-    preco: P,
-    comissao: AMAZON_COMISSAO * P,
-    fixo,
-    imposto: AMAZON_IMPOSTO * P,
-    embOperPct: c.embOper,
-    embOper: c.embOper * P,
-    sistema: AMAZON_SISTEMA,
-    lucro: LUCRO * P
-  };
+  const fixo = tarifaDbaAmazon(precoVenda, freteAcima);
+  const comissao = AMAZON_COMISSAO * precoVenda;
+  const imposto = AMAZON_IMPOSTO * precoVenda;
+  const embOper = c.embOper * precoVenda;
+  const custos = custo + AMAZON_SISTEMA + fixo + comissao + imposto + embOper;
+  return { lucro: precoVenda - custos, comissao, fixo, imposto, embOperPct: c.embOper, embOper, sistema: AMAZON_SISTEMA };
 }
 
 document.getElementById('calcularAmazon').addEventListener('click', () => {
   const custo = parseFloat(document.getElementById('custoAmazon').value.replace(',', '.'));
+  const precoVenda = parseFloat(document.getElementById('precoVendaAmazon').value.replace(',', '.'));
   const conta = document.getElementById('contaAmazon').value;
   const freteAcimaInput = document.getElementById('freteAcimaAmazon').value.replace(',', '.');
   const freteAcima = freteAcimaInput === '' ? 0 : parseFloat(freteAcimaInput);
   const erro = document.getElementById('erroAmazon');
   const resultado = document.getElementById('resultadoAmazon');
 
-  if (isNaN(custo) || custo <= 0 || isNaN(freteAcima) || freteAcima < 0) {
-    erro.textContent = 'Informe o custo do produto, maior que zero (o campo de frete pode ficar em branco).';
+  if (isNaN(custo) || custo <= 0 || isNaN(precoVenda) || precoVenda <= 0 || isNaN(freteAcima) || freteAcima < 0) {
+    erro.textContent = 'Informe o custo e o preço de venda praticado, ambos maiores que zero (o campo de frete pode ficar em branco).';
     erro.style.display = 'block';
     resultado.style.display = 'none';
     return;
   }
   erro.style.display = 'none';
 
-  const r = calcularAmazonVenda(custo, conta, freteAcima);
+  const r = calcularLucroAmazon(custo, conta, freteAcima, precoVenda);
 
-  document.getElementById('precoFinalAmazon').textContent = fmt(r.preco);
+  document.getElementById('rPrecoAmazon').textContent = fmt(precoVenda);
   document.getElementById('rCustoAmazon').textContent = fmt(custo);
   document.getElementById('rComissaoAmazon').textContent = fmt(r.comissao);
-  document.getElementById('labelFreteAmazon').textContent = r.preco >= 79
+  document.getElementById('labelFreteAmazon').textContent = precoVenda >= 79
     ? (freteAcima > 0 ? 'Frete estimado (≥ R$79, informado por você)' : 'Frete (≥ R$79 — não informado, assumido R$0,00)')
     : 'Tarifa DBA (frete, faixa < R$79)';
   document.getElementById('rFreteAmazon').textContent = fmt(r.fixo);
@@ -1033,12 +1004,14 @@ document.getElementById('calcularAmazon').addEventListener('click', () => {
   document.getElementById('rPctEmbOperAmazon').textContent = (r.embOperPct * 100).toFixed(1).replace('.0','') + '%';
   document.getElementById('rEmbOperAmazon').textContent = fmt(r.embOper);
   document.getElementById('rSistemaAmazon').textContent = fmt(r.sistema);
-  document.getElementById('rLucroAmazon').textContent = fmt(r.lucro);
+  mostrarStatus('Amazon', r.lucro, precoVenda);
   resultado.style.display = 'block';
 });
 
-document.getElementById('custoAmazon').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('calcularAmazon').click();
+['custoAmazon', 'precoVendaAmazon'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('calcularAmazon').click();
+  });
 });
 
 /* ==================== MAGALU (comissão/fixo da planilha Lisfer + frete real por peso) ==================== */
@@ -1048,7 +1021,6 @@ const CONTAS_MAGALU = {
 };
 const MAGALU_COMISSAO = 0.18, MAGALU_FIXO = 5, MAGALU_EMBOPER = 0.02, MAGALU_SISTEMA = 0.8;
 
-// Tabela oficial Magalu Entregas (fonte: Preço Certo). Colunas: [sem desconto, 25% desconto, 50% desconto]
 const FRETE_MAGALU_PESO = [
   [0.5,   [35.90, 26.93, 17.95]],
   [1,     [40.80, 30.68, 20.45]],
@@ -1085,43 +1057,36 @@ function freteMagaluPeso(peso, tier) {
   return row[1][tier];
 }
 
-function calcularMagaluVenda(custo, conta, peso, tier) {
+function calcularLucroMagalu(custo, conta, peso, tier, precoVenda) {
   const c = CONTAS_MAGALU[conta];
   const frete = freteMagaluPeso(peso, tier);
-  const fatorFixo = 1 - (MAGALU_COMISSAO + c.imposto + MAGALU_EMBOPER + LUCRO);
-  const P = (custo + MAGALU_SISTEMA + MAGALU_FIXO + frete) / fatorFixo;
-  return {
-    preco: P,
-    comissao: MAGALU_COMISSAO * P,
-    fixo: MAGALU_FIXO,
-    frete,
-    impostoPct: c.imposto,
-    imposto: c.imposto * P,
-    embOper: MAGALU_EMBOPER * P,
-    sistema: MAGALU_SISTEMA,
-    lucro: LUCRO * P
-  };
+  const comissao = MAGALU_COMISSAO * precoVenda;
+  const imposto = c.imposto * precoVenda;
+  const embOper = MAGALU_EMBOPER * precoVenda;
+  const custos = custo + MAGALU_SISTEMA + MAGALU_FIXO + frete + comissao + imposto + embOper;
+  return { lucro: precoVenda - custos, comissao, fixo: MAGALU_FIXO, frete, impostoPct: c.imposto, imposto, embOper, sistema: MAGALU_SISTEMA };
 }
 
 document.getElementById('calcularMagalu').addEventListener('click', () => {
   const custo = parseFloat(document.getElementById('custoMagalu').value.replace(',', '.'));
+  const precoVenda = parseFloat(document.getElementById('precoVendaMagalu').value.replace(',', '.'));
   const peso = parseFloat(document.getElementById('pesoMagalu').value.replace(',', '.'));
   const conta = document.getElementById('contaMagalu').value;
   const tier = parseInt(document.getElementById('despachoMagalu').value, 10);
   const erro = document.getElementById('erroMagalu');
   const resultado = document.getElementById('resultadoMagalu');
 
-  if (isNaN(custo) || custo <= 0 || isNaN(peso) || peso <= 0) {
-    erro.textContent = 'Informe o custo do produto e o peso considerado, ambos maiores que zero.';
+  if (isNaN(custo) || custo <= 0 || isNaN(precoVenda) || precoVenda <= 0 || isNaN(peso) || peso <= 0) {
+    erro.textContent = 'Informe o custo, o preço de venda praticado e o peso considerado, todos maiores que zero.';
     erro.style.display = 'block';
     resultado.style.display = 'none';
     return;
   }
   erro.style.display = 'none';
 
-  const r = calcularMagaluVenda(custo, conta, peso, tier);
+  const r = calcularLucroMagalu(custo, conta, peso, tier, precoVenda);
 
-  document.getElementById('precoFinalMagalu').textContent = fmt(r.preco);
+  document.getElementById('rPrecoMagalu').textContent = fmt(precoVenda);
   document.getElementById('rCustoMagalu').textContent = fmt(custo);
   document.getElementById('rComissaoMagalu').textContent = fmt(r.comissao);
   document.getElementById('rTarifaMagalu').textContent = fmt(r.fixo);
@@ -1130,16 +1095,15 @@ document.getElementById('calcularMagalu').addEventListener('click', () => {
   document.getElementById('rImpostoMagalu').textContent = fmt(r.imposto);
   document.getElementById('rEmbOperMagalu').textContent = fmt(r.embOper);
   document.getElementById('rSistemaMagalu').textContent = fmt(r.sistema);
-  document.getElementById('rLucroMagalu').textContent = fmt(r.lucro);
+  mostrarStatus('Magalu', r.lucro, precoVenda);
   resultado.style.display = 'block';
 });
 
-['custoMagalu', 'pesoMagalu'].forEach(id => {
+['custoMagalu', 'precoVendaMagalu', 'pesoMagalu'].forEach(id => {
   document.getElementById(id).addEventListener('keydown', e => {
     if (e.key === 'Enter') document.getElementById('calcularMagalu').click();
   });
 });
-
 
 /* ==================== TIKTOK SHOP (dados reais Lisfer) ==================== */
 const TIKTOK_FRETE = 0.06, TIKTOK_IMPOSTO = 0.13, TIKTOK_EMBOPER = 0.025,
@@ -1150,45 +1114,34 @@ function faixaTiktok(preco) {
   return { comissao: 0.06, fixa: 6 };
 }
 
-function calcularTiktokVenda(custo) {
-  const fatorBase = 1 - (TIKTOK_FRETE + TIKTOK_IMPOSTO + TIKTOK_EMBOPER + TIKTOK_AFILIADO + LUCRO);
-  let P = custo / (fatorBase - 0.10);
-  for (let i = 0; i < 60; i++) {
-    const f = faixaTiktok(P);
-    const fatorFixo = fatorBase - f.comissao;
-    P = (custo + TIKTOK_SISTEMA + f.fixa) / fatorFixo;
-  }
-  const f = faixaTiktok(P);
-  return {
-    preco: P,
-    comissaoPct: f.comissao,
-    comissao: f.comissao * P,
-    fixa: f.fixa,
-    frete: TIKTOK_FRETE * P,
-    afiliado: TIKTOK_AFILIADO * P,
-    imposto: TIKTOK_IMPOSTO * P,
-    embOper: TIKTOK_EMBOPER * P,
-    sistema: TIKTOK_SISTEMA,
-    lucro: LUCRO * P
-  };
+function calcularLucroTiktok(custo, precoVenda) {
+  const f = faixaTiktok(precoVenda);
+  const comissao = f.comissao * precoVenda;
+  const frete = TIKTOK_FRETE * precoVenda;
+  const afiliado = TIKTOK_AFILIADO * precoVenda;
+  const imposto = TIKTOK_IMPOSTO * precoVenda;
+  const embOper = TIKTOK_EMBOPER * precoVenda;
+  const custos = custo + TIKTOK_SISTEMA + f.fixa + comissao + frete + afiliado + imposto + embOper;
+  return { lucro: precoVenda - custos, comissaoPct: f.comissao, comissao, fixa: f.fixa, frete, afiliado, imposto, embOper, sistema: TIKTOK_SISTEMA };
 }
 
 document.getElementById('calcularTiktok').addEventListener('click', () => {
   const custo = parseFloat(document.getElementById('custoTiktok').value.replace(',', '.'));
+  const precoVenda = parseFloat(document.getElementById('precoVendaTiktok').value.replace(',', '.'));
   const erro = document.getElementById('erroTiktok');
   const resultado = document.getElementById('resultadoTiktok');
 
-  if (isNaN(custo) || custo <= 0) {
-    erro.textContent = 'Informe o custo do produto, maior que zero.';
+  if (isNaN(custo) || custo <= 0 || isNaN(precoVenda) || precoVenda <= 0) {
+    erro.textContent = 'Informe o custo e o preço de venda praticado, ambos maiores que zero.';
     erro.style.display = 'block';
     resultado.style.display = 'none';
     return;
   }
   erro.style.display = 'none';
 
-  const r = calcularTiktokVenda(custo);
+  const r = calcularLucroTiktok(custo, precoVenda);
 
-  document.getElementById('precoFinalTiktok').textContent = fmt(r.preco);
+  document.getElementById('rPrecoTiktok').textContent = fmt(precoVenda);
   document.getElementById('rCustoTiktok').textContent = fmt(custo);
   document.getElementById('rPctComissaoTiktok').textContent = (r.comissaoPct * 100).toFixed(0) + '%';
   document.getElementById('rComissaoTiktok').textContent = fmt(r.comissao);
@@ -1198,49 +1151,46 @@ document.getElementById('calcularTiktok').addEventListener('click', () => {
   document.getElementById('rImpostoTiktok').textContent = fmt(r.imposto);
   document.getElementById('rEmbOperTiktok').textContent = fmt(r.embOper);
   document.getElementById('rSistemaTiktok').textContent = fmt(r.sistema);
-  document.getElementById('rLucroTiktok').textContent = fmt(r.lucro);
+  mostrarStatus('Tiktok', r.lucro, precoVenda);
   resultado.style.display = 'block';
 });
 
-document.getElementById('custoTiktok').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('calcularTiktok').click();
+['custoTiktok', 'precoVendaTiktok'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('calcularTiktok').click();
+  });
 });
 
 /* ==================== KWAI ==================== */
-function calcularKwaiVenda(custo, comissaoPct) {
+function calcularLucroKwai(custo, comissaoPct, precoVenda) {
   const fixa = 4;
   const KWAI_IMPOSTO = 0.13, KWAI_EMBALAGEM = 0.01, KWAI_OPERACIONAL = 0.03, KWAI_SISTEMA = 1;
-  const fatorFixo = 1 - (comissaoPct + KWAI_IMPOSTO + KWAI_EMBALAGEM + KWAI_OPERACIONAL + LUCRO);
-  const P = (custo + KWAI_SISTEMA + fixa) / fatorFixo;
-  return {
-    preco: P,
-    comissao: comissaoPct * P,
-    fixa,
-    imposto: KWAI_IMPOSTO * P,
-    embalagem: KWAI_EMBALAGEM * P,
-    operacional: KWAI_OPERACIONAL * P,
-    sistema: KWAI_SISTEMA,
-    lucro: LUCRO * P
-  };
+  const comissao = comissaoPct * precoVenda;
+  const imposto = KWAI_IMPOSTO * precoVenda;
+  const embalagem = KWAI_EMBALAGEM * precoVenda;
+  const operacional = KWAI_OPERACIONAL * precoVenda;
+  const custos = custo + KWAI_SISTEMA + fixa + comissao + imposto + embalagem + operacional;
+  return { lucro: precoVenda - custos, comissao, fixa, imposto, embalagem, operacional, sistema: KWAI_SISTEMA };
 }
 
 document.getElementById('calcularKwai').addEventListener('click', () => {
   const custo = parseFloat(document.getElementById('custoKwai').value.replace(',', '.'));
+  const precoVenda = parseFloat(document.getElementById('precoVendaKwai').value.replace(',', '.'));
   const comissaoPct = parseFloat(document.getElementById('faseKwai').value);
   const erro = document.getElementById('erroKwai');
   const resultado = document.getElementById('resultadoKwai');
 
-  if (isNaN(custo) || custo <= 0) {
-    erro.textContent = 'Informe o custo do produto, maior que zero.';
+  if (isNaN(custo) || custo <= 0 || isNaN(precoVenda) || precoVenda <= 0) {
+    erro.textContent = 'Informe o custo e o preço de venda praticado, ambos maiores que zero.';
     erro.style.display = 'block';
     resultado.style.display = 'none';
     return;
   }
   erro.style.display = 'none';
 
-  const r = calcularKwaiVenda(custo, comissaoPct);
+  const r = calcularLucroKwai(custo, comissaoPct, precoVenda);
 
-  document.getElementById('precoFinalKwai').textContent = fmt(r.preco);
+  document.getElementById('rPrecoKwai').textContent = fmt(precoVenda);
   document.getElementById('rCustoKwai').textContent = fmt(custo);
   document.getElementById('rComissaoKwai').textContent = fmt(r.comissao);
   document.getElementById('rTaxaFixaKwai').textContent = fmt(r.fixa);
@@ -1248,11 +1198,14 @@ document.getElementById('calcularKwai').addEventListener('click', () => {
   document.getElementById('rEmbalagemKwai').textContent = fmt(r.embalagem);
   document.getElementById('rOperacionalKwai').textContent = fmt(r.operacional);
   document.getElementById('rSistemaKwai').textContent = fmt(r.sistema);
-  document.getElementById('rLucroKwai').textContent = fmt(r.lucro);
+  mostrarStatus('Kwai', r.lucro, precoVenda);
   resultado.style.display = 'block';
 });
 
 document.getElementById('custoKwai').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('calcularKwai').click();
+});
+document.getElementById('precoVendaKwai').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('calcularKwai').click();
 });
 </script>
