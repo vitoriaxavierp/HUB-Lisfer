@@ -161,6 +161,7 @@
   .field.documento { flex: 1.3 1 220px; }
   .field.whatsapp { flex: 1 1 160px; }
   .field.vendedora { flex: 1 1 160px; }
+  .field.datacoleta { flex: 0.9 1 150px; }
   .field.tipo { flex: 1.1 1 170px; }
   .field.transportadora { flex: 1.2 1 190px; }
   .field.melhorenvio { flex: 1.3 1 220px; }
@@ -434,6 +435,10 @@
           <label for="vendedoraInput">Vendedora</label>
           <select id="vendedoraInput" required></select>
         </div>
+        <div class="field datacoleta">
+          <label for="dataColetaInput">Dia da coleta</label>
+          <input type="date" id="dataColetaInput" required>
+        </div>
 
         <div class="field tipo">
           <label for="tipoInput">Tipo de coleta</label>
@@ -660,6 +665,7 @@
     el('weekdayLabel').textContent = d.toLocaleDateString('pt-BR', { weekday: 'long' });
     el('dateLabel').textContent = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
     el('dateJump').value = currentDate;
+    el('dataColetaInput').value = currentDate;
   }
 
   el('prevDay').addEventListener('click', () => setDate(shiftDate(currentDate, -1)));
@@ -795,6 +801,7 @@
     const whatsappI = document.createElement('input'); whatsappI.type = 'tel'; whatsappI.value = order.whatsapp || '';
     const vendedoraSel = document.createElement('select');
     buildVendedoraOptions(vendedoraSel, order.vendedoraId);
+    const dataColetaI = document.createElement('input'); dataColetaI.type = 'date'; dataColetaI.value = order.dataColeta || currentDate;
 
     const tipoI = document.createElement('select');
     Object.keys(TIPO_LABELS).forEach((v) => {
@@ -859,6 +866,7 @@
         documento_tipo: docValue ? docFieldE.getTipo() : null,
         whatsapp: whatsappI.value.trim() || null,
         vendedora_id: vendedoraId,
+        data_coleta: dataColetaI.value || order.dataColeta,
         tipo_coleta: tipo,
         transportadora_nome: tipo === 'transportadora' ? (transpI.value.trim() || null) : null,
         melhor_envio_servico: tipo === 'melhor_envio' ? meI.value : null,
@@ -894,6 +902,7 @@
       docFieldE.element,
       field('whatsapp', 'WhatsApp do contato', whatsappI),
       field('vendedora', 'Vendedora', vendedoraSel),
+      field('datacoleta', 'Dia da coleta', dataColetaI),
       field('tipo', 'Tipo de coleta', tipoI),
       transpField, meField, rastreioFieldE,
       field('pedido', 'Nº do pedido', pedidoI),
@@ -1119,6 +1128,7 @@
     const documentoTipo = docField.getTipo();
     const whatsapp = el('whatsappInput').value.trim();
     const vendedoraId = el('vendedoraInput').value;
+    const dataColeta = el('dataColetaInput').value || currentDate;
     const numeroPedido = el('pedidoInput').value.trim();
     const nf = el('nfInput').value.trim();
     const volumes = parseInt(el('volInput').value, 10);
@@ -1135,7 +1145,7 @@
 
     addBtn.disabled = true;
     const { error } = await sb.from('pedidos').insert({
-      data_coleta: currentDate,
+      data_coleta: dataColeta,
       cliente: cliente,
       documento: documento || null,
       documento_tipo: documento ? documentoTipo : null,
@@ -1159,6 +1169,7 @@
     }
     entryForm.reset();
     el('volInput').value = 1;
+    el('dataColetaInput').value = currentDate;
     docField.reset();
     syncTipoFields();
     buildVendedoraOptions(el('vendedoraInput'), currentUser.id);
