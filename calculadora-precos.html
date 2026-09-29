@@ -65,6 +65,8 @@
     gap: 24px;
     align-items: start;
   }
+  .calculadoras + .calculadoras { margin-top: 24px; }
+  .calculadoras-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .card {
     min-width: 0;
     background: #ffffff;
@@ -100,7 +102,7 @@
     .calculadoras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   }
   @media (max-width: 700px) {
-    .calculadoras { grid-template-columns: 1fr; }
+    .calculadoras, .calculadoras-2col { grid-template-columns: 1fr; }
     .topbar img { height: 42px; }
   }
   h1 {
@@ -229,7 +231,7 @@
 <div class="page-content">
 
 <h2 class="section-title">Mercado Livre &amp; Loja Própria</h2>
-<div class="calculadoras">
+<div class="calculadoras calculadoras-2col">
 <div class="card">
   <h1>Calculadora de preço de venda</h1>
   <p class="subtitle">Mercado Livre — custo, comissão, imposto, frete e lucro</p>
@@ -495,6 +497,9 @@
 
   <p class="footer-note">Frete real Magalu Entregas (tabela do Preço Certo): calculado pelo maior peso entre o real e o cubado. Peso cubado (produtos leves) = Altura × Largura × Comprimento (m) × 167; para produtos pesados, use fator 300. Informe aqui já o maior dos dois. O valor do frete depende da faixa de peso e do seu índice de Despacho no Prazo (quanto maior o índice, maior o desconto — até 50%). Comissão 18% e custo fixo de R$ 5,00/pedido continuam vindos da planilha interna; o Imposto muda por conta (12,5% Lisfer / 13% Lalfer). Sistema R$ 0,80/pedido.</p>
 </div>
+
+</div>
+<div class="calculadoras calculadoras-2col">
 
 <!-- TIKTOK SHOP -->
 <div class="card tiktok-card">
