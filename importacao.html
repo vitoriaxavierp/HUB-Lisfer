@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard de Importação — Hub Lisfer</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --surface: #FFFFFF;
+    --surface-2: #F1F4F6;
+    --surface-3: #EAEFF2;
+    --border: #D7DEE3;
+    --text: #16232D;
+    --text-muted: #5B6B77;
+    --accent: #16191C;
+    --accent-strong: #000000;
+    --accent-contrast: #FFFFFF;
+    --title-accent: #F5AD00;
+    --focus: #16191C;
+    --shadow: 0 1px 3px rgba(20, 34, 43, 0.08), 0 6px 18px rgba(20, 34, 43, 0.09);
+    --st-fabricacao: #5B6B77; --st-fabricacao-bg: #EAEFF2;
+    --st-aguardando: #1A56DB; --st-aguardando-bg: #DCE7FB;
+    --st-transito: #F5AD00; --st-transito-bg: #FFF1D6;
+    --st-chegou: #1E8E3E; --st-chegou-bg: #E1F3E4;
+    --danger: #D32F2F; --danger-bg: #FBE1E1;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", system-ui, sans-serif;
+    font-size: 16.5px;
+    line-height: 1.45;
+    min-height: 100vh;
+  }
+  h1, h2 { font-family: "Archivo", system-ui, sans-serif; text-wrap: balance; margin: 0; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea, button { font-size: 14px; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  [hidden] { display: none !important; }
+  a { color: inherit; }
+
+  .topbar { background: linear-gradient(180deg, var(--accent-strong), var(--accent)); color: var(--accent-contrast); padding: 18px 20px; }
+  .topbar-inner { max-width: 1040px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; }
+  .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+  .brand-mark { flex: none; width: 38px; height: 38px; display: grid; place-items: center; background: rgba(244,249,251,0.14); border: 1px solid rgba(244,249,251,0.28); border-radius: 10px; }
+  .back-link { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(244,249,251,0.72); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+  .back-link:hover { color: #FFFFFF; }
+  .back-link svg { width: 12px; height: 12px; }
+  .brand h1 { font-size: 23px; font-weight: 800; letter-spacing: 0.2px; color: var(--title-accent); }
+  .brand p { margin: 2px 0 0; font-size: 13.5px; color: #FFFFFF; }
+  .user-info { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #FFFFFF; font-weight: 600; white-space: nowrap; }
+  .today-btn { border: 1px solid rgba(244,249,251,0.3); background: rgba(244,249,251,0.1); color: var(--accent-contrast); border-radius: 999px; padding: 8px 16px; font-weight: 600; font-size: 13px; }
+  .today-btn:hover { background: rgba(244,249,251,0.22); }
+
+  main { max-width: 1040px; margin: 0 auto; padding: 22px 20px 60px; display: flex; flex-direction: column; gap: 22px; }
+
+  .conn-banner { border: 1px solid var(--danger); background: var(--danger-bg); color: var(--danger); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; display: none; }
+  .conn-banner.show { display: block; }
+
+  .hero {
+    background: var(--accent); color: #FFFFFF; border-radius: 14px; padding: 18px 22px;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  .hero .lbl { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.65); font-weight: 700; }
+  .hero .principal { font-size: 19px; font-weight: 800; margin-top: 3px; }
+  .hero .dias { margin-left: auto; text-align: right; }
+  .hero .dias .n { font-family: "IBM Plex Mono", monospace; font-size: 26px; font-weight: 700; color: var(--title-accent); }
+  .hero .dias .txt { font-size: 12px; color: rgba(255,255,255,0.7); }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; }
+  .panel h2 { font-size: 15.5px; font-weight: 800; margin-bottom: 14px; }
+
+  form.entry { display: flex; flex-wrap: wrap; gap: 12px 14px; }
+  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1 1 160px; }
+  .field.pi { flex: 1 1 160px; }
+  .field.fornecedor { flex: 2 1 220px; }
+  .field.status { flex: 1 1 170px; }
+  .field.data { flex: 1 1 150px; }
+  .field.valor { flex: 0.8 1 130px; }
+  .field.itens { flex-basis: 100%; }
+  .field.itens textarea { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; min-height: 110px; }
+  .field label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); font-weight: 600; }
+  .field .hint { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: none; letter-spacing: 0; margin-top: -3px; }
+  .field input, .field select, .field textarea {
+    background: var(--surface-2); border: 1.5px solid var(--border); color: var(--text);
+    border-radius: 9px; padding: 11px 12px; width: 100%; font-family: "IBM Plex Sans", system-ui, sans-serif;
+  }
+  .field textarea { resize: vertical; line-height: 1.4; }
+  .field input:focus, .field select:focus, .field textarea:focus { background: var(--bg); border-color: var(--accent); }
+
+  .add-btn {
+    background: var(--accent); color: var(--accent-contrast); border: none; border-radius: 999px;
+    padding: 12px 24px; font-weight: 700; font-size: 15px; white-space: nowrap; height: 46px; flex: none;
+  }
+  .add-btn:hover { background: var(--accent-strong); }
+  .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .form-msg { flex-basis: 100%; font-size: 13px; font-weight: 600; color: var(--danger); min-height: 0; }
+
+  .order-list { display: flex; flex-direction: column; gap: 12px; }
+  .ship-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 16px 18px; border-left-width: 5px; border-left-style: solid; }
+  .ship-card.st-em_fabricacao { border-left-color: var(--st-fabricacao); }
+  .ship-card.st-aguardando_embarque { border-left-color: var(--st-aguardando); }
+  .ship-card.st-em_transito { border-left-color: var(--st-transito); }
+  .ship-card.st-chegou { border-left-color: var(--st-chegou); opacity: 0.82; }
+
+  .ship-top { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+  .ship-main { flex: 1 1 220px; min-width: 0; }
+  .ship-main .pi-num { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--text-muted); font-weight: 600; }
+  .ship-main .fornecedor { font-weight: 700; font-size: 16.5px; margin-top: 2px; }
+
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .status-badge.st-em_fabricacao { background: var(--st-fabricacao-bg); color: var(--st-fabricacao); }
+  .status-badge.st-aguardando_embarque { background: var(--st-aguardando-bg); color: var(--st-aguardando); }
+  .status-badge.st-em_transito { background: var(--st-transito-bg); color: #8A5B00; }
+  .status-badge.st-chegou { background: var(--st-chegou-bg); color: var(--st-chegou); }
+
+  .ship-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 8px; font-size: 12.5px; color: var(--text-muted); }
+  .ship-meta b { color: var(--text); font-weight: 700; }
+
+  .ship-actions { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
+  .icon-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--text-muted); display: grid; place-items: center; flex: none; }
+  .icon-btn:hover { background: var(--surface-2); color: var(--accent); }
+  .icon-btn.danger:hover { background: var(--danger-bg); color: var(--danger); }
+  .icon-btn.confirming { background: var(--danger); color: #FFFFFF; }
+  .icon-btn svg { width: 16px; height: 16px; }
+
+  .toggle-itens { border: 1px dashed var(--border); background: transparent; color: var(--accent); border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600; margin-top: 10px; }
+  .toggle-itens:hover { background: var(--surface-2); }
+
+  table.itens-table { width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 10px; }
+  table.itens-table th { text-align: left; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px; border-bottom: 2px solid var(--border); }
+  table.itens-table td { padding: 6px 8px; border-bottom: 1px solid var(--surface-2); font-family: "IBM Plex Mono", monospace; }
+  table.itens-table td.produto-cell { font-family: "IBM Plex Sans", system-ui, sans-serif; }
+  table.itens-table td.qtd-cell, table.itens-table th.qtd-th { text-align: right; }
+
+  .add-itens-row { display: flex; gap: 8px; margin-top: 10px; align-items: flex-start; }
+  .add-itens-row textarea { flex: 1 1 auto; font-family: "IBM Plex Mono", monospace; font-size: 12.5px; min-height: 60px; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: 9px; padding: 8px 10px; }
+  .add-itens-row button { flex: none; }
+
+  .empty-state { padding: 22px 14px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
+  footer.note { text-align: center; color: var(--text-muted); font-size: 11.5px; padding-bottom: 10px; }
+
+  @media (max-width: 720px) {
+    .topbar-inner { justify-content: center; }
+    .brand { margin-right: 0; width: 100%; justify-content: center; }
+    .add-btn { width: 100%; }
+    .ship-actions { margin-left: 0; flex-basis: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<div id="appScreen" hidden>
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 14h20"/><path d="M4 14l2-7h12l2 7"/><path d="M6 14v6M18 14v6M9 20h6"/></svg>
+        </span>
+        <div>
+          <a class="back-link" href="index.html">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            Hub Lisfer
+          </a>
+          <h1>Dashboard de Importação</h1>
+          <p>Embarques e mercadorias em processo de importação</p>
+        </div>
+      </div>
+      <div class="user-info">
+        <span id="userGreeting">—</span>
+        <button type="button" id="logoutBtn" class="today-btn">Sair</button>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <div class="conn-banner" id="connBanner">Não foi possível carregar os embarques. Verifique sua conexão e recarregue a página.</div>
+
+    <div class="hero" id="heroBox" hidden>
+      <div>
+        <div class="lbl">Próxima chegada prevista</div>
+        <div class="principal" id="heroPrincipal">—</div>
+      </div>
+      <div class="dias">
+        <div class="n" id="heroDias">—</div>
+        <div class="txt" id="heroTxt">dias</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Adicionar embarque</h2>
+      <form class="entry" id="entryForm">
+        <div class="field pi">
+          <label for="piInput">Nº do PI</label>
+          <input type="text" id="piInput" placeholder="ex: 26SKF10-02FB" autocomplete="off" required>
+        </div>
+        <div class="field fornecedor">
+          <label for="fornecedorInput">Fornecedor</label>
+          <input type="text" id="fornecedorInput" placeholder="ex: Hangzhou Sinkee Tools" autocomplete="off" required>
+        </div>
+        <div class="field status">
+          <label for="statusInput">Status</label>
+          <select id="statusInput">
+            <option value="em_fabricacao">Em fabricação</option>
+            <option value="aguardando_embarque">Aguardando embarque</option>
+            <option value="em_transito">Em trânsito</option>
+            <option value="chegou">Chegou</option>
+          </select>
+        </div>
+        <div class="field data">
+          <label for="dataInput">Previsão de chegada</label>
+          <input type="date" id="dataInput">
+        </div>
+        <div class="field valor">
+          <label for="valorInput">Valor total (US$)</label>
+          <input type="text" id="valorInput" placeholder="ex: 63401.65" inputmode="decimal">
+        </div>
+
+        <div class="field itens">
+          <label for="itensInput">Itens (um por linha)</label>
+          <span class="hint">Formato: SKU;Produto;Quantidade — pode deixar em branco e adicionar depois</span>
+          <textarea id="itensInput" placeholder="LF-0200;14pcs Tire Removal Repair Tool Star Nut Set;800"></textarea>
+        </div>
+
+        <button type="submit" class="add-btn" id="addBtn">Adicionar embarque</button>
+        <div class="form-msg" id="formMsg"></div>
+      </form>
+    </div>
+
+    <div class="order-list" id="shipList"></div>
+
+    <footer class="note">Atualiza automaticamente para todas as pessoas com o painel aberto.</footer>
+  </main>
+</div>
+
+<script>
+(function () {
+  const STATUS_LABELS = { em_fabricacao: 'Em fabricação', aguardando_embarque: 'Aguardando embarque', em_transito: 'Em trânsito', chegou: 'Chegou' };
+  const TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
+  const CHEVRON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+
+  let currentUser = null;
+  let channelShip = null;
+  let channelItens = null;
+  let ships = [];
+  let itensByShip = {};
+  let expandedIds = new Set();
+  let pendingDeleteId = null;
+  let pendingDeleteTimeout = null;
+
+  const el = (id) => document.getElementById(id);
+  const connBanner = el('connBanner');
+  const entryForm = el('entryForm');
+  const addBtn = el('addBtn');
+  const formMsg = el('formMsg');
+
+  el('logoutBtn').addEventListener('click', () => HubAuth.logout());
+
+  HubAuth.requireAuth((user) => {
+    currentUser = user;
+    el('userGreeting').textContent = 'Olá, ' + (HubAuth.nomeDe(user.id) || user.email);
+    el('appScreen').hidden = false;
+    subscribe();
+  });
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+  function fmtDate(str) {
+    if (!str) return null;
+    const [y, m, d] = str.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+  function diasAte(str) {
+    if (!str) return null;
+    const [y, m, d] = str.split('-').map(Number);
+    const alvo = new Date(y, m - 1, d);
+    const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+    return Math.round((alvo - hoje) / 86400000);
+  }
+  function fmtUsd(v) {
+    if (v == null) return '—';
+    return 'US$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function parseItensText(text) {
+    return text.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
+      const parts = line.split(';').map((p) => p.trim());
+      const [sku, produto, qtyStr, precoStr] = parts;
+      const quantidade = parseInt((qtyStr || '').replace(/\D/g, ''), 10);
+      const preco = precoStr ? parseFloat(precoStr.replace(',', '.')) : null;
+      return { sku, produto, quantidade, preco };
+    }).filter((it) => it.sku && it.produto && it.quantidade > 0);
+  }
+
+  // ---------------- dados (Supabase) ----------------
+
+  async function loadAll() {
+    const { data: shipData, error: shipErr } = await sb
+      .from('importacoes')
+      .select('*')
+      .order('data_chegada_estimada', { ascending: true, nullsFirst: false })
+      .limit(200);
+    if (shipErr) { console.error(shipErr); connBanner.classList.add('show'); return; }
+    connBanner.classList.remove('show');
+    ships = shipData || [];
+
+    const ids = ships.map((s) => s.id);
+    itensByShip = {};
+    if (ids.length) {
+      const { data: itensData, error: itensErr } = await sb
+        .from('importacao_itens')
+        .select('*')
+        .in('importacao_id', ids);
+      if (itensErr) { console.error(itensErr); }
+      (itensData || []).forEach((it) => {
+        if (!itensByShip[it.importacao_id]) itensByShip[it.importacao_id] = [];
+        itensByShip[it.importacao_id].push(it);
+      });
+    }
+    render();
+  }
+
+  function subscribe() {
+    if (channelShip) { sb.removeChannel(channelShip); channelShip = null; }
+    if (channelItens) { sb.removeChannel(channelItens); channelItens = null; }
+    loadAll();
+    channelShip = sb.channel('importacoes-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'importacoes' }, () => loadAll())
+      .subscribe();
+    channelItens = sb.channel('importacao-itens-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'importacao_itens' }, () => loadAll())
+      .subscribe();
+  }
+
+  // ---------------- hero ----------------
+
+  function renderHero() {
+    const proximos = ships
+      .filter((s) => s.status !== 'chegou' && s.data_chegada_estimada)
+      .sort((a, b) => a.data_chegada_estimada.localeCompare(b.data_chegada_estimada));
+    const heroBox = el('heroBox');
+    if (!proximos.length) { heroBox.hidden = true; return; }
+    const proximo = proximos[0];
+    heroBox.hidden = false;
+    el('heroPrincipal').textContent = proximo.fornecedor + ' (PI ' + proximo.pi_numero + ') — previsão ' + fmtDate(proximo.data_chegada_estimada);
+    const dias = diasAte(proximo.data_chegada_estimada);
+    if (dias == null) { el('heroDias').textContent = '—'; el('heroTxt').textContent = ''; }
+    else if (dias < 0) { el('heroDias').textContent = Math.abs(dias); el('heroTxt').textContent = 'dias em atraso'; }
+    else if (dias === 0) { el('heroDias').textContent = 'Hoje'; el('heroTxt').textContent = ''; }
+    else { el('heroDias').textContent = dias; el('heroTxt').textContent = dias === 1 ? 'dia' : 'dias'; }
+  }
+
+  // ---------------- render lista ----------------
+
+  function itensTable(shipId) {
+    const itens = itensByShip[shipId] || [];
+    if (!itens.length) return '<div class="empty-state">Nenhum item cadastrado ainda.</div>';
+    const rows = itens.map((it) =>
+      '<tr><td>' + escapeHtml(it.sku) + '</td><td class="produto-cell">' + escapeHtml(it.produto) + '</td><td class="qtd-cell">' + it.quantidade + '</td></tr>'
+    ).join('');
+    return '<table class="itens-table"><thead><tr><th>SKU</th><th>Produto</th><th class="qtd-th">Qtd.</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  function shipCard(ship) {
+    const card = document.createElement('div');
+    card.className = 'ship-card st-' + ship.status;
+
+    const top = document.createElement('div');
+    top.className = 'ship-top';
+
+    const main = document.createElement('div');
+    main.className = 'ship-main';
+    main.innerHTML =
+      '<div class="pi-num">PI ' + escapeHtml(ship.pi_numero) + '</div>' +
+      '<div class="fornecedor">' + escapeHtml(ship.fornecedor) + '</div>';
+
+    const itens = itensByShip[ship.id] || [];
+    const totalQty = itens.reduce((s, it) => s + (it.quantidade || 0), 0);
+    const metaParts = [];
+    if (ship.data_chegada_estimada) metaParts.push('<span>Previsão: <b>' + fmtDate(ship.data_chegada_estimada) + '</b></span>');
+    if (ship.valor_total_usd != null) metaParts.push('<span>Valor: <b>' + fmtUsd(ship.valor_total_usd) + '</b></span>');
+    if (itens.length) metaParts.push('<span>' + itens.length + ' SKUs · <b>' + totalQty + '</b> unidades</span>');
+    const meta = document.createElement('div');
+    meta.className = 'ship-meta';
+    meta.innerHTML = metaParts.join('');
+    main.appendChild(meta);
+
+    const statusSel = document.createElement('select');
+    statusSel.className = 'status-badge st-' + ship.status;
+    statusSel.style.border = 'none'; statusSel.style.appearance = 'none'; statusSel.style.cursor = 'pointer';
+    Object.keys(STATUS_LABELS).forEach((v) => {
+      const o = document.createElement('option'); o.value = v; o.textContent = STATUS_LABELS[v];
+      if (v === ship.status) o.selected = true;
+      statusSel.appendChild(o);
+    });
+    statusSel.addEventListener('change', async () => {
+      const { error } = await sb.from('importacoes').update({ status: statusSel.value }).eq('id', ship.id);
+      if (error) console.error(error);
+      await loadAll();
+    });
+
+    const actions = document.createElement('div');
+    actions.className = 'ship-actions';
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'icon-btn danger' + (pendingDeleteId === ship.id ? ' confirming' : '');
+    delBtn.type = 'button';
+    delBtn.innerHTML = TRASH_SVG;
+    delBtn.setAttribute('aria-label', pendingDeleteId === ship.id ? 'Confirmar exclusão' : 'Excluir embarque');
+    delBtn.addEventListener('click', () => requestDelete(ship.id));
+
+    actions.append(statusSel, delBtn);
+    top.append(main, actions);
+    card.appendChild(top);
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'toggle-itens';
+    const expanded = expandedIds.has(ship.id);
+    toggleBtn.textContent = expanded ? 'Ocultar itens' : 'Ver itens (' + itens.length + ')';
+    toggleBtn.addEventListener('click', () => {
+      if (expanded) expandedIds.delete(ship.id); else expandedIds.add(ship.id);
+      render();
+    });
+    card.appendChild(toggleBtn);
+
+    if (expanded) {
+      const wrap = document.createElement('div');
+      wrap.innerHTML = itensTable(ship.id);
+      card.appendChild(wrap);
+
+      const addRow = document.createElement('div');
+      addRow.className = 'add-itens-row';
+      const ta = document.createElement('textarea');
+      ta.placeholder = 'Adicionar mais itens — SKU;Produto;Quantidade (um por linha)';
+      const btnAdd = document.createElement('button');
+      btnAdd.type = 'button'; btnAdd.className = 'add-btn'; btnAdd.textContent = 'Adicionar itens';
+      btnAdd.addEventListener('click', async () => {
+        const novos = parseItensText(ta.value);
+        if (!novos.length) return;
+        btnAdd.disabled = true;
+        const { error } = await sb.from('importacao_itens').insert(novos.map((it) => ({
+          importacao_id: ship.id, sku: it.sku, produto: it.produto, quantidade: it.quantidade, preco_unit_usd: it.preco
+        })));
+        btnAdd.disabled = false;
+        if (error) { console.error(error); return; }
+        ta.value = '';
+        await loadAll();
+      });
+      addRow.append(ta, btnAdd);
+      card.appendChild(addRow);
+    }
+
+    return card;
+  }
+
+  function render() {
+    renderHero();
+    const list = el('shipList');
+    list.innerHTML = '';
+    if (!ships.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.textContent = 'Nenhum embarque cadastrado ainda.';
+      list.appendChild(empty);
+      return;
+    }
+    ships.forEach((s) => list.appendChild(shipCard(s)));
+  }
+
+  async function requestDelete(id) {
+    if (pendingDeleteId === id) {
+      clearTimeout(pendingDeleteTimeout);
+      pendingDeleteId = null;
+      const { error } = await sb.from('importacoes').delete().eq('id', id);
+      if (error) console.error(error);
+      await loadAll();
+      return;
+    }
+    pendingDeleteId = id;
+    render();
+    pendingDeleteTimeout = setTimeout(() => { pendingDeleteId = null; render(); }, 3000);
+  }
+
+  entryForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    formMsg.textContent = '';
+
+    const piNumero = el('piInput').value.trim();
+    const fornecedor = el('fornecedorInput').value.trim();
+    const status = el('statusInput').value;
+    const dataChegada = el('dataInput').value || null;
+    const valorInput = el('valorInput').value.replace(',', '.').trim();
+    const valorTotal = valorInput ? parseFloat(valorInput) : null;
+    const itensTexto = el('itensInput').value;
+    const itensParsed = parseItensText(itensTexto);
+
+    if (!piNumero || !fornecedor) {
+      formMsg.textContent = 'Preencha ao menos o número do PI e o fornecedor.';
+      return;
+    }
+
+    addBtn.disabled = true;
+    const { data: inserted, error } = await sb.from('importacoes').insert({
+      pi_numero: piNumero,
+      fornecedor: fornecedor,
+      status: status,
+      data_chegada_estimada: dataChegada,
+      valor_total_usd: valorTotal
+    }).select().single();
+
+    if (error) {
+      formMsg.textContent = 'Não foi possível salvar. Tente novamente.';
+      console.error(error);
+      addBtn.disabled = false;
+      return;
+    }
+
+    if (itensParsed.length) {
+      const { error: itensError } = await sb.from('importacao_itens').insert(itensParsed.map((it) => ({
+        importacao_id: inserted.id, sku: it.sku, produto: it.produto, quantidade: it.quantidade, preco_unit_usd: it.preco
+      })));
+      if (itensError) console.error(itensError);
+    }
+
+    addBtn.disabled = false;
+    entryForm.reset();
+    await loadAll();
+  });
+})();
+</script>
+</body>
+</html>
