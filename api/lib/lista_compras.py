@@ -8,6 +8,19 @@ import kits
 import tiny
 
 
+def curva_e_estoque_minimo(unidades_no_envio):
+    """Curva ABC pelo volume que vai para o Full e o estoque minimo que tem
+    de sobrar depois do envio (o estoque nunca pode zerar):
+      A: 30 unidades ou mais -> sobram pelo menos 5
+      B: de 10 a 29          -> sobram pelo menos 3
+      C: menos de 10         -> sobram pelo menos 2"""
+    if unidades_no_envio >= 30:
+        return "A", 5
+    if unidades_no_envio >= 10:
+        return "B", 3
+    return "C", 2
+
+
 def gerar_lista_compras(caminho_pdf):
     """Mantido por compatibilidade: gera a lista a partir de um unico PDF."""
     return gerar_lista_compras_de_varios([caminho_pdf])
@@ -89,7 +102,9 @@ def gerar_lista_compras_de_varios(caminhos_pdfs, nomes_arquivos=None):
         estoque = info.get("estoque_total")
         nao_cadastrado = estoque is None
         estoque_calc = 0.0 if nao_cadastrado else estoque
-        qtd_comprar = max(0.0, necessario - estoque_calc)
+        curva, estoque_minimo = curva_e_estoque_minimo(necessario)
+        # compra o que falta para o envio E para manter o estoque minimo
+        qtd_comprar = max(0.0, necessario + estoque_minimo - estoque_calc)
 
         nome = info.get("nome")
         if not nome:
@@ -115,12 +130,15 @@ def gerar_lista_compras_de_varios(caminhos_pdfs, nomes_arquivos=None):
                 "nome": nome,
                 "marca": marca,
                 "necessario": necessario,
+                "curva": curva,
+                "estoque_minimo": estoque_minimo,
+                "estoque_apos_envio": estoque_calc - necessario,
                 "estoque_atual": estoque,
                 "estoque_lisfer": info.get("estoque_lisfer"),
                 "estoque_lalfer": info.get("estoque_lalfer"),
                 "quantidade_comprar": qtd_comprar,
                 "custo_unitario": info.get("custo"),
-                "situacao": "COMPRAR" if qtd_comprar > 0 else "OK - estoque cobre",
+                "situacao": "COMPRAR" if qtd_comprar > 0 else "OK - estoque cobre envio + mínimo",
                 "sku_nao_cadastrado_no_tiny": nao_cadastrado,
                 "origem": origem_por_componente[sku],
             }

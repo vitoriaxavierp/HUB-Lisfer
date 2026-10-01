@@ -31,6 +31,11 @@
   .buy tr.group .count-pill { background: var(--surface); margin-left: 8px; }
   .buy td.qty { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-lg); }
   .buy .no-cost { color: var(--text-3); font-size: var(--fs-xs); }
+  .curva { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 6px;
+    border-radius: var(--r-xs); font-size: var(--fs-2xs); font-weight: 700; background: var(--surface-3); color: var(--text-2); }
+  .curva-A { background: var(--ink); color: #FFFFFF; }
+  .curva-B { background: var(--border-strong); color: var(--text); }
+  .p-meta { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
   .sit-ok { color: var(--success); font-weight: 600; }
   .sit-buy { color: var(--warning-text); font-weight: 600; }
   .table-scroll { max-height: 560px; overflow: auto; border-radius: 0 0 var(--r-lg) var(--r-lg); }
@@ -93,12 +98,18 @@
             </div>
           </section>
 
+          <div class="alert alert-info" id="regraCurva">
+            <span id="icRegra"></span>
+            <span><strong>O estoque nunca zera.</strong> Comprar = necessário para o envio + mínimo da curva − estoque atual.
+            Curva A (30 ou mais unidades no envio): sobram 5 · Curva B (10 a 29): sobram 3 · Curva C (menos de 10): sobram 2.</span>
+          </div>
+
           <div id="pendentesWrap"></div>
 
           <section class="panel" aria-labelledby="buyTitle">
             <div class="panel-head">
               <h2 id="buyTitle">O que comprar</h2>
-              <span class="panel-sub">Agrupado por marca/fornecedor</span>
+              <span class="panel-sub">Agrupado por marca/fornecedor · já inclui o estoque mínimo de cada curva</span>
             </div>
             <div id="listaPorMarca"></div>
           </section>
@@ -111,7 +122,7 @@
             <div class="table-scroll">
               <table class="table table-compact buy" id="tabelaConsolidado">
                 <thead>
-                  <tr><th>SKU</th><th>Produto</th><th>Marca</th><th class="num">Necessário</th><th class="num">Lisfer</th><th class="num">Lalfer</th><th class="num">Multiempresa</th><th class="num">Comprar</th><th>Situação</th></tr>
+                  <tr><th>SKU</th><th>Produto</th><th>Marca</th><th class="num">Necessário</th><th>Curva</th><th class="num">Mín.</th><th class="num">Lisfer</th><th class="num">Lalfer</th><th class="num">Multiempresa</th><th class="num">Comprar</th><th>Situação</th></tr>
                 </thead>
                 <tbody></tbody>
               </table>
@@ -134,6 +145,8 @@
   el('bc1').outerHTML = ic('chevronRight');
   el('dzIcon').outerHTML = ic('upload');
   el('dlIcon').outerHTML = ic('download');
+  el('icRegra').outerHTML = ic('info');
+  const curvaTag = (i) => i.curva ? '<span class="curva curva-' + i.curva + '" title="Curva ' + i.curva + ': mínimo de ' + i.estoque_minimo + ' em estoque">' + i.curva + '</span>' : '';
 
   HubAuth.requireAuth(() => {
     el('appScreen').hidden = false;
@@ -246,7 +259,8 @@
         rows += '<tr class="group"><td colspan="6">' + escapeHtml(marca) + '<span class="count-pill">' + itens.length + (itens.length === 1 ? ' SKU' : ' SKUs') + '</span></td></tr>';
         itens.forEach((i) => {
           rows += '<tr>' +
-            '<td class="prod"><div class="p-nome">' + escapeHtml(i.nome) + '</div><div class="p-sku">' + escapeHtml(i.sku) + '</div></td>' +
+            '<td class="prod"><div class="p-nome">' + escapeHtml(i.nome) + '</div><div class="p-meta"><span class="p-sku">' + escapeHtml(i.sku) + '</span>' + curvaTag(i) +
+            (i.estoque_minimo != null ? '<span class="p-sku">envio ' + formatarNumero(i.necessario) + ' + mín. ' + i.estoque_minimo + '</span>' : '') + '</div></td>' +
             '<td class="num">' + formatarNumero(i.estoque_lisfer) + '</td>' +
             '<td class="num">' + formatarNumero(i.estoque_lalfer) + '</td>' +
             '<td class="num">' + formatarNumero(i.estoque_atual) + '</td>' +
@@ -268,6 +282,8 @@
         '<td>' + escapeHtml(i.nome) + '</td>' +
         '<td>' + escapeHtml(i.marca) + '</td>' +
         '<td class="num">' + formatarNumero(i.necessario) + '</td>' +
+        '<td>' + curvaTag(i) + '</td>' +
+        '<td class="num">' + (i.estoque_minimo != null ? i.estoque_minimo : '—') + '</td>' +
         '<td class="num">' + (fora ? '—' : formatarNumero(i.estoque_lisfer)) + '</td>' +
         '<td class="num">' + (fora ? '—' : formatarNumero(i.estoque_lalfer)) + '</td>' +
         '<td class="num">' + (fora ? 'não encontrado' : formatarNumero(i.estoque_atual)) + '</td>' +

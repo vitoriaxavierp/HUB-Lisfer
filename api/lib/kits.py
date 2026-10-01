@@ -1,6 +1,7 @@
 """Regras de desmembramento de SKU de kit em SKUs componentes.
 
-Ordem de confianca (da especificacao do Analista de Compras FULL):
+Regra da operacao Lisfer: "-N" no FINAL de um codigo e sempre a quantidade
+daquele produto no kit.
 
   a) "SKU1/SKU2/SKU3" (codigos diferentes separados por "/") = 1 peca de
      cada SKU listado por kit vendido. So aplicavel quando cada SKUn,
@@ -8,37 +9,19 @@ Ordem de confianca (da especificacao do Analista de Compras FULL):
      pedaco nao existir sozinho (ex: "KA015/17" onde "17" nao e um produto
      de verdade, so faz parte do codigo "KA015/17"), o codigo inteiro e
      mantido como UM UNICO produto, sem decompor nada.
-  b) "BASE-N" (um unico codigo-base com sufixo numerico, SEM barra) pode
-     significar N pecas do SKU base por kit - MAS SO quando (i) o codigo
-     sem o sufixo existe sozinho no cadastro E (ii) o nome do produto no
-     PDF sugere claramente um kit de N pecas (contem "kit" e o numero N).
-     Fora isso, o sufixo numerico faz parte do codigo normalmente (ex:
-     "109671-02" e "109671-16" sao SKUs pai distintos, nao kits).
-  c) "BASE1-N1/BASE2-N2/..." (varios trechos separados por "/", cada um
-     com seu proprio sufixo numerico) = a combinacao dos dois casos acima.
-     Aqui o "-N" de cada trecho JA E a quantidade daquele componente (ex:
-     "LX-0105-1/LX-0106-1/LX-0107-1" = 1 peca de LX-0105 + 1 de LX-0106 +
-     1 de LX-0107) - nao precisa o nome confirmar "kit de N pecas" como no
-     caso (b), porque a propria estrutura com varios componentes diferentes
-     ja e a confirmacao. So exige que cada BASE exista sozinha no cadastro.
-
-Quando ha um UNICO trecho (sem "/") no formato "BASE-N", a base existe
-sozinha no cadastro, mas o nome NAO confirma claramente um kit de N pecas,
-o item fica marcado como pendente de confirmacao manual - nunca inventamos
-a composicao nesse caso, so aplicamos o fallback seguro (tratar como SKU
-proprio, multiplicador 1) e avisamos. Esse caso so se aplica ao (b); no
-caso (c), com varias partes, a decomposicao e aplicada direto.
+  b) "BASE-N" = N pecas do SKU base (ex: "LF-0276-3" = 3x LF-0276;
+     "LF-0253-2" = 2x LF-0253), desde que o codigo BASE exista sozinho no
+     cadastro. A checagem do cadastro e o que impede ler o proprio codigo
+     como kit: em "LF-0253" a "base" seria "LF", que nao e um produto, entao
+     o codigo fica como esta.
+  c) "BASE1-N1/BASE2-N2/..." = a combinacao das duas regras: o "-N" de cada
+     trecho e a quantidade daquele componente (ex: "LX-0109-2/LX-0108-1" =
+     2x LX-0109 + 1x LX-0108). Cada BASE precisa existir no cadastro.
 """
 
 import re
 
 _PADRAO_BASE_N = re.compile(r"^(.+)-(\d+)$")
-
-
-def _nome_confirma_kit_de_n_pecas(nome, n):
-    if not re.search(r"\bkit\b", nome, re.IGNORECASE):
-        return False
-    return re.search(rf"\b{n}\b", nome) is not None
 
 
 def decompor_sku_kit(sku_kit, nome_produto, sku_existe_no_catalogo):
@@ -48,61 +31,28 @@ def decompor_sku_kit(sku_kit, nome_produto, sku_existe_no_catalogo):
 
     Devolve (componentes, pendente_confirmacao):
         componentes: lista de {"sku": str, "multiplicador": int}
-        pendente_confirmacao: bool - True se um UNICO trecho (sem "/")
-            bateu com o padrao "base+sufixo numerico", a base existe
-            sozinha no catalogo, mas o nome do produto nao confirmou
-            claramente que e um kit repetido - nesse caso o item precisa
-            de revisao manual.
+        pendente_confirmacao: mantido por compatibilidade; sempre False
+            agora que "-N" no final e sempre quantidade.
     """
     partes = [p.strip() for p in sku_kit.split("/") if p.strip()]
 
-    if len(partes) == 1:
-        # caso (b): um unico trecho, sem "/"
-        parte = partes[0]
-        m = _PADRAO_BASE_N.match(parte)
-        if m:
-            base, n_str = m.group(1), m.group(2)
-            n = int(n_str)
-            if sku_existe_no_catalogo(base):
-                if _nome_confirma_kit_de_n_pecas(nome_produto, n):
-                    return [{"sku": base, "multiplicador": n}], False
-                # ambiguo: base existe, mas o nome nao confirma o kit de N
-                # pecas - fallback seguro (SKU proprio) + pede confirmacao
-                return [{"sku": parte, "multiplicador": 1}], True
-        return [{"sku": parte, "multiplicador": 1}], False
-
-    # varios trechos separados por "/": candidato as regras (a)/(c). So
-    # aplicamos a decomposicao se CADA trecho puder ser confirmado como um
-    # componente de verdade - senao, o codigo inteiro vira um unico item.
-    componentes_candidatos = []
+    componentes = []
     for parte in partes:
         m = _PADRAO_BASE_N.match(parte)
-        confirmado = False
-
-        if m:
-            base, n_str = m.group(1), m.group(2)
-            n = int(n_str)
-            if sku_existe_no_catalogo(base):
-                # regra (c): a propria estrutura "base-n/base-n/..." ja e a
-                # confirmacao, nao precisa o nome citar "kit".
-                componentes_candidatos.append({"sku": base, "multiplicador": n})
-                confirmado = True
-
-        if not confirmado:
-            # regra (a): o trecho so conta como componente proprio se ELE
-            # MESMO existir sozinho no cadastro (ex: "LF-0213" e valido por
-            # si so; "17" em "KA015/17" nao e).
-            if sku_existe_no_catalogo(parte):
-                componentes_candidatos.append({"sku": parte, "multiplicador": 1})
-                confirmado = True
-
-        if not confirmado:
-            # nao deu pra confirmar este trecho com seguranca - o codigo
-            # inteiro (com a barra e tudo) e mantido como UM UNICO produto,
-            # nunca inventamos a composicao.
+        if m and int(m.group(2)) > 0 and sku_existe_no_catalogo(m.group(1)):
+            # regras (b)/(c): "-N" no final = N pecas da base
+            componentes.append({"sku": m.group(1), "multiplicador": int(m.group(2))})
+        elif len(partes) == 1 or sku_existe_no_catalogo(parte):
+            # codigo sem sufixo de quantidade (ou cuja "base" nao e um
+            # produto): conta como 1 peca dele mesmo
+            componentes.append({"sku": parte, "multiplicador": 1})
+        else:
+            # trecho de um codigo com "/" que nao e produto sozinho (ex: o
+            # "17" de "KA015/17"): o codigo inteiro e UM UNICO produto,
+            # nunca inventamos a composicao
             return [{"sku": sku_kit, "multiplicador": 1}], False
 
-    return componentes_candidatos, False
+    return componentes, False
 
 
 def extrair_marca(nome_produto):

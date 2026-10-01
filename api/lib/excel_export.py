@@ -63,7 +63,7 @@ def gerar_excel_lista_compras(resultado):
     )
 
     cabecalho_linha = 4
-    colunas = ["SKU", "Produto", "Marca", "Necessário",
+    colunas = ["SKU", "Produto", "Marca", "Necessário", "Curva", "Estoque mín.",
                "Estoque Lisfer", "Estoque Lalfer", "Estoque (Multiempresa)", "Comprar",
                "Fornecedor (preencher)", "Custo Unit. (R$)", "Valor a Comprar (R$)"]
     for i, nome_col in enumerate(colunas, start=1):
@@ -86,26 +86,28 @@ def gerar_excel_lista_compras(resultado):
             ws.cell(row=linha, column=2, value=item["nome"])
             ws.cell(row=linha, column=3, value=item["marca"])
             ws.cell(row=linha, column=4, value=item["necessario"])
-            ws.cell(row=linha, column=5, value=item.get("estoque_lisfer"))
-            ws.cell(row=linha, column=6, value=item.get("estoque_lalfer"))
-            ws.cell(row=linha, column=7, value=item["estoque_atual"])
-            ws.cell(row=linha, column=8, value=item["quantidade_comprar"])
-            ws.cell(row=linha, column=9, value="")
+            ws.cell(row=linha, column=5, value=item.get("curva"))
+            ws.cell(row=linha, column=6, value=item.get("estoque_minimo"))
+            ws.cell(row=linha, column=7, value=item.get("estoque_lisfer"))
+            ws.cell(row=linha, column=8, value=item.get("estoque_lalfer"))
+            ws.cell(row=linha, column=9, value=item["estoque_atual"])
+            ws.cell(row=linha, column=10, value=item["quantidade_comprar"])
+            ws.cell(row=linha, column=11, value="")
             custo = item.get("custo_unitario")
-            ws.cell(row=linha, column=10, value=custo if custo is not None else None)
-            ws.cell(row=linha, column=10).number_format = FORMATO_MOEDA
-            valor_cell = ws.cell(row=linha, column=11)
+            ws.cell(row=linha, column=12, value=custo if custo is not None else None)
+            ws.cell(row=linha, column=12).number_format = FORMATO_MOEDA
+            valor_cell = ws.cell(row=linha, column=13)
             if custo is not None:
-                valor_cell.value = f"=H{linha}*J{linha}"
+                valor_cell.value = f"=J{linha}*L{linha}"
             valor_cell.number_format = FORMATO_MOEDA
             linha += 1
 
         linha_marca_fim = linha - 1
         subtotal_linha = linha
         ws.cell(row=subtotal_linha, column=2, value=f"Subtotal — {marca}")
-        ws.cell(row=subtotal_linha, column=8, value=f"=SUM(H{linha_marca_inicio}:H{linha_marca_fim})")
-        ws.cell(row=subtotal_linha, column=11, value=f"=SUM(K{linha_marca_inicio}:K{linha_marca_fim})")
-        ws.cell(row=subtotal_linha, column=11).number_format = FORMATO_MOEDA
+        ws.cell(row=subtotal_linha, column=10, value=f"=SUM(J{linha_marca_inicio}:J{linha_marca_fim})")
+        ws.cell(row=subtotal_linha, column=13, value=f"=SUM(M{linha_marca_inicio}:M{linha_marca_fim})")
+        ws.cell(row=subtotal_linha, column=13).number_format = FORMATO_MOEDA
         for col in range(1, len(colunas) + 1):
             ws.cell(row=subtotal_linha, column=col).fill = PatternFill("solid", fgColor=FUNDO_SUBTOTAL)
             ws.cell(row=subtotal_linha, column=col).font = Font(name="Arial", bold=True, size=10)
@@ -115,17 +117,21 @@ def gerar_excel_lista_compras(resultado):
     if linhas_subtotal:
         total_linha = linha
         ws.cell(row=total_linha, column=2, value="TOTAL GERAL")
-        soma_comprar = "+".join(f"H{r}" for r in linhas_subtotal)
-        soma_valor = "+".join(f"K{r}" for r in linhas_subtotal)
-        ws.cell(row=total_linha, column=8, value=f"={soma_comprar}")
-        ws.cell(row=total_linha, column=11, value=f"={soma_valor}")
-        ws.cell(row=total_linha, column=11).number_format = FORMATO_MOEDA
+        soma_comprar = "+".join(f"J{r}" for r in linhas_subtotal)
+        soma_valor = "+".join(f"M{r}" for r in linhas_subtotal)
+        ws.cell(row=total_linha, column=10, value=f"={soma_comprar}")
+        ws.cell(row=total_linha, column=13, value=f"={soma_valor}")
+        ws.cell(row=total_linha, column=13).number_format = FORMATO_MOEDA
         for col in range(1, len(colunas) + 1):
             ws.cell(row=total_linha, column=col).font = Font(name="Arial", bold=True, size=11)
     else:
         ws.cell(row=linha, column=1, value="Nenhuma compra necessária — o estoque cobre todo o envio.")
 
-    larguras = [14, 42, 16, 11, 13, 13, 18, 10, 22, 14, 16]
+    larguras = [14, 42, 16, 11, 8, 12, 13, 13, 18, 10, 22, 14, 16]
+
+    nota_linha = ws.max_row + 2
+    _subtitulo(ws, nota_linha, "Comprar = necessário para o envio + estoque mínimo da curva − estoque atual. "
+                               "Curva A (30+ un. no envio): mín. 5 · B (10 a 29): mín. 3 · C (menos de 10): mín. 2.")
     for i, larg in enumerate(larguras, start=1):
         ws.column_dimensions[get_column_letter(i)].width = larg
 
@@ -135,7 +141,7 @@ def gerar_excel_lista_compras(resultado):
     _titulo(ws2, 1, "Consolidado por SKU componente")
     _subtitulo(ws2, 2, "Todos os SKUs após o desmembramento dos kits, inclusive os que já têm estoque suficiente.")
 
-    cab2 = ["SKU", "Produto", "Marca", "Necessário",
+    cab2 = ["SKU", "Produto", "Marca", "Necessário", "Curva", "Estoque mín.",
             "Estoque Lisfer", "Estoque Lalfer", "Estoque (Multiempresa)", "Comprar",
             "Custo Unit. (R$)", "Situação"]
     for i, nome_col in enumerate(cab2, start=1):
@@ -150,21 +156,23 @@ def gerar_excel_lista_compras(resultado):
         ws2.cell(row=linha2, column=2, value=item["nome"])
         ws2.cell(row=linha2, column=3, value=item["marca"])
         ws2.cell(row=linha2, column=4, value=item["necessario"])
-        ws2.cell(row=linha2, column=5, value="não encontrado" if nao_cadastrado else item.get("estoque_lisfer"))
-        ws2.cell(row=linha2, column=6, value="não encontrado" if nao_cadastrado else item.get("estoque_lalfer"))
-        ws2.cell(row=linha2, column=7, value="não encontrado" if nao_cadastrado else item.get("estoque_atual"))
-        ws2.cell(row=linha2, column=8, value=item["quantidade_comprar"])
+        ws2.cell(row=linha2, column=5, value=item.get("curva"))
+        ws2.cell(row=linha2, column=6, value=item.get("estoque_minimo"))
+        ws2.cell(row=linha2, column=7, value="não encontrado" if nao_cadastrado else item.get("estoque_lisfer"))
+        ws2.cell(row=linha2, column=8, value="não encontrado" if nao_cadastrado else item.get("estoque_lalfer"))
+        ws2.cell(row=linha2, column=9, value="não encontrado" if nao_cadastrado else item.get("estoque_atual"))
+        ws2.cell(row=linha2, column=10, value=item["quantidade_comprar"])
         custo = item.get("custo_unitario")
-        ws2.cell(row=linha2, column=9, value=custo if custo is not None else None)
-        ws2.cell(row=linha2, column=9).number_format = FORMATO_MOEDA
-        situ_cell = ws2.cell(row=linha2, column=10, value=item["situacao"])
+        ws2.cell(row=linha2, column=11, value=custo if custo is not None else None)
+        ws2.cell(row=linha2, column=11).number_format = FORMATO_MOEDA
+        situ_cell = ws2.cell(row=linha2, column=12, value=item["situacao"])
         if item["quantidade_comprar"] > 0:
             situ_cell.font = Font(name="Arial", bold=True, color="C00000")
         else:
             situ_cell.font = Font(name="Arial", bold=True, color="1E8E3E")
         linha2 += 1
 
-    larguras2 = [14, 42, 16, 11, 13, 13, 18, 10, 14, 20]
+    larguras2 = [14, 42, 16, 11, 8, 12, 13, 13, 18, 10, 14, 30]
     for i, larg in enumerate(larguras2, start=1):
         ws2.column_dimensions[get_column_letter(i)].width = larg
 
