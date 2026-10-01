@@ -6,7 +6,7 @@
 <title>Coletas — Hub Lisfer</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
 <script src="config.js"></script>
 <script src="shared.js"></script>
 <style>
@@ -688,6 +688,19 @@
     return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
+  // Só aceita links http/https: um "javascript:..." salvo no banco rodaria
+  // código no navegador de quem clicasse.
+  function safeUrl(value) {
+    const v = String(value || '').trim();
+    if (!v) return null;
+    try {
+      const url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(v) ? v : 'https://' + v);
+      return (url.protocol === 'https:' || url.protocol === 'http:') ? url.href : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   // ---------------- rastreio inline ----------------
 
   async function saveRastreio(id, value) {
@@ -716,9 +729,9 @@
       input.addEventListener('blur', () => saveRastreio(order.id, input.value.trim()));
       wrap.appendChild(input);
       setTimeout(() => input.focus(), 0);
-    } else if (order.linkRastreio) {
+    } else if (safeUrl(order.linkRastreio)) {
       const a = document.createElement('a');
-      a.href = order.linkRastreio;
+      a.href = safeUrl(order.linkRastreio);
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
       a.className = 'rastreio-link';

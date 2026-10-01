@@ -1,0 +1,6 @@
+# Arquivos que ficam no repositório mas NÃO vão para o site publicado
+SETUP.md
+supabase/
+.claude/
+.env*
+*.md

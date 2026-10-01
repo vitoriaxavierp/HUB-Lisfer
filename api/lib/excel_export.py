@@ -32,7 +32,21 @@ def _subtitulo(ws, linha, texto):
     c.font = Font(name="Arial", color=CINZA_SUBTITULO, size=10)
 
 
+def _neutralizar_formulas(valor):
+    """O JSON desta exportacao vem do navegador. Um texto comecando com
+    = + - @ viraria formula no Excel (injecao de formula), entao recebe um
+    espaco na frente e fica como texto comum."""
+    if isinstance(valor, str):
+        return " " + valor if valor[:1] in ("=", "+", "-", "@", chr(9), chr(13)) else valor
+    if isinstance(valor, list):
+        return [_neutralizar_formulas(v) for v in valor]
+    if isinstance(valor, dict):
+        return {k: _neutralizar_formulas(v) for k, v in valor.items()}
+    return valor
+
+
 def gerar_excel_lista_compras(resultado):
+    resultado = _neutralizar_formulas(resultado)
     wb = Workbook()
 
     # ---------- Aba 1: Lista de Compras (so o que precisa comprar) ----------

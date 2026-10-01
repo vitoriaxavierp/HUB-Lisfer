@@ -6,7 +6,7 @@
 <title>Lista de Compras — Full</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
 <script src="config.js"></script>
 <script src="shared.js"></script>
 <style>
@@ -405,7 +405,7 @@
 
       const json = await resp.json();
       if (!resp.ok) {
-        formMsg.textContent = (json.erro || 'Não foi possível processar o PDF.') + (json.debug ? ' [' + json.debug + ']' : '');
+        formMsg.textContent = (json.erro || 'Não foi possível processar o PDF.');
         return;
       }
       renderResultado(json);
