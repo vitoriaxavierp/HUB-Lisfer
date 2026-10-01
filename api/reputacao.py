@@ -35,9 +35,19 @@ def _metrica(metrics, chave):
     return {"quantidade": m.get("value"), "taxa": m.get("rate"), "periodo": m.get("period")}
 
 
+def _credencial(nome):
+    """Valor da variável de ambiente sem espaços e sem o nome do cabeçalho
+    na frente (o botão de copiar da Cloudflare copia a linha inteira, ex.:
+    "CF-Access-Client-Id: xxxx.access")."""
+    valor = (os.environ.get(nome) or "").strip().strip('"').strip("'")
+    if valor.lower().startswith("cf-access-client-") and ":" in valor:
+        valor = valor.split(":", 1)[1].strip()
+    return valor
+
+
 def _consultar(conta):
-    cid = os.environ.get("CF_ACCESS_CLIENT_ID")
-    secret = os.environ.get("CF_ACCESS_CLIENT_SECRET")
+    cid = _credencial("CF_ACCESS_CLIENT_ID")
+    secret = _credencial("CF_ACCESS_CLIENT_SECRET")
     base = {"conta": conta["conta"], "nome": conta["nome"], "empresa": conta["empresa"]}
     if not cid or not secret:
         return {**base, "ok": False, "erro": "Credencial do serviço do Mercado Livre não configurada no servidor."}
