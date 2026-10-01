@@ -48,6 +48,7 @@ const HubIcons = (function () {
     eye: '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>',
     eyeOff: '<path d="M3 3l18 18"/><path d="M10.6 5.1A11 11 0 0 1 12 5c7 0 11 7 11 7a13.2 13.2 0 0 1-3.1 3.8M6.5 6.6C3.7 8.3 1 12 1 12s4 7 11 7a10.6 10.6 0 0 0 4.2-.9"/><path d="M9.5 9.9a3 3 0 0 0 4.2 4.2"/>',
     users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.7.7 2.8 2.4 3 5.2"/>',
+    refresh: '<path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 21v-5h-5"/>',
     search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
     mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
     lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'
@@ -126,7 +127,8 @@ const HubModulos = [
   { key: 'full_separacao', label: 'Full · Lista de Separação', grupo: 'Operação' },
   { key: 'importacao', label: 'Importação', grupo: 'Operação' },
   { key: 'calc_precos', label: 'Calculadora de Preços', grupo: 'Vendas' },
-  { key: 'calc_lucro', label: 'Calculadora de Lucratividade', grupo: 'Vendas' }
+  { key: 'calc_lucro', label: 'Calculadora de Lucratividade', grupo: 'Vendas' },
+  { key: 'reputacao', label: 'Reputação das contas', grupo: 'Vendas' }
 ];
 
 // ------------------------------------------------------------------
@@ -149,11 +151,11 @@ const HubShell = (function () {
       { key: 'calculadoras', label: 'Calculadoras', href: 'calculadoras.html', icon: 'calc', children: [
         { key: 'calc-precos', label: 'Preços', href: 'calculadora-precos.html', modulo: 'calc_precos' },
         { key: 'calc-lucro', label: 'Lucratividade', href: 'calculadora-lucratividade.html', modulo: 'calc_lucro' }
-      ] }
+      ] },
+      { key: 'reputacao', label: 'Reputação das contas', href: 'reputacao.html', icon: 'reputacao', modulo: 'reputacao' }
     ] },
     { title: 'Em breve', items: [
       { key: 'pontos', label: 'Pontos do mês', icon: 'pontos', soon: true },
-      { key: 'reputacao', label: 'Reputação das contas', icon: 'reputacao', soon: true },
       { key: 'anuncios', label: 'Anúncios pendentes', icon: 'anuncios', soon: true }
     ] },
     { title: 'Administração', master: true, items: [

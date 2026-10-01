@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reputação das contas — Hub Lisfer</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="hub.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<style>
+  /* cores do termômetro do Mercado Livre (dado, não decoração) */
+  :root {
+    --rep-1: #D93025; --rep-2: #F57C00; --rep-3: #F2B705; --rep-4: #8BC34A; --rep-5: #2E9E4F;
+  }
+  .rep-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-6); }
+  @media (max-width: 980px) { .rep-grid { grid-template-columns: 1fr; } }
+
+  .rep-head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px 0; }
+  .rep-head h2 { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 800; }
+  .rep-nick { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); margin-top: 2px; }
+  .rep-head .spacer { flex: 1; }
+
+  .termo { padding: 16px 20px 4px; }
+  .termo-barra { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  .termo-barra span { height: 10px; border-radius: 3px; opacity: 0.22; }
+  .termo-barra span:nth-child(1) { background: var(--rep-1); }
+  .termo-barra span:nth-child(2) { background: var(--rep-2); }
+  .termo-barra span:nth-child(3) { background: var(--rep-3); }
+  .termo-barra span:nth-child(4) { background: var(--rep-4); }
+  .termo-barra span:nth-child(5) { background: var(--rep-5); }
+  .termo-barra span.on { opacity: 1; height: 14px; margin-top: -2px; box-shadow: 0 1px 3px rgba(17, 19, 21, 0.2); }
+  .termo-txt { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .termo-nivel { font-weight: 700; font-size: var(--fs-md); }
+  .ml-badge { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 700; }
+  .ml-platinum { background: #E7EAEE; color: #3B4652; }
+  .ml-gold { background: #FBF0CF; color: #7A5600; }
+  .ml-silver { background: #EEF0F2; color: #59626C; }
+  .ml-badge svg { width: 13px; height: 13px; }
+
+  .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 16px 20px 0; border: 1px solid var(--border); border-radius: var(--r-md); }
+  .kpi { padding: 12px 14px; border-left: 1px solid var(--border); min-width: 0; }
+  .kpi:first-child { border-left: 0; }
+  .kpi .k { font-size: var(--fs-xs); color: var(--text-3); font-weight: 500; }
+  .kpi .v { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 800; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .kpi .s { font-size: var(--fs-xs); color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+  .rep-foot { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 20px 18px; font-size: var(--fs-sm); color: var(--text-2); }
+  .aval { flex: 1 1 220px; min-width: 0; }
+  .aval-barra { display: flex; height: 8px; border-radius: var(--r-pill); overflow: hidden; background: var(--surface-3); margin-top: 6px; }
+  .aval-barra .p { background: var(--success); }
+  .aval-barra .n { background: var(--border-strong); }
+  .aval-barra .x { background: var(--danger); }
+  .aval-leg { display: flex; gap: 12px; margin-top: 6px; font-size: var(--fs-xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .aval-leg i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: 0; }
+
+  .card-erro { padding: 20px; }
+  .meta-line { font-size: var(--fs-sm); color: var(--text-3); }
+</style>
+</head>
+<body>
+
+<div class="app" id="appScreen" hidden>
+  <aside class="app-sidebar" id="appSidebar" data-active="reputacao"></aside>
+  <div class="app-scrim"></div>
+  <div class="app-main">
+    <main class="page">
+      <header class="page-header">
+        <div class="page-header-text">
+          <h1 class="page-title">Reputação das contas</h1>
+          <p class="page-desc">Termômetro e indicadores das 4 contas do Mercado Livre, direto do ML. Os indicadores contam os últimos 60 dias, o mesmo período que o ML usa para a cor.</p>
+        </div>
+        <div class="page-actions">
+          <span class="meta-line" id="consultado"></span>
+          <button type="button" class="btn btn-secondary" id="atualizar"><span id="icAtualizar"></span>Atualizar</button>
+        </div>
+      </header>
+
+      <div class="stack">
+        <div class="alert alert-danger" id="erroGeral" role="alert" hidden><span id="icErro"></span><span id="erroMsg"></span></div>
+        <div class="rep-grid" id="grid" aria-live="polite"></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+(function () {
+  const el = (id) => document.getElementById(id);
+  const ic = HubIcons.svg;
+  const esc = HubUI.escapeHtml;
+
+  const NIVEIS = {
+    '1_red': [1, 'Vermelho'], '2_orange': [2, 'Laranja'], '3_yellow': [3, 'Amarelo'],
+    '4_light_green': [4, 'Verde-claro'], '5_green': [5, 'Verde']
+  };
+  const LIDER = { platinum: 'MercadoLíder Platinum', gold: 'MercadoLíder Gold', silver: 'MercadoLíder' };
+
+  el('icAtualizar').outerHTML = ic('refresh');
+  el('icErro').outerHTML = ic('alertCircle');
+
+  const pct = (t) => t == null ? '—' : (t * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+  const int = (n) => n == null ? '—' : Number(n).toLocaleString('pt-BR');
+  const pct0 = (t) => t == null ? '—' : Math.round(t * 100) + '%';
+
+  function skeleton() {
+    el('grid').innerHTML = [0, 1, 2, 3].map(() =>
+      '<section class="panel"><div class="panel-body stack-sm">' +
+      '<span class="skeleton" style="height:20px;width:40%"></span>' +
+      '<span class="skeleton" style="height:12px;width:100%;margin-top:14px"></span>' +
+      '<span class="skeleton" style="height:70px;width:100%;margin-top:14px"></span>' +
+      '</div></section>').join('');
+  }
+
+  function kpi(rotulo, m) {
+    return '<div class="kpi"><div class="k">' + rotulo + '</div>' +
+      '<div class="v">' + pct(m && m.taxa) + '</div>' +
+      '<div class="s">' + int(m && m.quantidade) + (m && m.quantidade === 1 ? ' caso' : ' casos') + '</div></div>';
+  }
+
+  function cartao(c) {
+    if (!c.ok) {
+      return '<section class="panel"><div class="rep-head"><div><h2>' + esc(c.nome) + '</h2></div></div>' +
+        '<div class="card-erro"><div class="alert alert-warning">' + ic('alert') + '<span>' + esc(c.erro || 'Não foi possível consultar esta conta.') + '</span></div></div></section>';
+    }
+    const [nivel, nomeNivel] = NIVEIS[c.nivel] || [0, 'Sem reputação'];
+    const barra = [1, 2, 3, 4, 5].map((i) => '<span class="' + (i === nivel ? 'on' : '') + '"></span>').join('');
+    const lider = c.mercadolider ? '<span class="ml-badge ml-' + esc(c.mercadolider) + '">' + ic('reputacao') + esc(LIDER[c.mercadolider] || c.mercadolider) + '</span>' : '';
+    const av = (c.historico && c.historico.avaliacoes) || {};
+    const p = av.positive || 0, n = av.neutral || 0, x = av.negative || 0;
+    return '<section class="panel" aria-label="' + esc(c.nome) + '">' +
+      '<div class="rep-head"><div><h2>' + esc(c.nome) + '</h2><div class="rep-nick">' + esc(c.apelido || '') + ' · ' + esc(c.empresa) + '</div></div>' +
+        '<span class="spacer"></span>' +
+        (c.perfil ? '<a class="btn btn-ghost btn-sm" href="' + esc(c.perfil) + '" target="_blank" rel="noopener noreferrer">' + ic('external') + 'Perfil no ML</a>' : '') + '</div>' +
+      '<div class="termo"><div class="termo-barra" role="img" aria-label="Termômetro: ' + esc(nomeNivel) + '">' + barra + '</div>' +
+        '<div class="termo-txt"><span class="termo-nivel">' + esc(nomeNivel) + '</span>' + lider + '</div></div>' +
+      '<div class="kpis">' + kpi('Reclamações', c.reclamacoes) + kpi('Atrasos no envio', c.atrasos) + kpi('Cancelamentos', c.cancelamentos) + '</div>' +
+      '<div class="rep-foot">' +
+        '<div><strong style="color:var(--text)">' + int(c.vendas_periodo) + '</strong> vendas nos últimos 60 dias</div>' +
+        '<div class="aval">Avaliações (histórico, ' + int(c.historico && c.historico.total) + ' vendas)' +
+          '<div class="aval-barra" role="img" aria-label="' + pct0(p) + ' positivas, ' + pct0(n) + ' neutras, ' + pct0(x) + ' negativas">' +
+          '<span class="p" style="width:' + (p * 100) + '%"></span><span class="n" style="width:' + (n * 100) + '%"></span><span class="x" style="width:' + (x * 100) + '%"></span></div>' +
+          '<div class="aval-leg"><span><i style="background:var(--success)"></i>' + pct0(p) + ' positivas</span><span><i style="background:var(--border-strong)"></i>' + pct0(n) + ' neutras</span><span><i style="background:var(--danger)"></i>' + pct0(x) + ' negativas</span></div>' +
+        '</div>' +
+      '</div></section>';
+  }
+
+  async function carregar() {
+    el('erroGeral').hidden = true;
+    skeleton();
+    const done = HubUI.busy(el('atualizar'), 'Consultando…');
+    try {
+      const { data } = await sb.auth.getSession();
+      const token = data.session ? data.session.access_token : null;
+      const resp = await fetch('/api/reputacao', { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' });
+      const json = await resp.json().catch(() => ({}));
+      if (!resp.ok) throw new Error(json.erro || 'Não foi possível consultar a reputação.');
+      el('grid').innerHTML = (json.contas || []).map(cartao).join('');
+      const quando = json.consultado_em ? new Date(json.consultado_em) : new Date();
+      el('consultado').textContent = 'Consultado às ' + quando.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    } catch (e) {
+      console.error(e);
+      el('grid').innerHTML = '';
+      el('erroMsg').textContent = e.message || 'Erro de conexão. Tente de novo.';
+      el('erroGeral').hidden = false;
+    } finally {
+      done();
+    }
+  }
+
+  el('atualizar').addEventListener('click', carregar);
+
+  HubAuth.requireAuth(() => {
+    el('appScreen').hidden = false;
+    carregar();
+  }, 'reputacao');
+})();
+</script>
+</body>
+</html>
