@@ -1,240 +1,143 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calculadora de Preço de Venda — Lisfer</title>
+<title>Preços — Calculadoras — Hub Lisfer</title>
 <link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="hub.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
 <script src="config.js"></script>
 <script src="shared.js"></script>
 <style>
-  :root {
-    --lisfer-amarelo: #FBBE28;
-    --lisfer-amarelo-escuro: #E0A80F;
-    --lisfer-preto: #000000;
-    --lisfer-cinza-texto: #4A4A4A;
-    --lisfer-cinza-claro: #6E6E6E;
-    --lisfer-borda: #E5E5E5;
-    --lisfer-fundo: #F7F7F5;
+  /* Calculadoras — tudo escopado em .calc-page para não vazar no menu lateral */
+  .calc-jump { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+  .calc-jump a {
+    display: inline-flex; align-items: center; height: 28px; padding: 0 11px; border-radius: var(--r-pill);
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-2);
+    font-size: var(--fs-xs); font-weight: 600; text-decoration: none;
   }
-  * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    background: var(--lisfer-fundo);
-    margin: 0;
-    padding: 0 0 40px;
-    color: var(--lisfer-preto);
+  .calc-jump a:hover { border-color: var(--text-3); color: var(--text); }
+  .calc-switch { display: inline-flex; padding: 3px; gap: 2px; background: var(--surface-3); border-radius: var(--r-md); }
+  .calc-switch a { height: 32px; padding: 0 14px; display: inline-flex; align-items: center; border-radius: var(--r-sm); font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); text-decoration: none; }
+  .calc-switch a:hover { color: var(--text); }
+  .calc-switch a[aria-current="page"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow-xs); }
+
+  .calc-page h2.section-title { font-size: var(--fs-md); font-weight: 600; color: var(--text); margin: 32px 0 12px; }
+  .calc-page h2.section-title:first-of-type { margin-top: 0; }
+  .calc-page .calculadoras { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; align-items: start; }
+  .calc-page .calculadoras + .calculadoras { margin-top: 20px; }
+  .calc-page .calculadoras-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 1180px) { .calc-page .calculadoras { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 760px) { .calc-page .calculadoras, .calc-page .calculadoras-2col { grid-template-columns: 1fr; } }
+
+  .calc-page .card {
+    min-width: 0; scroll-margin-top: 24px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+    box-shadow: var(--shadow-xs); padding: 20px 22px 22px;
   }
-  .topbar {
-    background: var(--lisfer-preto);
-    padding: 18px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-bottom: 5px solid var(--lisfer-amarelo);
-    margin-bottom: 32px;
-    position: relative;
+  .calc-page .card:target { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(17, 19, 21, 0.08); }
+  .calc-page .card h3.calc-title { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 800; }
+  .calc-page .subtitle { font-size: var(--fs-sm); color: var(--text-3); margin: 2px 0 18px; }
+
+  .calc-page .card .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+  .calc-page .calculadoras:not(.calculadoras-2col) .card .row { grid-template-columns: 1fr; gap: 0; }
+  .calc-page .card .field { margin-bottom: 14px; gap: 6px; }
+  .calc-page .card label { font-size: var(--fs-sm); font-weight: 500; color: var(--text-2); }
+  .calc-page .card input, .calc-page .card select {
+    width: 100%; height: 38px; padding: 0 12px;
+    background: var(--surface); color: var(--text);
+    border: 1px solid var(--border-strong); border-radius: var(--r-md); font-size: var(--fs-base);
+    font-variant-numeric: tabular-nums;
+    transition: border-color var(--t-fast) ease, box-shadow var(--t-fast) ease;
   }
-  .topbar img {
-    height: 56px;
-    display: block;
+  .calc-page .card input::placeholder { color: #8C949C; }
+  .calc-page .card input:hover, .calc-page .card select:hover { border-color: var(--text-3); }
+  .calc-page .card input:focus, .calc-page .card select:focus { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(17, 19, 21, 0.12); }
+  .calc-page .card select {
+    appearance: none; -webkit-appearance: none; padding-right: 34px; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23646D77' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 16px;
   }
-  .topbar .back-link {
-    position: absolute; left: 24px; top: 50%; transform: translateY(-50%);
-    font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
-    color: rgba(255,255,255,0.72); text-decoration: none; display: inline-flex; align-items: center; gap: 5px;
+  .calc-page .card .field.destaque-campo label { color: var(--text); font-weight: 600; }
+  .calc-page .card .field.destaque-campo input { border-color: var(--ink); font-weight: 600; }
+  .calc-page .checkbox-field { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: var(--fs-sm); }
+  .calc-page .checkbox-field input { width: 16px; height: 16px; accent-color: var(--ink); }
+  .calc-page .checkbox-field label { margin: 0; color: var(--text); }
+
+  .calc-page .card > button {
+    width: 100%; height: 40px; margin-top: 4px;
+    background: var(--ink); color: #FFFFFF; border: 0; border-radius: var(--r-md);
+    font-size: var(--fs-base); font-weight: 600; box-shadow: var(--shadow-xs);
+    transition: background var(--t-fast) ease, transform var(--t-fast) ease;
   }
-  .topbar .back-link:hover { color: #FFFFFF; }
-  .topbar .back-link svg { width: 12px; height: 12px; }
-  .topbar .sair-btn {
-    position: absolute; right: 24px; top: 50%; transform: translateY(-50%);
-    width: auto; height: auto; margin-top: 0;
-    border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); color: #FFFFFF;
-    border-radius: 999px; padding: 7px 16px; font-weight: 700; font-size: 12.5px; cursor: pointer;
+  .calc-page .card > button:hover { background: #000000; }
+  .calc-page .card > button:active { transform: scale(0.99); }
+
+  .calc-page .erro { font-size: var(--fs-sm); font-weight: 500; color: var(--danger); margin: 4px 0 8px; display: none; }
+  .calc-page .resultado { display: none; margin-top: 18px; animation: calc-in var(--t-base) var(--ease-out); }
+  @keyframes calc-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .calc-page .destaque {
+    background: var(--ink); border-radius: var(--r-md); padding: 14px 16px; margin-bottom: 12px;
   }
-  .topbar .sair-btn:hover { background: rgba(255,255,255,0.2); }
-  .page-content {
-    padding: 0 16px;
+  .calc-page .destaque p { margin: 0; }
+  .calc-page .destaque p:first-child { font-size: var(--fs-xs); font-weight: 600; color: var(--brand); }
+  .calc-page .destaque p:nth-child(2) {
+    font-family: var(--font-display); font-size: 28px; font-weight: 800; color: #FFFFFF;
+    line-height: 1.2; margin-top: 2px; font-variant-numeric: tabular-nums;
   }
-  .calculadoras {
-    max-width: 1420px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 24px;
-    align-items: start;
+  .calc-page .destaque p.valor-abs { font-size: var(--fs-sm); font-weight: 500; margin-top: 2px; color: rgba(255, 255, 255, 0.78); }
+  .calc-page .destaque.prejuizo { background: var(--danger); }
+  .calc-page .destaque.prejuizo p:first-child { color: #FFE1E3; }
+  .calc-page .destaque.prejuizo p.valor-abs { color: rgba(255, 255, 255, 0.88); }
+
+  .calc-page .resultado table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+  .calc-page .resultado td { padding: 7px 0; border-bottom: 1px solid var(--surface-3); font-variant-numeric: tabular-nums; }
+  .calc-page .resultado td:first-child { color: var(--text-2); }
+  .calc-page .resultado td:last-child { text-align: right; font-weight: 500; color: var(--text); white-space: nowrap; }
+  .calc-page .resultado tr.total td { border-bottom: 0; border-top: 1px solid var(--border-strong); padding-top: 10px; font-weight: 700; color: var(--text); }
+
+  .calc-page details.calc-notes { margin-top: 16px; border-top: 1px solid var(--border); padding-top: 12px; }
+  .calc-page details.calc-notes summary {
+    cursor: pointer; list-style: none; display: inline-flex; align-items: center; gap: 6px;
+    font-size: var(--fs-xs); font-weight: 600; color: var(--text-2);
   }
-  .calculadoras + .calculadoras { margin-top: 24px; }
-  .calculadoras-2col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .card {
-    min-width: 0;
-    background: #ffffff;
-    border-radius: 14px;
-    border: 1px solid var(--lisfer-borda);
-    border-top: 4px solid var(--lisfer-amarelo);
-    padding: 28px 28px 32px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  .calc-page details.calc-notes summary::-webkit-details-marker { display: none; }
+  .calc-page details.calc-notes summary::before {
+    content: ""; width: 6px; height: 6px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+    transform: rotate(-45deg); transition: transform var(--t-fast) ease; margin-right: 2px;
   }
-  .checkbox-field {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 14px;
-    font-size: 13px;
-    color: var(--lisfer-preto);
-  }
-  .checkbox-field input { width: auto; height: auto; accent-color: var(--lisfer-amarelo); }
-  .checkbox-field label { margin: 0; font-weight: 500; color: var(--lisfer-preto); }
-  h2.section-title {
-    max-width: 1420px;
-    margin: 44px auto 12px;
-    font-size: 15px;
-    font-weight: 800;
-    color: var(--lisfer-preto);
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    padding: 0 2px 8px;
-    border-bottom: 3px solid var(--lisfer-amarelo);
-  }
-  h2.section-title:first-of-type { margin-top: 0; }
-  @media (max-width: 1100px) {
-    .calculadoras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 700px) {
-    .calculadoras, .calculadoras-2col { grid-template-columns: 1fr; }
-    .topbar img { height: 42px; }
-  }
-  h1 {
-    font-size: 20px;
-    font-weight: 800;
-    margin: 0 0 4px;
-    color: var(--lisfer-preto);
-  }
-  .subtitle {
-    font-size: 13px;
-    color: var(--lisfer-cinza-claro);
-    margin: 0 0 24px;
-  }
-  label {
-    font-size: 13px;
-    color: var(--lisfer-cinza-texto);
-    display: block;
-    margin-bottom: 6px;
-    font-weight: 600;
-  }
-  .row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    margin-bottom: 14px;
-  }
-  input, select {
-    width: 100%;
-    height: 40px;
-    border: 1px solid #D8D8D8;
-    border-radius: 8px;
-    padding: 0 12px;
-    font-size: 14px;
-    background: #FAFAFA;
-    color: var(--lisfer-preto);
-  }
-  input:focus, select:focus {
-    outline: none;
-    border-color: var(--lisfer-amarelo);
-    box-shadow: 0 0 0 3px rgba(251,190,40,0.25);
-  }
-  .field { margin-bottom: 14px; }
-  button {
-    width: 100%;
-    height: 44px;
-    background: var(--lisfer-amarelo);
-    color: var(--lisfer-preto);
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 800;
-    cursor: pointer;
-    margin-top: 8px;
-    letter-spacing: 0.01em;
-  }
-  button:hover { background: var(--lisfer-amarelo-escuro); }
-  button:active { transform: scale(0.99); }
-  .erro {
-    font-size: 13px;
-    color: #B3261E;
-    margin: 8px 0 0;
-    display: none;
-  }
-  .resultado {
-    display: none;
-    margin-top: 24px;
-  }
-  .destaque {
-    background: var(--lisfer-preto);
-    border-radius: 10px;
-    padding: 16px;
-    text-align: center;
-    margin-bottom: 16px;
-  }
-  .destaque p:first-child {
-    font-size: 13px;
-    color: var(--lisfer-amarelo);
-    margin: 0 0 4px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-  .destaque p:last-child {
-    font-size: 28px;
-    font-weight: 800;
-    margin: 0;
-    color: #ffffff;
-  }
-  table {
-    width: 100%;
-    font-size: 13px;
-    border-collapse: collapse;
-  }
-  td {
-    padding: 7px 0;
-  }
-  td:first-child { color: var(--lisfer-cinza-texto); }
-  td:last-child { text-align: right; font-weight: 500; }
-  tr.total td {
-    border-top: 2px solid var(--lisfer-amarelo);
-    padding-top: 10px;
-    font-weight: 800;
-    color: var(--lisfer-preto);
-  }
-  .footer-note {
-    font-size: 11px;
-    color: var(--lisfer-cinza-claro);
-    margin-top: 20px;
-    line-height: 1.5;
-  }
+  .calc-page details.calc-notes[open] summary::before { transform: rotate(45deg); }
+  .calc-page details.calc-notes summary:hover { color: var(--text); }
+  .calc-page .footer-note { font-size: var(--fs-xs); color: var(--text-3); line-height: 1.55; margin: 8px 0 0; }
 </style>
 </head>
 <body>
 
-<div id="appScreen" hidden>
+<div class="app" id="appScreen" hidden>
+  <aside class="app-sidebar" id="appSidebar" data-active="calc-precos"></aside>
+  <div class="app-scrim"></div>
+  <div class="app-main">
+<main class="page calc-page">
+<header class="page-header">
+  <div class="page-header-text">
+    <nav class="breadcrumb" aria-label="Você está em"><a href="calculadoras.html">Calculadoras</a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg><span>Preços</span></nav>
+    <h1 class="page-title">Preços</h1>
+    <p class="page-desc">Informe o custo do produto e receba o preço de venda sugerido, com todas as taxas da conta e do marketplace.</p>
+    <nav class="calc-jump" aria-label="Ir para o marketplace"><a href="#calc-mercado-livre">Mercado Livre</a><a href="#calc-loja-propria">Loja Própria</a><a href="#calc-shopee">Shopee</a><a href="#calc-amazon">Amazon</a><a href="#calc-magalu">Magalu</a><a href="#calc-tiktok">TikTok Shop</a><a href="#calc-kwai">Kwai</a></nav>
+  </div>
+  <div class="page-actions"><nav class="calc-switch" aria-label="Tipo de calculadora"><a href="calculadora-precos.html" aria-current="page">Preços</a><a href="calculadora-lucratividade.html" >Lucratividade</a></nav></div>
+</header>
 
-<div class="topbar">
-  <a class="back-link" href="calculadoras.html">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-    Calculadoras
-  </a>
-  <img src="logo.png" alt="Lisfer Ferramentas">
-  <button type="button" class="sair-btn" id="logoutBtn">Sair</button>
-</div>
-
-<div class="page-content">
-
-<h2 class="section-title">Mercado Livre &amp; Loja Própria</h2>
+<h2 class="section-title">Mercado Livre e Loja Própria</h2>
 <div class="calculadoras calculadoras-2col">
-<div class="card">
-  <h1>Calculadora de preço de venda</h1>
-  <p class="subtitle">Mercado Livre — custo, comissão, imposto, frete e lucro</p>
+<div class="card" id="calc-mercado-livre">
+  <h3 class="calc-title">Mercado Livre</h3>
+  <p class="subtitle">Custo, comissão, imposto, frete e lucro</p>
 
   <div class="row">
     <div class="field">
@@ -312,12 +215,12 @@
     </table>
   </div>
 
-  <p class="footer-note" id="footerML">Cálculo iterativo: como o frete depende da faixa de preço final, e o preço final depende dele, a calculadora recalcula até o valor convergir. No Flex, até R$ 78,99 considera-se Frete + R$ 12,00 − abono; a partir de R$ 79,00, o frete é desconsiderado e mantém-se apenas R$ 12,00 − abono. O custo operacional (3%) também é calculado sobre o preço final de venda.</p>
+  <details class="calc-notes"><summary>Como o cálculo funciona</summary><p class="footer-note" id="footerML">Cálculo iterativo: como o frete depende da faixa de preço final, e o preço final depende dele, a calculadora recalcula até o valor convergir. No Flex, até R$ 78,99 considera-se Frete + R$ 12,00 − abono; a partir de R$ 79,00, o frete é desconsiderado e mantém-se apenas R$ 12,00 − abono. O custo operacional (3%) também é calculado sobre o preço final de venda.</p></details>
 </div>
 
-<div class="card nuvemshop-card">
-  <h1>Calculadora de preço de venda</h1>
-  <p class="subtitle">Nuvemshop — pagamento, sistema, impostos e lucro</p>
+<div class="card nuvemshop-card" id="calc-loja-propria">
+  <h3 class="calc-title">Loja Própria · Nuvemshop</h3>
+  <p class="subtitle">Pagamento, sistema, impostos e lucro</p>
 
   <div class="field">
     <label for="custoNuvemshop">Custo do produto (R$)</label>
@@ -344,17 +247,17 @@
     </table>
   </div>
 
-  <p class="footer-note">O custo fixo de R$ 4,00 é aplicado apenas quando o pedido fica abaixo de R$ 79,00. Se a inclusão desse custo ultrapassar esse limite, a sugestão fica em R$ 79,00 para evitar a cobrança.</p>
+  <details class="calc-notes"><summary>Como o cálculo funciona</summary><p class="footer-note">O custo fixo de R$ 4,00 é aplicado apenas quando o pedido fica abaixo de R$ 79,00. Se a inclusão desse custo ultrapassar esse limite, a sugestão fica em R$ 79,00 para evitar a cobrança.</p></details>
 </div>
 </div>
 
-<h2 class="section-title">Novos Marketplaces</h2>
+<h2 class="section-title">Outros marketplaces</h2>
 <div class="calculadoras">
 
 <!-- SHOPEE -->
-<div class="card shopee-card">
-  <h1>Calculadora de preço de venda</h1>
-  <p class="subtitle">Shopee — estrutura real Lisfer (2 contas)</p>
+<div class="card shopee-card" id="calc-shopee">
+  <h3 class="calc-title">Shopee</h3>
+  <p class="subtitle">Estrutura real Lisfer (2 contas)</p>
 
   <div class="row">
     <div class="field">
@@ -390,13 +293,13 @@
     </table>
   </div>
 
-  <p class="footer-note">Estrutura CNPJ confirmada por você: até R$ 79,99 → 20% + R$ 4,00; R$ 80,00 a R$ 99,99 → 14% + R$ 16,00; R$ 100,00 a R$ 199,99 → 14% + R$ 20,00; a partir de R$ 200,00 → 14% + R$ 26,00 (mesmo valor da faixa anterior, sem variação até acima de R$ 500,00). Imposto e Embalagem/Operacional seguem a planilha interna (12,5% e 2,5%). Sistema R$ 0,80/pedido.</p>
+  <details class="calc-notes"><summary>Como o cálculo funciona</summary><p class="footer-note">Estrutura CNPJ confirmada por você: até R$ 79,99 → 20% + R$ 4,00; R$ 80,00 a R$ 99,99 → 14% + R$ 16,00; R$ 100,00 a R$ 199,99 → 14% + R$ 20,00; a partir de R$ 200,00 → 14% + R$ 26,00 (mesmo valor da faixa anterior, sem variação até acima de R$ 500,00). Imposto e Embalagem/Operacional seguem a planilha interna (12,5% e 2,5%). Sistema R$ 0,80/pedido.</p></details>
 </div>
 
 <!-- AMAZON -->
-<div class="card amazon-card">
-  <h1>Calculadora de preço de venda</h1>
-  <p class="subtitle">Amazon — estrutura real Lisfer (2 contas)</p>
+<div class="card amazon-card" id="calc-amazon">
+  <h3 class="calc-title">Amazon</h3>
+  <p class="subtitle">Estrutura real Lisfer (2 contas)</p>
 
   <div class="row">
     <div class="field">
@@ -437,13 +340,13 @@
     </table>
   </div>
 
-  <p class="footer-note">Tarifa DBA oficial (venda.amazon.com.br/precos, atualizada em 01/08/2025): abaixo de R$ 30,00 → R$ 4,50; R$ 30,00 a R$ 49,99 → R$ 6,50; R$ 50,00 a R$ 78,99 → R$ 6,75. A partir de R$ 79,00 a Amazon <strong>não cobra zero</strong> — a tarifa vira variável por peso e estado de origem (tabela só disponível dentro do Seller Central). Preencha o campo acima com esse valor se você já tiver esse dado; deixando em branco, a calculadora assume R$ 0,00 nessa faixa, o que pode subestimar levemente o preço sugerido para produtos ≥ R$ 79. Comissão 15% e Sistema R$ 1,00/pedido vêm da planilha interna; confirme se sua categoria (Ferramentas e Construção, Automotivo) realmente está enquadrada em 15% — a tabela oficial de comissões lista taxas de 11% a 12% para essas categorias.</p>
+  <details class="calc-notes"><summary>Como o cálculo funciona</summary><p class="footer-note">Tarifa DBA oficial (venda.amazon.com.br/precos, atualizada em 01/08/2025): abaixo de R$ 30,00 → R$ 4,50; R$ 30,00 a R$ 49,99 → R$ 6,50; R$ 50,00 a R$ 78,99 → R$ 6,75. A partir de R$ 79,00 a Amazon <strong>não cobra zero</strong> — a tarifa vira variável por peso e estado de origem (tabela só disponível dentro do Seller Central). Preencha o campo acima com esse valor se você já tiver esse dado; deixando em branco, a calculadora assume R$ 0,00 nessa faixa, o que pode subestimar levemente o preço sugerido para produtos ≥ R$ 79. Comissão 15% e Sistema R$ 1,00/pedido vêm da planilha interna; confirme se sua categoria (Ferramentas e Construção, Automotivo) realmente está enquadrada em 15% — a tabela oficial de comissões lista taxas de 11% a 12% para essas categorias.</p></details>
 </div>
 
 <!-- MAGALU -->
-<div class="card magalu-card">
-  <h1>Calculadora de preço de venda</h1>
-  <p class="subtitle">Magalu — estrutura real Lisfer (2 contas)</p>
+<div class="card magalu-card" id="calc-magalu">
+  <h3 class="calc-title">Magalu</h3>
+  <p class="subtitle">Estrutura real Lisfer (2 contas)</p>
 
   <div class="row">
     <div class="field">
@@ -495,16 +398,16 @@
     </table>
   </div>
 
-  <p class="footer-note">Frete real Magalu Entregas (tabela do Preço Certo): calculado pelo maior peso entre o real e o cubado. Peso cubado (produtos leves) = Altura × Largura × Comprimento (m) × 167; para produtos pesados, use fator 300. Informe aqui já o maior dos dois. O valor do frete depende da faixa de peso e do seu índice de Despacho no Prazo (quanto maior o índice, maior o desconto — até 50%). Comissão 18% e custo fixo de R$ 5,00/pedido continuam vindos da planilha interna; o Imposto muda por conta (12,5% Lisfer / 13% Lalfer). Sistema R$ 0,80/pedido.</p>
+  <details class="calc-notes"><summary>Como o cálculo funciona</summary><p class="footer-note">Frete real Magalu Entregas (tabela do Preço Certo): calculado pelo maior peso entre o real e o cubado. Peso cubado (produtos leves) = Altura × Largura × Comprimento (m) × 167; para produtos pesados, use fator 300. Informe aqui já o maior dos dois. O valor do frete depende da faixa de peso e do seu índice de Despacho no Prazo (quanto maior o índice, maior o desconto — até 50%). Comissão 18% e custo fixo de R$ 5,00/pedido continuam vindos da planilha interna; o Imposto muda por conta (12,5% Lisfer / 13% Lalfer). Sistema R$ 0,80/pedido.</p></details>
 </div>
 
 </div>
 <div class="calculadoras calculadoras-2col">
 
 <!-- TIKTOK SHOP -->
-<div class="card tiktok-card">
-  <h1>Calculadora de preço de venda</h1>
-  <p class="subtitle">TikTok Shop — estrutura real Lisfer (2 contas)</p>
+<div class="card tiktok-card" id="calc-tiktok">
+  <h3 class="calc-title">TikTok Shop</h3>
+  <p class="subtitle">Estrutura real Lisfer (2 contas)</p>
 
   <div class="row">
     <div class="field">
@@ -542,13 +445,13 @@
     </table>
   </div>
 
-  <p class="footer-note">Estrutura real Lisfer: pedidos abaixo de R$ 50,00 pagam comissão de 10% + custo fixo de R$ 4,00; a partir de R$ 50,00, comissão de 6% + custo fixo de R$ 6,00. Sobre isso soma-se sempre 6% de frete e 8% de comissão de afiliado/creator (padrão da operação Lisfer no canal), além de imposto e embalagem/operacional. Sistema R$ 1,00/pedido. Lisfer e Lalfer usam exatamente a mesma estrutura. Fonte: planilha interna "Precificação Lisfer – Marketplaces", aba TikTok.</p>
+  <details class="calc-notes"><summary>Como o cálculo funciona</summary><p class="footer-note">Estrutura real Lisfer: pedidos abaixo de R$ 50,00 pagam comissão de 10% + custo fixo de R$ 4,00; a partir de R$ 50,00, comissão de 6% + custo fixo de R$ 6,00. Sobre isso soma-se sempre 6% de frete e 8% de comissão de afiliado/creator (padrão da operação Lisfer no canal), além de imposto e embalagem/operacional. Sistema R$ 1,00/pedido. Lisfer e Lalfer usam exatamente a mesma estrutura. Fonte: planilha interna "Precificação Lisfer – Marketplaces", aba TikTok.</p></details>
 </div>
 
 <!-- KWAI -->
-<div class="card kwai-card">
-  <h1>Calculadora de preço de venda</h1>
-  <p class="subtitle">Kwai Shop — comissão e taxa fixa por item</p>
+<div class="card kwai-card" id="calc-kwai">
+  <h3 class="calc-title">Kwai Shop</h3>
+  <p class="subtitle">Comissão e taxa fixa por item</p>
 
   <div class="field">
     <label for="custoKwai">Custo do produto (R$)</label>
@@ -584,7 +487,7 @@
     </table>
   </div>
 
-  <p class="footer-note">Comissão padrão de 20% + taxa fixa de R$ 4,00 por item. Vendedores novos costumam ter condição promocional de 14% nos primeiros 45 dias de loja. Não inclui comissão de afiliados/criadores de conteúdo, que é negociada à parte por produto. Confirme sempre as taxas vigentes no seu painel Kwai Shop, pois podem variar por categoria e mudar sem aviso amplo.</p>
+  <details class="calc-notes"><summary>Como o cálculo funciona</summary><p class="footer-note">Comissão padrão de 20% + taxa fixa de R$ 4,00 por item. Vendedores novos costumam ter condição promocional de 14% nos primeiros 45 dias de loja. Não inclui comissão de afiliados/criadores de conteúdo, que é negociada à parte por produto. Confirme sempre as taxas vigentes no seu painel Kwai Shop, pois podem variar por categoria e mudar sem aviso amplo.</p></details>
 </div>
 
 </div>
@@ -1262,11 +1165,11 @@ document.getElementById('custoKwai').addEventListener('keydown', e => {
 });
 </script>
 
-</div>
+</main>
+  </div>
 </div>
 
 <script>
-  document.getElementById('logoutBtn').addEventListener('click', () => HubAuth.logout());
   HubAuth.requireAuth(() => {
     document.getElementById('appScreen').hidden = false;
   });

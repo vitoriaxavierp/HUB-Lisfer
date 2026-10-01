@@ -4,3 +4,6 @@ supabase/
 .claude/
 .env*
 *.md
+.impeccable/
+PRODUCT.md
+DESIGN.md

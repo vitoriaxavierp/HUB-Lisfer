@@ -3,234 +3,139 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lista de Compras — Full</title>
+<title>Lista de Compras — Full — Hub Lisfer</title>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="hub.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
 <script src="config.js"></script>
 <script src="shared.js"></script>
 <style>
-  :root {
-    --bg: #FFFFFF;
-    --surface: #FFFFFF;
-    --surface-2: #F1F4F6;
-    --surface-3: #EAEFF2;
-    --border: #D7DEE3;
-    --text: #16232D;
-    --text-muted: #5B6B77;
-    --accent: #16191C;
-    --accent-strong: #000000;
-    --accent-contrast: #FFFFFF;
-    --brand-yellow: #F5AD00;
-    --pending: #E08E00;
-    --pending-bg: #FFF1D6;
-    --collected: #1E8E3E;
-    --collected-bg: #E1F3E4;
-    --danger: #D32F2F;
-    --danger-bg: #FBE1E1;
-    --focus: #16191C;
-    --shadow: 0 1px 3px rgba(20, 34, 43, 0.08), 0 6px 18px rgba(20, 34, 43, 0.09);
+  .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .fact { padding: 16px 20px; border-left: 1px solid var(--border); min-width: 0; }
+  .fact:first-child { border-left: 0; }
+  .fact .k { font-size: var(--fs-xs); color: var(--text-3); font-weight: 500; }
+  .fact .v { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-2xl); line-height: 1.15; margin-top: 4px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .fact .v.sm { font-family: var(--font-mono); font-weight: 500; font-size: var(--fs-md); line-height: 1.4; margin-top: 8px; }
+  .fact.hl .v { color: var(--warning-text); }
+
+  .buy td.prod { min-width: 260px; }
+  .buy .p-nome { font-weight: 600; }
+  .buy .p-sku { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); }
+  .buy tr.group td {
+    background: var(--surface-3); font-weight: 600; font-size: var(--fs-sm); padding-top: 8px; padding-bottom: 8px;
   }
+  .buy tr.group:hover td { background: var(--surface-3); }
+  .buy tr.group .count-pill { background: var(--surface); margin-left: 8px; }
+  .buy td.qty { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-lg); }
+  .buy .no-cost { color: var(--text-3); font-size: var(--fs-xs); }
+  .sit-ok { color: var(--success); font-weight: 600; }
+  .sit-buy { color: var(--warning-text); font-weight: 600; }
+  .table-scroll { max-height: 560px; overflow: auto; border-radius: 0 0 var(--r-lg) var(--r-lg); }
+  .pend-list { display: flex; flex-direction: column; gap: 8px; }
 
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    font-size: 16.5px;
-    line-height: 1.45;
-    min-height: 100vh;
+  @media (max-width: 760px) {
+    .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .fact:nth-child(3) { border-left: 0; }
+    .fact:nth-child(n+3) { border-top: 1px solid var(--border); }
   }
-  h1, h2, h3 { font-family: "Archivo", system-ui, sans-serif; text-wrap: balance; margin: 0; }
-  button { font-family: inherit; cursor: pointer; }
-  input, select, textarea, button { font-size: 14px; }
-  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  [hidden] { display: none !important; }
-  a { color: inherit; }
-  .tabular { font-variant-numeric: tabular-nums; }
-
-  .topbar { background: linear-gradient(180deg, var(--accent-strong), var(--accent)); color: var(--accent-contrast); padding: 18px 20px; }
-  .topbar-inner { max-width: 1040px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; }
-  .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
-  .brand-mark { flex: none; width: 38px; height: 38px; display: grid; place-items: center; background: rgba(244,249,251,0.14); border: 1px solid rgba(244,249,251,0.28); border-radius: 10px; }
-  .back-link { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(244,249,251,0.72); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 4px; }
-  .back-link:hover { color: #FFFFFF; }
-  .back-link svg { width: 12px; height: 12px; }
-  .brand h1 { font-size: 23px; font-weight: 800; letter-spacing: 0.2px; color: var(--brand-yellow); }
-  .brand p { margin: 2px 0 0; font-size: 13.5px; color: #FFFFFF; }
-  .user-info { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #FFFFFF; font-weight: 600; }
-  .today-btn { border: 1px solid rgba(244,249,251,0.3); background: rgba(244,249,251,0.1); color: var(--accent-contrast); border-radius: 999px; padding: 8px 16px; font-weight: 600; font-size: 13px; }
-  .today-btn:hover { background: rgba(244,249,251,0.22); }
-
-  main { max-width: 1040px; margin: 0 auto; padding: 22px 20px 60px; display: flex; flex-direction: column; gap: 22px; }
-
-  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 22px; }
-
-  .upload-zone {
-    border: 2px dashed var(--border); border-radius: 14px; padding: 36px 20px;
-    text-align: center; color: var(--text-muted); cursor: pointer; transition: border-color .15s ease, background .15s ease;
-  }
-  .upload-zone:hover, .upload-zone.dragover { border-color: var(--brand-yellow); background: var(--surface-2); }
-  .upload-zone svg { width: 34px; height: 34px; margin-bottom: 10px; color: var(--text-muted); }
-  .upload-zone strong { color: var(--text); }
-  .upload-zone input[type="file"] { display: none; }
-
-  .file-chip {
-    display: flex; align-items: center; gap: 10px; margin-top: 14px;
-    background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: 13.5px;
-  }
-  .file-chip svg { width: 18px; height: 18px; flex: none; color: var(--text-muted); }
-  .file-chip .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .file-chip button { background: none; border: none; color: var(--text-muted); font-size: 13px; text-decoration: underline; }
-
-  .add-btn {
-    background: var(--accent); color: var(--accent-contrast); border: none; border-radius: 999px;
-    padding: 12px 26px; font-weight: 700; font-size: 15px; white-space: nowrap; height: 46px; margin-top: 16px;
-  }
-  .add-btn:hover { background: var(--accent-strong); }
-  .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .form-msg { font-size: 13px; font-weight: 600; color: var(--danger); margin-top: 10px; }
-
-  .spinner {
-    width: 16px; height: 16px; border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
-    animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
-
-  .stats-row { display: flex; flex-wrap: wrap; gap: 16px; }
-  .stat-card { flex: 1 1 140px; background: var(--surface-2); border-radius: 12px; padding: 16px; }
-  .stat-card .num { font-family: "Archivo", sans-serif; font-weight: 800; font-size: 26px; }
-  .stat-card .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; margin-top: 2px; }
-
-  .section-label { font-size: 18px; font-weight: 800; margin-bottom: 14px; }
-
-  .marca-group { margin-bottom: 18px; }
-  .marca-title { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; margin-bottom: 10px; }
-  .marca-title .count { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--text-muted); font-weight: 600; }
-
-  .compra-row {
-    display: flex; align-items: center; gap: 14px; padding: 12px 14px;
-    background: var(--pending-bg); border: 1px solid var(--border); border-left: 4px solid var(--pending);
-    border-radius: 10px; margin-bottom: 8px; flex-wrap: wrap;
-  }
-  .compra-row .nome { font-weight: 700; flex: 1 1 220px; min-width: 0; }
-  .compra-row .sku { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; color: var(--text-muted); }
-  .compra-row .estoque-detalhe { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
-  .compra-row .qtd { font-family: "Archivo", sans-serif; font-weight: 800; font-size: 20px; color: var(--pending); white-space: nowrap; }
-  .compra-row .qtd .lbl { font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; display: block; }
-  .compra-row .custo { font-size: 12.5px; color: var(--text-muted); white-space: nowrap; }
-
-  .empty-state { padding: 22px 14px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
-
-  table.consolidado { width: 100%; border-collapse: collapse; font-size: 13px; }
-  table.consolidado th { text-align: left; background: var(--accent); color: #fff; padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
-  table.consolidado td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
-  table.consolidado tr:last-child td { border-bottom: none; }
-  .badge-ok { color: var(--collected); font-weight: 700; }
-  .badge-comprar { color: var(--pending); font-weight: 700; }
-  .table-wrap { overflow-x: auto; }
-
-  .alerta-pendente {
-    background: var(--danger-bg); border: 1px solid var(--danger); border-radius: 10px;
-    padding: 12px 14px; font-size: 13.5px; color: var(--danger); margin-bottom: 8px;
-  }
-  .alerta-pendente strong { display: block; margin-bottom: 4px; }
-
-  footer.note { text-align: center; color: var(--text-muted); font-size: 11.5px; padding-bottom: 10px; }
 </style>
 </head>
 <body>
 
-<div id="appScreen" hidden>
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <span class="brand-mark" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
-        </span>
-        <div>
-          <a class="back-link" href="full.html">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-            Full
-          </a>
-          <h1>Lista de Compras</h1>
-          <p>Suba o PDF do envio e receba a lista já desmembrada e cruzada com o estoque</p>
+<div class="app" id="appScreen" hidden>
+  <aside class="app-sidebar" id="appSidebar" data-active="full-compras"></aside>
+  <div class="app-scrim"></div>
+  <div class="app-main">
+    <main class="page">
+      <header class="page-header">
+        <div class="page-header-text">
+          <nav class="breadcrumb" aria-label="Você está em"><a href="full.html">Full</a><span id="bc1"></span><span>Lista de Compras</span></nav>
+          <h1 class="page-title">Lista de Compras</h1>
+          <p class="page-desc">Suba o PDF do envio e receba o que precisa comprar, com os kits desmembrados e cruzados com o estoque do Tiny.</p>
+        </div>
+      </header>
+
+      <div class="stack">
+        <section class="panel" aria-labelledby="upTitle">
+          <div class="panel-head"><h2 id="upTitle">PDF do envio</h2><span class="panel-sub">"Preparation instructions" do Mercado Livre Full</span></div>
+          <div class="panel-body stack-sm">
+            <div class="dropzone" id="uploadZone" role="button" tabindex="0" aria-describedby="dzHint">
+              <span id="dzIcon"></span>
+              <div class="dropzone-title"><strong>Escolha os PDFs</strong> ou arraste para cá</div>
+              <div class="dropzone-text" id="dzHint">Pode selecionar mais de um, se forem envios da mesma semana. Até 4 MB no total.</div>
+              <input type="file" id="fileInput" accept="application/pdf" multiple>
+            </div>
+            <div class="file-list" id="fileList"></div>
+          </div>
+          <div class="panel-foot">
+            <button type="button" class="btn btn-primary" id="processarBtn" disabled>Gerar lista de compras</button>
+            <span class="muted" id="procHint" style="font-size:var(--fs-sm)">Pode levar até 1 minuto: o Hub consulta o estoque de cada SKU no Tiny.</span>
+            <div class="form-error" id="formMsg" role="alert"></div>
+          </div>
+        </section>
+
+        <div id="resultado" class="stack" hidden>
+          <section class="panel" aria-labelledby="resTitle">
+            <div class="panel-head">
+              <h2 id="resTitle">Resumo do envio</h2>
+              <span class="spacer"></span>
+              <div class="form-error" id="exportMsg" role="alert"></div>
+              <button type="button" class="btn btn-secondary btn-sm" id="exportarBtn"><span id="dlIcon"></span>Exportar Excel</button>
+            </div>
+            <div class="facts">
+              <div class="fact"><div class="k">Frete(s)</div><div class="v sm" id="statFrete">—</div></div>
+              <div class="fact"><div class="k">Produtos no envio</div><div class="v" id="statProdutos">—</div></div>
+              <div class="fact"><div class="k">Unidades no envio</div><div class="v" id="statUnidades">—</div></div>
+              <div class="fact hl"><div class="k">SKUs para comprar</div><div class="v" id="statComprar">—</div></div>
+            </div>
+          </section>
+
+          <div id="pendentesWrap"></div>
+
+          <section class="panel" aria-labelledby="buyTitle">
+            <div class="panel-head">
+              <h2 id="buyTitle">O que comprar</h2>
+              <span class="panel-sub">Agrupado por marca/fornecedor</span>
+            </div>
+            <div id="listaPorMarca"></div>
+          </section>
+
+          <section class="panel" aria-labelledby="consTitle">
+            <div class="panel-head">
+              <h2 id="consTitle">Consolidado</h2>
+              <span class="panel-sub">Todos os SKUs componentes do envio</span>
+            </div>
+            <div class="table-scroll">
+              <table class="table table-compact buy" id="tabelaConsolidado">
+                <thead>
+                  <tr><th>SKU</th><th>Produto</th><th>Marca</th><th class="num">Necessário</th><th class="num">Lisfer</th><th class="num">Lalfer</th><th class="num">Multiempresa</th><th class="num">Comprar</th><th>Situação</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
         </div>
       </div>
-      <div class="user-info">
-        <span id="userGreeting">—</span>
-        <button type="button" id="logoutBtn" class="today-btn">Sair</button>
-      </div>
-    </div>
+    </main>
   </div>
-
-  <main>
-    <div class="panel">
-      <div class="upload-zone" id="uploadZone">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-        <div><strong>Clique para escolher o(s) PDF(s)</strong> ou arraste aqui</div>
-        <div style="font-size:12.5px;margin-top:4px;">preparation instructions do Mercado Livre Full — pode selecionar mais de um, se forem envios da mesma semana</div>
-        <input type="file" id="fileInput" accept="application/pdf" multiple>
-      </div>
-      <div id="fileList"></div>
-      <button type="button" class="add-btn" id="processarBtn" disabled>Gerar lista de compras</button>
-      <div class="form-msg" id="formMsg"></div>
-    </div>
-
-    <div id="resultado" hidden>
-      <div class="panel">
-        <div class="stats-row">
-          <div class="stat-card"><div class="num tabular" id="statFrete" style="font-size:18px;">—</div><div class="label">Frete(s)</div></div>
-          <div class="stat-card"><div class="num tabular" id="statProdutos">—</div><div class="label">Produtos no envio</div></div>
-          <div class="stat-card"><div class="num tabular" id="statUnidades">—</div><div class="label">Unidades no envio</div></div>
-          <div class="stat-card"><div class="num tabular" id="statComprar">—</div><div class="label">SKUs p/ comprar</div></div>
-        </div>
-        <button type="button" class="add-btn" id="exportarBtn" style="margin-top:18px;">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px;"><path d="M12 3v12M12 15l-4-4M12 15l4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-          Exportar Excel
-        </button>
-        <div class="form-msg" id="exportMsg"></div>
-      </div>
-
-      <div id="pendentesWrap"></div>
-
-      <div class="panel">
-        <div class="section-label">Lista de compras (por marca/fornecedor)</div>
-        <div id="listaPorMarca"></div>
-      </div>
-
-      <div class="panel">
-        <div class="section-label">Consolidado — todos os SKUs componentes</div>
-        <div class="table-wrap">
-          <table class="consolidado" id="tabelaConsolidado">
-            <thead>
-              <tr><th>SKU</th><th>Produto</th><th>Marca</th><th>Necessário</th><th>Lisfer</th><th>Lalfer</th><th>Multiempresa</th><th>Comprar</th><th>Situação</th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <footer class="note">Lista de Compras · Full · Hub Lisfer</footer>
-  </main>
 </div>
 
 <script>
 (function () {
   const el = (id) => document.getElementById(id);
+  const ic = HubIcons.svg;
+  const escapeHtml = HubUI.escapeHtml;
   let arquivosSelecionados = [];
   let ultimoResultado = null;
 
-  el('logoutBtn').addEventListener('click', () => HubAuth.logout());
+  el('bc1').outerHTML = ic('chevronRight');
+  el('dzIcon').outerHTML = ic('upload');
+  el('dlIcon').outerHTML = ic('download');
 
-  HubAuth.requireAuth((user) => {
-    el('userGreeting').textContent = 'Olá, ' + (HubAuth.nomeDe(user.id) || user.email);
+  HubAuth.requireAuth(() => {
     el('appScreen').hidden = false;
   });
 
@@ -240,24 +145,23 @@
   const processarBtn = el('processarBtn');
   const formMsg = el('formMsg');
 
-  function escapeHtmlLocal(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  function tamanho(bytes) {
+    return bytes < 1024 * 1024 ? Math.max(1, Math.round(bytes / 1024)) + ' KB' : (bytes / 1024 / 1024).toFixed(1).replace('.', ',') + ' MB';
   }
 
   function renderFileList() {
     fileList.innerHTML = '';
     arquivosSelecionados.forEach((file, i) => {
-      const chip = document.createElement('div');
-      chip.className = 'file-chip';
-      chip.innerHTML =
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>' +
-        '<span class="name">' + escapeHtmlLocal(file.name) + '</span>' +
-        '<button type="button" data-i="' + i + '">remover</button>';
-      chip.querySelector('button').addEventListener('click', () => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      item.innerHTML = ic('file') + '<span class="name"></span><span class="size">' + tamanho(file.size) + '</span>' +
+        '<button type="button" class="icon-btn" aria-label="Remover arquivo" title="Remover">' + ic('x') + '</button>';
+      item.querySelector('.name').textContent = file.name;
+      item.querySelector('button').addEventListener('click', () => {
         arquivosSelecionados.splice(i, 1);
         renderFileList();
       });
-      fileList.appendChild(chip);
+      fileList.appendChild(item);
     });
     processarBtn.disabled = arquivosSelecionados.length === 0;
   }
@@ -274,13 +178,14 @@
   }
 
   uploadZone.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
   fileInput.addEventListener('change', (e) => { adicionarArquivos(e.target.files); fileInput.value = ''; });
 
-  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('is-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('is-over'));
   uploadZone.addEventListener('drop', (e) => {
     e.preventDefault();
-    uploadZone.classList.remove('dragover');
+    uploadZone.classList.remove('is-over');
     adicionarArquivos(e.dataTransfer.files);
   });
 
@@ -294,21 +199,20 @@
     return btoa(binary);
   }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  }
-
   function formatarNumero(n) {
     if (n == null) return '—';
-    return Number.isInteger(n) ? String(n) : n.toFixed(2);
+    return Number.isInteger(n) ? n.toLocaleString('pt-BR') : n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function brl(v) {
+    return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
   function renderResultado(r) {
     ultimoResultado = r;
     el('resultado').hidden = false;
     el('statFrete').textContent = r.frete || '—';
-    el('statProdutos').textContent = r.produtos_declarados != null ? r.produtos_declarados : '—';
-    el('statUnidades').textContent = r.total_unidades_declarado != null ? r.total_unidades_declarado : '—';
+    el('statProdutos').textContent = r.produtos_declarados != null ? formatarNumero(r.produtos_declarados) : '—';
+    el('statUnidades').textContent = r.total_unidades_declarado != null ? formatarNumero(r.total_unidades_declarado) : '—';
 
     const paraComprar = r.itens_consolidados.filter((i) => i.quantidade_comprar > 0);
     el('statComprar').textContent = paraComprar.length;
@@ -316,14 +220,16 @@
     const pendentesWrap = el('pendentesWrap');
     pendentesWrap.innerHTML = '';
     if (r.pendentes_confirmacao && r.pendentes_confirmacao.length) {
-      const panel = document.createElement('div');
+      const panel = document.createElement('section');
       panel.className = 'panel';
-      panel.innerHTML = '<div class="section-label">Precisa de confirmação manual</div>';
+      panel.innerHTML = '<div class="panel-head"><h2>Precisa de confirmação manual</h2><span class="count-pill">' + r.pendentes_confirmacao.length + '</span>' +
+        '<span class="panel-sub">Kits que o Hub não conseguiu desmembrar com segurança</span></div><div class="panel-body pend-list"></div>';
+      const body = panel.querySelector('.pend-list');
       r.pendentes_confirmacao.forEach((p) => {
         const box = document.createElement('div');
-        box.className = 'alerta-pendente';
-        box.innerHTML = '<strong>' + escapeHtml(p.sku_kit) + ' — ' + escapeHtml(p.nome) + '</strong>' + escapeHtml(p.motivo);
-        panel.appendChild(box);
+        box.className = 'alert alert-warning';
+        box.innerHTML = ic('alert') + '<span><strong>' + escapeHtml(p.sku_kit) + ' — ' + escapeHtml(p.nome) + '</strong><br>' + escapeHtml(p.motivo) + '</span>';
+        body.appendChild(box);
       });
       pendentesWrap.appendChild(panel);
     }
@@ -332,57 +238,51 @@
     listaPorMarca.innerHTML = '';
     const marcas = Object.keys(r.lista_compras_por_marca || {});
     if (marcas.length === 0) {
-      const vazio = document.createElement('div');
-      vazio.className = 'empty-state';
-      vazio.textContent = 'Nenhuma compra necessária — o estoque cobre todo o envio.';
-      listaPorMarca.appendChild(vazio);
+      listaPorMarca.innerHTML = '<div class="empty">' + ic('checkCircle') + '<div class="empty-title">Nenhuma compra necessária</div><div class="empty-text">O estoque atual cobre todo o envio.</div></div>';
     } else {
+      let rows = '';
       marcas.forEach((marca) => {
         const itens = r.lista_compras_por_marca[marca];
-        const grupo = document.createElement('div');
-        grupo.className = 'marca-group';
-        const titulo = document.createElement('div');
-        titulo.className = 'marca-title';
-        titulo.innerHTML = '<span>' + escapeHtml(marca) + '</span><span class="count">' + itens.length + ' SKU(s)</span>';
-        grupo.appendChild(titulo);
+        rows += '<tr class="group"><td colspan="6">' + escapeHtml(marca) + '<span class="count-pill">' + itens.length + (itens.length === 1 ? ' SKU' : ' SKUs') + '</span></td></tr>';
         itens.forEach((i) => {
-          const row = document.createElement('div');
-          row.className = 'compra-row';
-          row.innerHTML =
-            '<div class="nome">' + escapeHtml(i.nome) + '<div class="sku">' + escapeHtml(i.sku) + '</div>' +
-            '<div class="estoque-detalhe">Lisfer: ' + formatarNumero(i.estoque_lisfer) + ' · Lalfer: ' + formatarNumero(i.estoque_lalfer) + ' · Multiempresa: ' + formatarNumero(i.estoque_atual) + '</div></div>' +
-            '<div class="custo">' + (i.custo_unitario != null ? 'R$ ' + i.custo_unitario.toFixed(2) + ' / un.' : 'sem custo cadastrado') + '</div>' +
-            '<div class="qtd"><span class="lbl">Comprar</span>' + formatarNumero(i.quantidade_comprar) + '</div>';
-          grupo.appendChild(row);
+          rows += '<tr>' +
+            '<td class="prod"><div class="p-nome">' + escapeHtml(i.nome) + '</div><div class="p-sku">' + escapeHtml(i.sku) + '</div></td>' +
+            '<td class="num">' + formatarNumero(i.estoque_lisfer) + '</td>' +
+            '<td class="num">' + formatarNumero(i.estoque_lalfer) + '</td>' +
+            '<td class="num">' + formatarNumero(i.estoque_atual) + '</td>' +
+            '<td class="num">' + (i.custo_unitario != null ? brl(i.custo_unitario) : '<span class="no-cost">sem custo no Tiny</span>') + '</td>' +
+            '<td class="num qty">' + formatarNumero(i.quantidade_comprar) + '</td></tr>';
         });
-        listaPorMarca.appendChild(grupo);
       });
+      listaPorMarca.innerHTML = '<div class="table-scroll"><table class="table buy"><thead><tr><th>Produto</th><th class="num">Estoque Lisfer</th><th class="num">Estoque Lalfer</th><th class="num">Multiempresa</th><th class="num">Custo un.</th><th class="num">Comprar</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
     }
 
     const tbody = document.querySelector('#tabelaConsolidado tbody');
     tbody.innerHTML = '';
     r.itens_consolidados.forEach((i) => {
       const tr = document.createElement('tr');
-      const situacaoClasse = i.quantidade_comprar > 0 ? 'badge-comprar' : 'badge-ok';
+      const fora = i.sku_nao_cadastrado_no_tiny;
+      const situacaoClasse = i.quantidade_comprar > 0 ? 'sit-buy' : 'sit-ok';
       tr.innerHTML =
-        '<td>' + escapeHtml(i.sku) + (i.sku_nao_cadastrado_no_tiny ? ' ⚠' : '') + '</td>' +
+        '<td class="mono">' + escapeHtml(i.sku) + (fora ? ' <span class="badge badge-danger" title="SKU não encontrado no Tiny">fora do Tiny</span>' : '') + '</td>' +
         '<td>' + escapeHtml(i.nome) + '</td>' +
         '<td>' + escapeHtml(i.marca) + '</td>' +
-        '<td>' + formatarNumero(i.necessario) + '</td>' +
-        '<td>' + (i.sku_nao_cadastrado_no_tiny ? '—' : formatarNumero(i.estoque_lisfer)) + '</td>' +
-        '<td>' + (i.sku_nao_cadastrado_no_tiny ? '—' : formatarNumero(i.estoque_lalfer)) + '</td>' +
-        '<td>' + (i.sku_nao_cadastrado_no_tiny ? 'não encontrado' : formatarNumero(i.estoque_atual)) + '</td>' +
-        '<td>' + formatarNumero(i.quantidade_comprar) + '</td>' +
+        '<td class="num">' + formatarNumero(i.necessario) + '</td>' +
+        '<td class="num">' + (fora ? '—' : formatarNumero(i.estoque_lisfer)) + '</td>' +
+        '<td class="num">' + (fora ? '—' : formatarNumero(i.estoque_lalfer)) + '</td>' +
+        '<td class="num">' + (fora ? 'não encontrado' : formatarNumero(i.estoque_atual)) + '</td>' +
+        '<td class="num">' + formatarNumero(i.quantidade_comprar) + '</td>' +
         '<td class="' + situacaoClasse + '">' + escapeHtml(i.situacao) + '</td>';
       tbody.appendChild(tr);
     });
+    el('resTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   processarBtn.addEventListener('click', async () => {
     if (arquivosSelecionados.length === 0) return;
     formMsg.textContent = '';
-    processarBtn.disabled = true;
-    processarBtn.innerHTML = '<span class="spinner"></span>Processando... isso pode levar até 1 minuto';
+    const done = HubUI.busy(processarBtn, 'Processando…');
+    el('procHint').textContent = 'Lendo o PDF e consultando o Tiny. Não feche a página.';
 
     try {
       const { data } = await sb.auth.getSession();
@@ -409,12 +309,14 @@
         return;
       }
       renderResultado(json);
+      HubUI.toast('Lista de compras gerada.');
     } catch (err) {
       console.error(err);
       formMsg.textContent = 'Erro de conexão ao processar o PDF. Tente novamente.';
     } finally {
-      processarBtn.disabled = false;
-      processarBtn.textContent = 'Gerar lista de compras';
+      done();
+      processarBtn.disabled = arquivosSelecionados.length === 0;
+      el('procHint').textContent = 'Pode levar até 1 minuto: o Hub consulta o estoque de cada SKU no Tiny.';
     }
   });
 
@@ -423,9 +325,7 @@
     const exportarBtn = el('exportarBtn');
     const exportMsg = el('exportMsg');
     exportMsg.textContent = '';
-    exportarBtn.disabled = true;
-    const textoOriginal = exportarBtn.innerHTML;
-    exportarBtn.innerHTML = '<span class="spinner"></span>Gerando Excel...';
+    const done = HubUI.busy(exportarBtn, 'Gerando Excel…');
 
     try {
       const { data } = await sb.auth.getSession();
@@ -456,12 +356,12 @@
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      HubUI.toast('Excel baixado.');
     } catch (err) {
       console.error(err);
       exportMsg.textContent = 'Erro de conexão ao gerar o Excel.';
     } finally {
-      exportarBtn.disabled = false;
-      exportarBtn.innerHTML = textoOriginal;
+      done();
     }
   });
 })();

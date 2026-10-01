@@ -3,159 +3,94 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lista de Separação — Full</title>
+<title>Lista de Separação — Full — Hub Lisfer</title>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="hub.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
 <script src="config.js"></script>
 <script src="shared.js"></script>
 <style>
-  :root {
-    --bg: #FFFFFF;
-    --surface: #FFFFFF;
-    --surface-2: #F1F4F6;
-    --border: #D7DEE3;
-    --text: #16232D;
-    --text-muted: #5B6B77;
-    --accent: #16191C;
-    --accent-strong: #000000;
-    --accent-contrast: #FFFFFF;
-    --brand-yellow: #F5AD00;
-    --danger: #D32F2F;
-    --danger-bg: #FBE1E1;
-    --focus: #16191C;
-    --shadow: 0 1px 3px rgba(20, 34, 43, 0.08), 0 6px 18px rgba(20, 34, 43, 0.09);
+  .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  .steps li { display: grid; grid-template-columns: 24px 1fr; gap: 12px; font-size: var(--fs-sm); color: var(--text-2); }
+  .steps .n {
+    width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--surface-3); color: var(--text); font-size: var(--fs-xs); font-weight: 700;
   }
-
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    font-size: 16.5px;
-    line-height: 1.45;
-    min-height: 100vh;
-  }
-  h1, h2, h3 { font-family: "Archivo", system-ui, sans-serif; text-wrap: balance; margin: 0; }
-  button { font-family: inherit; cursor: pointer; }
-  input, select, textarea, button { font-size: 14px; }
-  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  [hidden] { display: none !important; }
-  a { color: inherit; }
-
-  .topbar { background: linear-gradient(180deg, var(--accent-strong), var(--accent)); color: var(--accent-contrast); padding: 18px 20px; }
-  .topbar-inner { max-width: 1040px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; }
-  .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
-  .brand-mark { flex: none; width: 38px; height: 38px; display: grid; place-items: center; background: rgba(244,249,251,0.14); border: 1px solid rgba(244,249,251,0.28); border-radius: 10px; }
-  .back-link { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(244,249,251,0.72); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 4px; }
-  .back-link:hover { color: #FFFFFF; }
-  .back-link svg { width: 12px; height: 12px; }
-  .brand h1 { font-size: 23px; font-weight: 800; letter-spacing: 0.2px; color: var(--brand-yellow); }
-  .brand p { margin: 2px 0 0; font-size: 13.5px; color: #FFFFFF; }
-  .user-info { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #FFFFFF; font-weight: 600; }
-  .today-btn { border: 1px solid rgba(244,249,251,0.3); background: rgba(244,249,251,0.1); color: var(--accent-contrast); border-radius: 999px; padding: 8px 16px; font-weight: 600; font-size: 13px; }
-  .today-btn:hover { background: rgba(244,249,251,0.22); }
-
-  main { max-width: 720px; margin: 0 auto; padding: 22px 20px 60px; display: flex; flex-direction: column; gap: 22px; }
-
-  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 22px; }
-
-  .upload-zone {
-    border: 2px dashed var(--border); border-radius: 14px; padding: 36px 20px;
-    text-align: center; color: var(--text-muted); cursor: pointer; transition: border-color .15s ease, background .15s ease;
-  }
-  .upload-zone:hover, .upload-zone.dragover { border-color: var(--brand-yellow); background: var(--surface-2); }
-  .upload-zone svg { width: 34px; height: 34px; margin-bottom: 10px; color: var(--text-muted); }
-  .upload-zone strong { color: var(--text); }
-  .upload-zone input[type="file"] { display: none; }
-
-  .file-chip {
-    display: flex; align-items: center; gap: 10px; margin-top: 14px;
-    background: var(--surface-2); border-radius: 10px; padding: 10px 14px; font-size: 13.5px;
-  }
-  .file-chip svg { width: 18px; height: 18px; flex: none; color: var(--text-muted); }
-  .file-chip .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .file-chip button { background: none; border: none; color: var(--text-muted); font-size: 13px; text-decoration: underline; }
-
-  .add-btn {
-    background: var(--accent); color: var(--accent-contrast); border: none; border-radius: 999px;
-    padding: 12px 26px; font-weight: 700; font-size: 15px; white-space: nowrap; height: 46px; margin-top: 16px;
-  }
-  .add-btn:hover { background: var(--accent-strong); }
-  .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-  .form-msg { font-size: 13px; font-weight: 600; color: var(--danger); margin-top: 10px; }
-  .form-ok { font-size: 13px; font-weight: 600; color: #1E8E3E; margin-top: 10px; }
-
-  .spinner {
-    width: 16px; height: 16px; border-radius: 50%;
-    border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff;
-    animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; margin-right: 8px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
-
-  footer.note { text-align: center; color: var(--text-muted); font-size: 11.5px; padding-bottom: 10px; }
+  .steps b { color: var(--text); font-weight: 600; }
+  .sep-grid { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: var(--s-6); align-items: start; }
+  @media (max-width: 900px) { .sep-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
 
-<div id="appScreen" hidden>
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        </span>
-        <div>
-          <a class="back-link" href="full.html">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-            Full
-          </a>
-          <h1>Lista de Separação</h1>
-          <p>Suba o PDF do envio e gere o PDF de separação, agrupado por marca</p>
+<div class="app" id="appScreen" hidden>
+  <aside class="app-sidebar" id="appSidebar" data-active="full-separacao"></aside>
+  <div class="app-scrim"></div>
+  <div class="app-main">
+    <main class="page">
+      <header class="page-header">
+        <div class="page-header-text">
+          <nav class="breadcrumb" aria-label="Você está em"><a href="full.html">Full</a><span id="bc1"></span><span>Lista de Separação</span></nav>
+          <h1 class="page-title">Lista de Separação</h1>
+          <p class="page-desc">Gere o PDF para imprimir e separar o envio, com os itens como estão no Full e agrupados por marca.</p>
         </div>
+      </header>
+
+      <div class="sep-grid">
+        <section class="panel" aria-labelledby="upTitle">
+          <div class="panel-head"><h2 id="upTitle">PDF do envio</h2><span class="panel-sub">"Preparation instructions" do Mercado Livre Full</span></div>
+          <div class="panel-body stack-sm">
+            <div class="dropzone" id="uploadZone" role="button" tabindex="0">
+              <span id="dzIcon"></span>
+              <div class="dropzone-title"><strong>Escolha o PDF</strong> ou arraste para cá</div>
+              <div class="dropzone-text">Um envio por vez. Até 4 MB.</div>
+              <input type="file" id="fileInput" accept="application/pdf">
+            </div>
+            <div class="file-item" id="fileChip" hidden>
+              <span id="fileIcon"></span>
+              <span class="name" id="fileName"></span>
+              <span class="size" id="fileSize"></span>
+              <button type="button" class="icon-btn" id="clearFile" aria-label="Remover arquivo" title="Remover"></button>
+            </div>
+          </div>
+          <div class="panel-foot">
+            <button type="button" class="btn btn-primary" id="processarBtn" disabled><span id="dlIcon"></span>Gerar PDF de separação</button>
+            <div class="form-error" id="formMsg" role="alert"></div>
+            <div class="form-success" id="formOk" role="status"></div>
+          </div>
+        </section>
+
+        <aside class="panel" aria-labelledby="howTitle">
+          <div class="panel-head"><h2 id="howTitle">Como funciona</h2></div>
+          <div class="panel-body">
+            <ol class="steps">
+              <li><span class="n">1</span><span>Baixe no Mercado Livre o <b>PDF de preparation instructions</b> do envio.</span></li>
+              <li><span class="n">2</span><span>Suba o arquivo aqui e clique em <b>Gerar PDF de separação</b>.</span></li>
+              <li><span class="n">3</span><span>O PDF baixa sozinho, com os itens <b>agrupados por marca</b> e uma caixa para marcar cada item separado. Kits continuam como kit.</span></li>
+            </ol>
+          </div>
+        </aside>
       </div>
-      <div class="user-info">
-        <span id="userGreeting">—</span>
-        <button type="button" id="logoutBtn" class="today-btn">Sair</button>
-      </div>
-    </div>
+    </main>
   </div>
-
-  <main>
-    <div class="panel">
-      <div class="upload-zone" id="uploadZone">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
-        <div><strong>Clique para escolher o PDF</strong> ou arraste aqui</div>
-        <div style="font-size:12.5px;margin-top:4px;">preparation instructions do Mercado Livre Full</div>
-        <input type="file" id="fileInput" accept="application/pdf">
-      </div>
-      <div class="file-chip" id="fileChip" hidden>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-        <span class="name" id="fileName"></span>
-        <button type="button" id="clearFile">remover</button>
-      </div>
-      <button type="button" class="add-btn" id="processarBtn" disabled>Gerar Lista de Separação (PDF)</button>
-      <div class="form-msg" id="formMsg"></div>
-      <div class="form-ok" id="formOk"></div>
-    </div>
-
-    <footer class="note">Lista de Separação · Full · Hub Lisfer</footer>
-  </main>
 </div>
 
 <script>
 (function () {
   const el = (id) => document.getElementById(id);
+  const ic = HubIcons.svg;
   let arquivoSelecionado = null;
 
-  el('logoutBtn').addEventListener('click', () => HubAuth.logout());
+  el('bc1').outerHTML = ic('chevronRight');
+  el('dzIcon').outerHTML = ic('upload');
+  el('fileIcon').outerHTML = ic('file');
+  el('dlIcon').outerHTML = ic('download');
+  el('clearFile').innerHTML = ic('x');
 
-  HubAuth.requireAuth((user) => {
-    el('userGreeting').textContent = 'Olá, ' + (HubAuth.nomeDe(user.id) || user.email);
+  HubAuth.requireAuth(() => {
     el('appScreen').hidden = false;
   });
 
@@ -166,6 +101,10 @@
   const formMsg = el('formMsg');
   const formOk = el('formOk');
 
+  function tamanho(bytes) {
+    return bytes < 1024 * 1024 ? Math.max(1, Math.round(bytes / 1024)) + ' KB' : (bytes / 1024 / 1024).toFixed(1).replace('.', ',') + ' MB';
+  }
+
   function selecionarArquivo(file) {
     if (!file || file.type !== 'application/pdf') {
       formMsg.textContent = 'Selecione um arquivo PDF.';
@@ -173,6 +112,7 @@
     }
     arquivoSelecionado = file;
     el('fileName').textContent = file.name;
+    el('fileSize').textContent = tamanho(file.size);
     fileChip.hidden = false;
     uploadZone.hidden = true;
     processarBtn.disabled = false;
@@ -181,13 +121,14 @@
   }
 
   uploadZone.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
   fileInput.addEventListener('change', (e) => selecionarArquivo(e.target.files[0]));
 
-  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
-  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+  uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('is-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('is-over'));
   uploadZone.addEventListener('drop', (e) => {
     e.preventDefault();
-    uploadZone.classList.remove('dragover');
+    uploadZone.classList.remove('is-over');
     selecionarArquivo(e.dataTransfer.files[0]);
   });
 
@@ -197,6 +138,7 @@
     fileChip.hidden = true;
     uploadZone.hidden = false;
     processarBtn.disabled = true;
+    formOk.textContent = '';
   });
 
   function arrayBufferParaBase64(buffer) {
@@ -213,8 +155,7 @@
     if (!arquivoSelecionado) return;
     formMsg.textContent = '';
     formOk.textContent = '';
-    processarBtn.disabled = true;
-    processarBtn.innerHTML = '<span class="spinner"></span>Gerando PDF...';
+    const done = HubUI.busy(processarBtn, 'Gerando PDF…');
 
     try {
       const { data } = await sb.auth.getSession();
@@ -247,13 +188,12 @@
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      formOk.textContent = 'Lista de separação baixada — abra o arquivo pra conferir e imprimir.';
+      formOk.textContent = 'PDF baixado. Abra o arquivo para conferir e imprimir.';
     } catch (err) {
       console.error(err);
       formMsg.textContent = 'Erro de conexão ao gerar a lista. Tente novamente.';
     } finally {
-      processarBtn.disabled = false;
-      processarBtn.textContent = 'Gerar Lista de Separação (PDF)';
+      done();
     }
   });
 })();

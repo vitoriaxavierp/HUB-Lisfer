@@ -1,0 +1,703 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-01T13:06:25+00:00",
+  "title": "Design System: Hub Lisfer",
+  "extensions": {
+    "colorMeta": {
+      "brand": {
+        "role": "secondary",
+        "displayName": "Amarelo Lisfer",
+        "canonical": "#F5AD00",
+        "tonalRamp": [
+          "#4C3600",
+          "#855E00",
+          "#BD8500",
+          "#F5AD00",
+          "#FFC22E",
+          "#FFD266",
+          "#FFE4A3",
+          "#FFF8E5"
+        ]
+      },
+      "brand-hover": {
+        "role": "secondary",
+        "displayName": "Amarelo Lisfer (hover)",
+        "canonical": "#E09E00",
+        "tonalRamp": [
+          "#4C3600",
+          "#855E00",
+          "#BD8500",
+          "#F5AD00",
+          "#FFC12E",
+          "#FFD266",
+          "#FFE4A3",
+          "#FFF7E5"
+        ]
+      },
+      "brand-ink": {
+        "role": "secondary",
+        "displayName": "Tinta sobre amarelo",
+        "canonical": "#1F1500",
+        "tonalRamp": [
+          "#4C3400",
+          "#855A00",
+          "#BD8000",
+          "#F5A600",
+          "#FFBC2E",
+          "#FFCE66",
+          "#FFE1A3",
+          "#FFF7E5"
+        ]
+      },
+      "brand-soft": {
+        "role": "secondary",
+        "displayName": "Amarelo suave",
+        "canonical": "#FFF5DB",
+        "tonalRamp": [
+          "#4C3700",
+          "#856000",
+          "#BD8800",
+          "#F5B100",
+          "#FFC52E",
+          "#FFD566",
+          "#FFE6A3",
+          "#FFF8E5"
+        ]
+      },
+      "brand-text": {
+        "role": "secondary",
+        "displayName": "Amarelo legível",
+        "canonical": "#8A5A00",
+        "tonalRamp": [
+          "#4C3200",
+          "#855600",
+          "#BD7B00",
+          "#F5A000",
+          "#FFB62E",
+          "#FFCA66",
+          "#FFDFA3",
+          "#FFF6E5"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Preto Lisfer",
+        "canonical": "#111315",
+        "tonalRamp": [
+          "#22262A",
+          "#3B4249",
+          "#545E68",
+          "#6E7A87",
+          "#8B96A1",
+          "#AAB2BB",
+          "#CCD1D6",
+          "#F1F2F4"
+        ]
+      },
+      "ink-2": {
+        "role": "primary",
+        "displayName": "Tinta 2",
+        "canonical": "#1B1E21",
+        "tonalRamp": [
+          "#22262A",
+          "#3C4249",
+          "#555E68",
+          "#6E7A87",
+          "#8C96A1",
+          "#ABB2BA",
+          "#CDD1D6",
+          "#F1F2F4"
+        ]
+      },
+      "ink-3": {
+        "role": "primary",
+        "displayName": "Tinta 3",
+        "canonical": "#272B30",
+        "tonalRamp": [
+          "#22262A",
+          "#3B4249",
+          "#555D68",
+          "#6E7987",
+          "#8C95A1",
+          "#ABB2BA",
+          "#CCD1D6",
+          "#F1F2F4"
+        ]
+      },
+      "ink-line": {
+        "role": "primary",
+        "displayName": "Fio sobre tinta",
+        "canonical": "rgba(255, 255, 255, 0.08)",
+        "tonalRamp": []
+      },
+      "ink-text": {
+        "role": "primary",
+        "displayName": "Texto sobre tinta",
+        "canonical": "#E6E8EA",
+        "tonalRamp": [
+          "#23262A",
+          "#3D4248",
+          "#565E67",
+          "#707A85",
+          "#8D96A0",
+          "#ACB2B9",
+          "#CDD1D5",
+          "#F1F2F3"
+        ]
+      },
+      "ink-muted": {
+        "role": "primary",
+        "displayName": "Apoio sobre tinta",
+        "canonical": "#9AA1A8",
+        "tonalRamp": [
+          "#232629",
+          "#3D4247",
+          "#575E65",
+          "#717A84",
+          "#8F969E",
+          "#ADB2B8",
+          "#CED1D5",
+          "#F1F2F3"
+        ]
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Fundo da aplicação",
+        "canonical": "#F3F4F6",
+        "tonalRamp": [
+          "#21242C",
+          "#393F4C",
+          "#515A6C",
+          "#69758C",
+          "#8891A5",
+          "#A8AFBD",
+          "#CBCFD8",
+          "#F0F2F4"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Superfície",
+        "canonical": "#FFFFFF",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5E5E5E",
+          "#7A7A7A",
+          "#969696",
+          "#B2B2B2",
+          "#D1D1D1",
+          "#F2F2F2"
+        ]
+      },
+      "surface-2": {
+        "role": "neutral",
+        "displayName": "Superfície 2",
+        "canonical": "#F7F8F9",
+        "tonalRamp": [
+          "#21262C",
+          "#39424C",
+          "#515E6C",
+          "#697A8C",
+          "#8896A5",
+          "#A8B2BD",
+          "#CBD1D8",
+          "#F0F2F4"
+        ]
+      },
+      "surface-3": {
+        "role": "neutral",
+        "displayName": "Superfície 3",
+        "canonical": "#EEF0F3",
+        "tonalRamp": [
+          "#20252D",
+          "#37404E",
+          "#4E5B6F",
+          "#657690",
+          "#8493A8",
+          "#A5B0C0",
+          "#C9D0D9",
+          "#F0F2F4"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Borda",
+        "canonical": "#E1E4E8",
+        "tonalRamp": [
+          "#21262B",
+          "#3A414B",
+          "#525D6B",
+          "#6A788B",
+          "#8994A4",
+          "#A8B1BD",
+          "#CBD0D7",
+          "#F1F2F4"
+        ]
+      },
+      "border-strong": {
+        "role": "neutral",
+        "displayName": "Borda forte",
+        "canonical": "#C9CED4",
+        "tonalRamp": [
+          "#22262B",
+          "#3B424A",
+          "#545D69",
+          "#6D7988",
+          "#8B95A2",
+          "#AAB2BB",
+          "#CCD1D6",
+          "#F1F2F4"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Texto",
+        "canonical": "#14181C",
+        "tonalRamp": [
+          "#20262D",
+          "#37424D",
+          "#4F5E6E",
+          "#667A8F",
+          "#8596A8",
+          "#A6B2BF",
+          "#C9D1D9",
+          "#F0F2F4"
+        ]
+      },
+      "text-2": {
+        "role": "neutral",
+        "displayName": "Texto secundário",
+        "canonical": "#49525C",
+        "tonalRamp": [
+          "#22262B",
+          "#3B424A",
+          "#535E69",
+          "#6C7A88",
+          "#8A96A2",
+          "#AAB2BB",
+          "#CCD1D6",
+          "#F1F2F4"
+        ]
+      },
+      "text-3": {
+        "role": "neutral",
+        "displayName": "Texto terciário",
+        "canonical": "#646D77",
+        "tonalRamp": [
+          "#23262A",
+          "#3D4248",
+          "#565E67",
+          "#707A85",
+          "#8D96A0",
+          "#ACB2B9",
+          "#CDD1D5",
+          "#F1F2F3"
+        ]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Verde coletado",
+        "canonical": "#1B7A3A",
+        "tonalRamp": [
+          "#0E3F1E",
+          "#186D34",
+          "#229B49",
+          "#2CC85F",
+          "#54D97F",
+          "#82E3A2",
+          "#B4EEC7",
+          "#EAFAEF"
+        ]
+      },
+      "success-soft": {
+        "role": "tertiary",
+        "displayName": "Verde suave",
+        "canonical": "#E2F2E7",
+        "tonalRamp": [
+          "#183521",
+          "#295C39",
+          "#3A8251",
+          "#4CA969",
+          "#6FBE88",
+          "#95D0A8",
+          "#C0E3CB",
+          "#EDF7F0"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Vermelho",
+        "canonical": "#C2262E",
+        "tonalRamp": [
+          "#400D0F",
+          "#6F161A",
+          "#9E1F25",
+          "#CD2831",
+          "#DD5057",
+          "#E67F84",
+          "#F0B2B5",
+          "#FBEAEB"
+        ]
+      },
+      "danger-hover": {
+        "role": "tertiary",
+        "displayName": "Vermelho (hover)",
+        "canonical": "#A91F26",
+        "tonalRamp": [
+          "#410C0F",
+          "#701519",
+          "#9F1D24",
+          "#CF262F",
+          "#DF4E56",
+          "#E77E83",
+          "#F1B1B5",
+          "#FBE9EA"
+        ]
+      },
+      "danger-soft": {
+        "role": "tertiary",
+        "displayName": "Vermelho suave",
+        "canonical": "#FCE9EA",
+        "tonalRamp": [
+          "#43090C",
+          "#751015",
+          "#A6171E",
+          "#D71D27",
+          "#E6474F",
+          "#ED787E",
+          "#F4AEB2",
+          "#FCE9EA"
+        ]
+      },
+      "info": {
+        "role": "tertiary",
+        "displayName": "Azul informativo",
+        "canonical": "#1E5BC6",
+        "tonalRamp": [
+          "#0A1F42",
+          "#113573",
+          "#194BA4",
+          "#2062D5",
+          "#4981E3",
+          "#7AA3EB",
+          "#AFC8F3",
+          "#E9F0FC"
+        ]
+      },
+      "info-soft": {
+        "role": "tertiary",
+        "displayName": "Azul suave",
+        "canonical": "#E4ECFB",
+        "tonalRamp": [
+          "#0A1E43",
+          "#113373",
+          "#1849A4",
+          "#205FD5",
+          "#497FE4",
+          "#7AA1EB",
+          "#AFC7F3",
+          "#E9EFFC"
+        ]
+      },
+      "warning-text": {
+        "role": "tertiary",
+        "displayName": "Texto de pendência",
+        "canonical": "#8A5A00",
+        "tonalRamp": [
+          "#4C3200",
+          "#855600",
+          "#BD7B00",
+          "#F5A000",
+          "#FFB62E",
+          "#FFCA66",
+          "#FFDFA3",
+          "#FFF6E5"
+        ]
+      },
+      "warning-soft": {
+        "role": "tertiary",
+        "displayName": "Fundo de pendência",
+        "canonical": "#FFF5DB",
+        "tonalRamp": [
+          "#4C3700",
+          "#856000",
+          "#BD8800",
+          "#F5B100",
+          "#FFC52E",
+          "#FFD566",
+          "#FFE6A3",
+          "#FFF8E5"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Só o título de página (h1.page-title); 20px abaixo de 900px."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "Números grandes de resumo e resultado (24–34px), sempre tabulares."
+      },
+      "title": {
+        "displayName": "Título",
+        "purpose": "Título de painel, nome do cliente, nome de ferramenta."
+      },
+      "body": {
+        "displayName": "Corpo",
+        "purpose": "Texto padrão, campos e botões (600)."
+      },
+      "body-sm": {
+        "displayName": "Corpo pequeno",
+        "purpose": "Tabelas, metadados, alertas e toasts."
+      },
+      "label": {
+        "displayName": "Rótulo",
+        "purpose": "Rótulo de campo, sempre acima do campo."
+      },
+      "caption": {
+        "displayName": "Legenda",
+        "purpose": "Selos, contadores e cabeçalhos de tabela; sem caixa-alta."
+      },
+      "data": {
+        "displayName": "Dado",
+        "purpose": "NF, SKU, PI, CPF/CNPJ, telefone; placeholder continua em sans."
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-xs",
+        "value": "0 1px 2px rgba(17, 19, 21, 0.05)",
+        "purpose": "Repouso: painéis, cartões de calculadora, botões principal e secundário, opção ativa do segmentado."
+      },
+      {
+        "name": "shadow-lg",
+        "value": "0 8px 16px rgba(17, 19, 21, 0.08), 0 20px 40px rgba(17, 19, 21, 0.12)",
+        "purpose": "Só o que flutua: toast e menu lateral aberto como gaveta."
+      },
+      {
+        "name": "field-focus-halo",
+        "value": "0 0 0 3px rgba(17, 19, 21, 0.12)",
+        "purpose": "Foco de campos, junto da borda em tinta."
+      },
+      {
+        "name": "focus-outline-light",
+        "value": "outline: 2px solid var(--ink); outline-offset: 2px",
+        "purpose": "Foco de teclado em superfícies claras."
+      },
+      {
+        "name": "focus-outline-dark",
+        "value": "outline: 2px solid var(--brand); outline-offset: -2px",
+        "purpose": "Foco de teclado no menu lateral e na barra superior escuros."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Entrada de toast, gaveta do menu, pop do círculo de status, resultado da calculadora."
+      },
+      {
+        "name": "t-fast",
+        "value": "120ms",
+        "purpose": "Hover e mudança de cor/borda."
+      },
+      {
+        "name": "t-base",
+        "value": "180ms",
+        "purpose": "Toast, gaveta do menu, giro de chevrons, entrada do resultado."
+      },
+      {
+        "name": "done-pop",
+        "value": "260ms ease-out (check com 60ms de atraso); linha pisca success-soft por 900ms",
+        "purpose": "Dar baixa em uma coleta."
+      },
+      {
+        "name": "toast-duration",
+        "value": "3200ms visível, 220ms saída",
+        "purpose": "Tempo de leitura do toast."
+      },
+      {
+        "name": "skeleton-shimmer",
+        "value": "1.2s ease-in-out infinite",
+        "purpose": "Carregando listas."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce zera animações e transições",
+        "purpose": "Acessibilidade."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "form-wide",
+        "value": "1100px"
+      },
+      {
+        "name": "drawer",
+        "value": "900px"
+      },
+      {
+        "name": "phone",
+        "value": "640px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botão principal",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação principal da área (uma por área). Tinta preta, texto branco.",
+      "html": "<button class=\"ds-btn-primary\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg>Adicionar coleta</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: var(--r-md, 8px); border: 1px solid transparent; font-family: var(--font-sans, \"IBM Plex Sans\", system-ui, sans-serif); font-size: 14px; font-weight: 600; line-height: 1; cursor: pointer; transition: background 120ms ease, border-color 120ms ease, color 120ms ease; background: var(--ink, #111315); color: #FFFFFF; box-shadow: 0 1px 2px rgba(17,19,21,0.05); } .ds-btn-primary:hover { background: #000000; } .ds-btn-primary:active { background: var(--ink-3, #272B30); } .ds-btn-primary:focus-visible { outline: 2px solid var(--ink, #111315); outline-offset: 2px; }"
+    },
+    {
+      "name": "Botão secundário",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Ações de apoio ao lado da principal (ex.: Hoje, Cancelar).",
+      "html": "<button class=\"ds-btn-secondary\">Hoje</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: var(--r-md, 8px); border: 1px solid transparent; font-family: var(--font-sans, \"IBM Plex Sans\", system-ui, sans-serif); font-size: 14px; font-weight: 600; line-height: 1; cursor: pointer; transition: background 120ms ease, border-color 120ms ease, color 120ms ease; background: var(--surface, #FFFFFF); color: var(--text, #14181C); border-color: var(--border-strong, #C9CED4); box-shadow: 0 1px 2px rgba(17,19,21,0.05); } .ds-btn-secondary:hover { background: var(--surface-2, #F7F8F9); border-color: var(--text-3, #646D77); } .ds-btn-secondary:active { background: var(--surface-3, #EEF0F3); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--ink, #111315); outline-offset: 2px; }"
+    },
+    {
+      "name": "Botão fantasma",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Ação discreta em cabeçalho de painel (ex.: Recolher).",
+      "html": "<button class=\"ds-btn-ghost\">Recolher</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: var(--r-md, 8px); border: 1px solid transparent; font-family: var(--font-sans, \"IBM Plex Sans\", system-ui, sans-serif); font-size: 14px; font-weight: 600; line-height: 1; cursor: pointer; transition: background 120ms ease, border-color 120ms ease, color 120ms ease; background: transparent; color: var(--text-2, #49525C); } .ds-btn-ghost:hover { background: var(--surface-3, #EEF0F3); color: var(--text, #14181C); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--ink, #111315); outline-offset: 2px; }"
+    },
+    {
+      "name": "Botão de ícone com confirmação",
+      "kind": "button",
+      "refersTo": "icon-button",
+      "description": "Excluir em dois cliques: o primeiro vira 'Confirmar' em vermelho.",
+      "html": "<span style=\"display:inline-flex;gap:8px\"><button class=\"ds-icon-btn\" aria-label=\"Excluir\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14\"/></svg></button><button class=\"ds-icon-btn is-confirming\" aria-label=\"Confirmar exclusão\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14\"/></svg><span>Confirmar</span></button></span>",
+      "css": ".ds-icon-btn { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-md, 8px); border: 1px solid transparent; background: transparent; color: var(--text-3, #646D77); cursor: pointer; transition: background 120ms ease, color 120ms ease; } .ds-icon-btn:hover { background: var(--danger-soft, #FCE9EA); color: var(--danger, #C2262E); } .ds-icon-btn:focus-visible { outline: 2px solid var(--ink, #111315); outline-offset: 2px; } .ds-icon-btn.is-confirming { display: inline-flex; align-items: center; gap: 6px; width: auto; padding: 0 10px; background: var(--danger, #C2262E); color: #FFFFFF; font-family: var(--font-sans, \"IBM Plex Sans\", system-ui, sans-serif); font-size: 12px; font-weight: 600; } .ds-icon-btn.is-confirming:hover { background: var(--danger-hover, #A91F26); color: #FFFFFF; }"
+    },
+    {
+      "name": "Campo com rótulo",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Rótulo acima, borda forte, foco com borda tinta e halo; dado em mono, placeholder em sans.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-label\">NF<span class=\"ds-req\">*</span></span><input class=\"ds-input ds-mono\" placeholder=\"Número da nota\"></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; width: 240px; font-family: var(--font-sans, \"IBM Plex Sans\", system-ui, sans-serif); } .ds-label { font-size: 13px; font-weight: 500; color: var(--text-2, #49525C); } .ds-req { color: var(--danger, #C2262E); margin-left: 2px; } .ds-input { height: 38px; padding: 0 12px; background: var(--surface, #FFFFFF); color: var(--text, #14181C); border: 1px solid var(--border-strong, #C9CED4); border-radius: var(--r-md, 8px); font-size: 14px; outline: none; transition: border-color 120ms ease, box-shadow 120ms ease; } .ds-input::placeholder { color: #8C949C; } .ds-input:hover { border-color: var(--text-3, #646D77); } .ds-input:focus { border-color: var(--ink, #111315); box-shadow: 0 0 0 3px rgba(17,19,21,0.12); } .ds-mono { font-family: var(--font-mono, \"IBM Plex Mono\", ui-monospace, monospace); font-size: 13px; } .ds-mono::placeholder { font-family: var(--font-sans, \"IBM Plex Sans\", system-ui, sans-serif); font-size: 14px; }"
+    },
+    {
+      "name": "Menu lateral",
+      "kind": "nav",
+      "refersTo": "nav-link-active",
+      "description": "Menu escuro agrupado; ativo com fundo ink-3, ícone amarelo e barra amarela; foco amarelo recuado.",
+      "html": "<nav class=\"ds-sidebar\"><a class=\"ds-sb-link\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M3 10.5L12 3l9 7.5\"/><path d=\"M5 9.5V20h14V9.5\"/><path d=\"M10 20v-6h4v6\"/></svg><span>Início</span></a><div class=\"ds-sb-group\">Operação</div><a class=\"ds-sb-link\" href=\"#\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M21 8l-9-5-9 5 9 5 9-5z\"/><path d=\"M3 8v8l9 5 9-5V8\"/><path d=\"M12 13v8\"/></svg><span>Coletas</span></a></nav>",
+      "css": ".ds-sidebar { width: 240px; padding: 12px; background: var(--ink, #111315); font-family: var(--font-sans, \"IBM Plex Sans\", system-ui, sans-serif); } .ds-sb-group { font-size: 11px; font-weight: 600; color: var(--ink-muted, #9AA1A8); padding: 18px 10px 6px; } .ds-sb-link { position: relative; display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: var(--r-md, 8px); color: var(--ink-text, #E6E8EA); text-decoration: none; font-size: 14px; font-weight: 500; transition: background 120ms ease; } .ds-sb-link svg { color: var(--ink-muted, #9AA1A8); flex: none; } .ds-sb-link:hover { background: var(--ink-2, #1B1E21); } .ds-sb-link:hover svg { color: var(--ink-text, #E6E8EA); } .ds-sb-link:focus-visible { outline: 2px solid var(--brand, #F5AD00); outline-offset: -2px; } .ds-sb-link[aria-current=\"page\"] { background: var(--ink-3, #272B30); color: #FFFFFF; font-weight: 600; } .ds-sb-link[aria-current=\"page\"] svg { color: var(--brand, #F5AD00); } .ds-sb-link[aria-current=\"page\"]::before { content: \"\"; position: absolute; left: -12px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--brand, #F5AD00); }"
+    },
+    {
+      "name": "Selos de status",
+      "kind": "chip",
+      "refersTo": "badge-pending",
+      "description": "Pílulas de status: pendente (amarelo), coletado (verde), erro (vermelho), contorno para tipo.",
+      "html": "<span style=\"display:inline-flex;gap:8px\"><span class=\"ds-badge ds-badge-pending\"><span class=\"ds-dot\"></span>Pendente</span><span class=\"ds-badge ds-badge-success\"><span class=\"ds-dot\"></span>Coletado</span><span class=\"ds-badge ds-badge-outline\">Transportadora</span><span class=\"ds-count\">4</span></span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; font-family: var(--font-sans, \"IBM Plex Sans\", system-ui, sans-serif); font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--surface-3, #EEF0F3); color: var(--text-2, #49525C); } .ds-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; } .ds-badge-pending { background: var(--warning-soft, #FFF5DB); color: var(--warning-text, #8A5A00); } .ds-badge-pending .ds-dot { background: var(--brand, #F5AD00); } .ds-badge-success { background: var(--success-soft, #E2F2E7); color: var(--success, #1B7A3A); } .ds-badge-outline { background: transparent; border: 1px solid var(--border, #E1E4E8); } .ds-count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 7px; border-radius: 999px; background: var(--surface-3, #EEF0F3); color: var(--text-2, #49525C); font-family: var(--font-sans, \"IBM Plex Sans\", system-ui, sans-serif); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Painel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "O único container: branco, borda 1px, raio 12px, cabeçalho, corpo e rodapé.",
+      "html": "<section class=\"ds-panel\"><div class=\"ds-panel-head\"><h2>Pendentes</h2><span class=\"ds-panel-sub\">Clique no círculo para dar baixa</span></div><div class=\"ds-panel-body\">Conteúdo do painel.</div><div class=\"ds-panel-foot\"><button class=\"ds-panel-btn\">Adicionar coleta</button></div></section>",
+      "css": ".ds-panel { width: 420px; background: var(--surface, #FFFFFF); border: 1px solid var(--border, #E1E4E8); border-radius: var(--r-lg, 12px); box-shadow: 0 1px 2px rgba(17,19,21,0.05); font-family: var(--font-sans, \"IBM Plex Sans\", system-ui, sans-serif); color: var(--text, #14181C); font-size: 14px; } .ds-panel-head { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid var(--border, #E1E4E8); } .ds-panel-head h2 { margin: 0; font-size: 15px; font-weight: 600; } .ds-panel-sub { font-size: 13px; color: var(--text-3, #646D77); } .ds-panel-body { padding: 20px; } .ds-panel-foot { padding: 14px 20px; border-top: 1px solid var(--border, #E1E4E8); background: var(--surface-2, #F7F8F9); border-radius: 0 0 12px 12px; } .ds-panel-btn { height: 38px; padding: 0 16px; border: 0; border-radius: 8px; background: var(--ink, #111315); color: #FFFFFF; font: inherit; font-weight: 600; cursor: pointer; } .ds-panel-btn:hover { background: #000000; } .ds-panel-btn:focus-visible { outline: 2px solid var(--ink, #111315); outline-offset: 2px; }"
+    },
+    {
+      "name": "Círculo de status das Coletas",
+      "kind": "custom",
+      "refersTo": "status-circle-pending",
+      "description": "Assinatura: anel amarelo pendente; hover prevê o verde; coletado vira check verde com pop de 260ms.",
+      "html": "<span style=\"display:inline-flex;gap:16px;align-items:center\"><button class=\"ds-status\" aria-label=\"Dar baixa\"></button><button class=\"ds-status is-done is-pop\" aria-label=\"Coletado\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M20 6L9 17l-5-5\"/></svg></button></span>",
+      "css": ".ds-status { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; border: 0; cursor: pointer; background: var(--brand-soft, #FFF5DB); box-shadow: inset 0 0 0 2px var(--brand, #F5AD00); transition: box-shadow 120ms ease, background 120ms ease, transform 120ms ease; } .ds-status::after { content: \"\"; width: 12px; height: 12px; border-radius: 50%; background: var(--brand, #F5AD00); transition: transform 120ms ease; } .ds-status:hover { box-shadow: inset 0 0 0 2px var(--success, #1B7A3A); background: var(--success-soft, #E2F2E7); } .ds-status:hover::after { transform: scale(0.6); background: var(--success, #1B7A3A); } .ds-status:active { transform: scale(0.94); } .ds-status:focus-visible { outline: 2px solid var(--ink, #111315); outline-offset: 2px; } .ds-status.is-done { background: var(--success, #1B7A3A); box-shadow: none; color: #FFFFFF; } .ds-status.is-done::after { display: none; } .ds-status.is-done:hover { background: #156330; } .ds-status.is-pop { animation: ds-pop 260ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-status.is-pop svg { animation: ds-check 260ms cubic-bezier(0.16, 1, 0.3, 1) 60ms backwards; } @keyframes ds-pop { from { transform: scale(0.7); } to { transform: none; } } @keyframes ds-check { from { opacity: 0; transform: scale(0.4) rotate(-12deg); } to { opacity: 1; transform: none; } }"
+    },
+    {
+      "name": "Toast de confirmação",
+      "kind": "custom",
+      "refersTo": "toast",
+      "description": "Confirmação curta de toda gravação; tinta com check amarelo; entra em 180ms, sai após 3,2s.",
+      "html": "<div class=\"ds-toast\" role=\"status\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M8 12l3 3 5-6\"/></svg><span>Auto Peças Silveira marcada como coletada.</span></div>",
+      "css": ".ds-toast { display: flex; align-items: center; gap: 10px; min-width: 260px; max-width: 420px; padding: 12px 16px; border-radius: var(--r-md, 8px); background: var(--ink, #111315); color: #FFFFFF; box-shadow: 0 8px 16px rgba(17,19,21,0.08), 0 20px 40px rgba(17,19,21,0.12); font-family: var(--font-sans, \"IBM Plex Sans\", system-ui, sans-serif); font-size: 13px; font-weight: 500; animation: ds-toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-toast svg { flex: none; color: var(--brand, #F5AD00); } @keyframes ds-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "O Quadro do Turno",
+    "overview": "O Hub é o quadro que a equipe da Lisfer olha o dia inteiro: o que foi lançado de manhã precisa estar legível, com dono e horário, para quem chega à tarde. Por isso o sistema é de **modo operação**: denso na medida do escritório (mesa, monitor, mouse e teclado), calmo, sem ornamento, e com a identidade preta e amarela da Lisfer aplicada com disciplina em vez de espalhada pela tela.\n\nA estrutura é sempre a mesma: um menu lateral escuro e agrupado (preto Lisfer) à esquerda e uma área de conteúdo clara (`--bg`) onde o **painel branco** é o único tipo de container. A cor é contida: a tinta preta é a ação principal, o amarelo marca o lugar onde você está, o foco sobre o fundo escuro e o que está **pendente**; o verde quer dizer **coletado**. Números e códigos (NF, SKU, PI, CPF/CNPJ) aparecem em fonte mono, para serem lidos e conferidos sem esforço.\n\nA assinatura do sistema é o **círculo de status das Coletas** (anel amarelo que vira um check verde, com um \"pop\" de 260ms ao dar baixa) e as **confirmações por toast**: toda ação que grava algo responde com uma frase curta, em português, dizendo o que aconteceu.",
+    "keyCharacteristics": [
+      "Menu lateral escuro e agrupado + conteúdo claro com painéis brancos; um shell idêntico em todas as páginas.",
+      "Archivo 800 só para título de página e números grandes; IBM Plex Sans para a interface; IBM Plex Mono para dados.",
+      "Tinta (#111315) é a ação principal; amarelo (#F5AD00) é posição, foco no escuro e pendência; verde é concluído.",
+      "Foco sempre visível: contorno de 2px (tinta no claro, amarelo no menu escuro).",
+      "Ícones de traço único 24x24 vindos de `HubIcons`; nunca emoji.",
+      "Estados honestos: carregando (skeleton/spinner), vazio, erro e confirmação em toast."
+    ],
+    "rules": [
+      {
+        "name": "A Regra da Tinta",
+        "body": "A tinta preta é reservada à ação principal. Uma área de ação tem no máximo um botão preto; o resto é secundário, fantasma ou link.",
+        "section": "colors"
+      },
+      {
+        "name": "A Regra do Amarelo Raro",
+        "body": "O amarelo só significa três coisas: \"você está aqui\" (menu), \"foco sobre o escuro\" e \"pendente\". Se não é nenhuma das três, não é amarelo.",
+        "section": "colors"
+      },
+      {
+        "name": "A Regra Verde = Coletado",
+        "body": "Verde é reservado para o que foi concluído. Não use verde para decorar nem como cor de botão.",
+        "section": "colors"
+      },
+      {
+        "name": "A Regra do Archivo Escasso",
+        "body": "Archivo 800 aparece apenas em títulos de página, títulos de cartão de calculadora e números grandes. Nunca em botões, rótulos, tabelas ou parágrafos.",
+        "section": "typography"
+      },
+      {
+        "name": "A Regra do Dado em Mono",
+        "body": "Todo identificador conferível (NF, SKU, PI, CPF/CNPJ, telefone, número de pedido em campo) usa `.mono`/`--font-mono`. Placeholders continuam em sans, mesmo em campos mono (`.input.mono::placeholder` volta para `--font-sans`).",
+        "section": "typography"
+      },
+      {
+        "name": "A Regra Sem Caixa-Alta",
+        "body": "Títulos de grupo, cabeçalhos de tabela e selos ficam em caixa normal, sem `text-transform: uppercase` e sem espaçamento largo.",
+        "section": "typography"
+      },
+      {
+        "name": "A Regra do Plano por Padrão",
+        "body": "Superfícies não sobem no hover. Hover muda fundo ou borda; sombra maior só para o que realmente flutua (toast, gaveta).",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do construir toda página nova com o shell: `.app` > `aside#appSidebar[data-active]` + `.app-scrim` + `.app-main` > `main.page`, liberando a tela só dentro de `HubAuth.requireAuth`.",
+      "Do registrar o módulo novo na lista `NAV` de `shared.js`; o `data-active` da página tem que ser a `key` do item.",
+      "Do usar os tokens de `hub.css` (`var(--…)`) no `<style>` da página; o `<style>` local guarda só o que é específico da tela.",
+      "Do colocar conteúdo em painéis brancos (`.panel` com `.panel-head`/`.panel-body`/`.panel-foot`).",
+      "Do manter um único botão principal (tinta) por área de ação, normalmente no rodapé do painel ou nas ações do cabeçalho.",
+      "Do confirmar toda gravação com `HubUI.toast` e envolver o botão em `HubUI.busy` enquanto salva.",
+      "Do usar `.mono` para NF, SKU, PI, CPF/CNPJ e telefone, com placeholder em sans.",
+      "Do usar ícones de `HubIcons.svg(nome)` (traço 1.8, 24x24, `currentColor`) e adicionar ícones novos nesse mesmo conjunto.",
+      "Do escrever no tom do Hub: português direto e operacional (\"Coleta adicionada.\", \"Não foi possível excluir. Tente de novo.\").",
+      "Do escopar o CSS das calculadoras em `.calc-page` para não vazar no menu lateral.",
+      "Do mostrar os três estados: carregando (skeleton), vazio (`.empty`) e erro (`.alert` ou toast de erro)."
+    ],
+    "donts": [
+      "Don't alterar fórmulas, taxas ou lógica das calculadoras e das listas do Full em trabalho visual; mudança visual mexe só em marcação e CSS.",
+      "Don't usar borda esquerda colorida em linhas, cartões ou alertas para indicar status; status é o círculo, o ponto ou o selo.",
+      "Don't usar emoji como ícone, em lugar nenhum.",
+      "Don't usar a tinta preta em botões que não são a ação principal, nem colocar dois botões pretos lado a lado.",
+      "Don't usar o amarelo `--brand` como botão principal, fundo de painel ou texto sobre branco (para texto use `--brand-text`).",
+      "Don't criar outro tipo de container (cartões coloridos, caixas com sombra forte, painéis dentro de painéis decorativos).",
+      "Don't usar Archivo em botões, rótulos ou tabelas, nem colocar títulos em caixa-alta com espaçamento largo.",
+      "Don't tirar o contorno de foco; no claro ele é tinta de 2px, no menu escuro é amarelo de 2px recuado.",
+      "Don't escrever cores em hex dentro das páginas quando existe token equivalente.",
+      "Don't inventar números ou indicadores que o sistema não calcula."
+    ]
+  }
+}

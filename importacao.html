@@ -3,252 +3,195 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard de Importação — Hub Lisfer</title>
+<title>Importação — Hub Lisfer</title>
 <link rel="icon" type="image/png" href="favicon.png">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="hub.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
 <script src="config.js"></script>
 <script src="shared.js"></script>
 <style>
-  :root {
-    --bg: #FFFFFF;
-    --surface: #FFFFFF;
-    --surface-2: #F1F4F6;
-    --surface-3: #EAEFF2;
-    --border: #D7DEE3;
-    --text: #16232D;
-    --text-muted: #5B6B77;
-    --accent: #16191C;
-    --accent-strong: #000000;
-    --accent-contrast: #FFFFFF;
-    --title-accent: #F5AD00;
-    --focus: #16191C;
-    --shadow: 0 1px 3px rgba(20, 34, 43, 0.08), 0 6px 18px rgba(20, 34, 43, 0.09);
-    --st-fabricacao: #5B6B77; --st-fabricacao-bg: #EAEFF2;
-    --st-aguardando: #1A56DB; --st-aguardando-bg: #DCE7FB;
-    --st-transito: #F5AD00; --st-transito-bg: #FFF1D6;
-    --st-chegou: #1E8E3E; --st-chegou-bg: #E1F3E4;
-    --danger: #D32F2F; --danger-bg: #FBE1E1;
+  /* resumo do topo: próxima chegada + contagem por status */
+  .overview { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)); }
+  .ov-cell { padding: 18px 20px; border-left: 1px solid var(--border); min-width: 0; }
+  .ov-cell:first-child { border-left: 0; }
+  .ov-label { font-size: var(--fs-xs); font-weight: 500; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+  .ov-label .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .ov-value { font-family: var(--font-display); font-size: var(--fs-2xl); font-weight: 800; line-height: 1.1; margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .ov-next .ov-value { font-size: var(--fs-xl); }
+  .ov-next .ov-sub { font-size: var(--fs-sm); color: var(--text-2); margin-top: 2px; }
+  .ov-next .ov-pi { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); }
+  .ov-next .late { color: var(--danger); }
+
+  .st-fab { --st: #646D77; --st-bg: var(--surface-3); }
+  .st-agu { --st: var(--info); --st-bg: var(--info-soft); }
+  .st-tra { --st: var(--warning-text); --st-bg: var(--warning-soft); --st-dot: var(--brand); }
+  .st-che { --st: var(--success); --st-bg: var(--success-soft); }
+  .ov-label .dot { background: var(--st-dot, var(--st)); }
+
+  /* formulário */
+  .f-pi { grid-column: span 3; } .f-forn { grid-column: span 4; } .f-status { grid-column: span 2; }
+  .f-data { grid-column: span 2; } .f-valor { grid-column: span 1; }
+  .f-itens { grid-column: 1 / -1; }
+  .f-itens .textarea { font-family: var(--font-mono); font-size: var(--fs-sm); min-height: 120px; }
+  @media (max-width: 1100px) {
+    .f-pi, .f-forn { grid-column: span 6; } .f-status, .f-data, .f-valor { grid-column: span 4; }
   }
 
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
+  /* tabela de embarques */
+  .ships th:first-child, .ships td:first-child { padding-left: 20px; }
+  .ships th:last-child, .ships td:last-child { padding-right: 16px; }
+  .ships tr.is-arrived td { color: var(--text-3); }
+  .ship-forn { font-weight: 600; font-size: var(--fs-base); color: var(--text); }
+  .ships tr.is-arrived .ship-forn { color: var(--text-2); }
+  .ship-pi { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); }
+  .days { font-size: var(--fs-xs); color: var(--text-3); display: block; }
+  .days.late { color: var(--danger); font-weight: 600; }
+  .days.soon { color: var(--warning-text); font-weight: 600; }
 
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: "IBM Plex Sans", system-ui, sans-serif;
-    font-size: 16.5px;
-    line-height: 1.45;
-    min-height: 100vh;
+  .status-select {
+    appearance: none; -webkit-appearance: none; cursor: pointer;
+    height: 26px; padding: 0 26px 0 22px; border-radius: var(--r-pill); border: 0;
+    font-size: var(--fs-xs); font-weight: 600; color: var(--st); background-color: var(--st-bg);
+    background-image:
+      radial-gradient(circle at 11px 50%, var(--st-dot, var(--st)) 3.5px, transparent 4px),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23646D77' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: 0 0, right 8px center; background-size: auto, 12px;
   }
-  h1, h2 { font-family: "Archivo", system-ui, sans-serif; text-wrap: balance; margin: 0; }
-  button { font-family: inherit; cursor: pointer; }
-  input, select, textarea, button { font-size: 14px; }
-  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
-  .tabular { font-variant-numeric: tabular-nums; }
-  [hidden] { display: none !important; }
-  a { color: inherit; }
+  .status-select:hover { filter: brightness(0.97); }
 
-  .topbar { background: linear-gradient(180deg, var(--accent-strong), var(--accent)); color: var(--accent-contrast); padding: 18px 20px; }
-  .topbar-inner { max-width: 1040px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; }
-  .brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
-  .brand-mark { flex: none; width: 38px; height: 38px; display: grid; place-items: center; background: rgba(244,249,251,0.14); border: 1px solid rgba(244,249,251,0.28); border-radius: 10px; }
-  .back-link { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(244,249,251,0.72); text-decoration: none; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 4px; }
-  .back-link:hover { color: #FFFFFF; }
-  .back-link svg { width: 12px; height: 12px; }
-  .brand h1 { font-size: 23px; font-weight: 800; letter-spacing: 0.2px; color: var(--title-accent); }
-  .brand p { margin: 2px 0 0; font-size: 13.5px; color: #FFFFFF; }
-  .user-info { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #FFFFFF; font-weight: 600; white-space: nowrap; }
-  .today-btn { border: 1px solid rgba(244,249,251,0.3); background: rgba(244,249,251,0.1); color: var(--accent-contrast); border-radius: 999px; padding: 8px 16px; font-weight: 600; font-size: 13px; }
-  .today-btn:hover { background: rgba(244,249,251,0.22); }
+  .expand-btn svg { transition: transform var(--t-base) var(--ease-out); }
+  .expand-btn[aria-expanded="true"] svg { transform: rotate(180deg); }
+  tr.items-row > td { background: var(--surface-2); padding: 0 20px 20px 20px !important; }
+  tr.items-row:hover > td { background: var(--surface-2); }
+  .items-box { border: 1px solid var(--border); border-radius: var(--r-md); background: var(--surface); overflow: hidden; }
+  .items-box .table td { white-space: normal; }
+  .items-total { display: flex; gap: 18px; padding: 10px 14px; border-top: 1px solid var(--border); font-size: var(--fs-sm); color: var(--text-2); background: var(--surface-2); }
+  .items-total b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .add-items { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; }
+  .add-items .textarea { font-family: var(--font-mono); font-size: var(--fs-xs); min-height: 64px; }
+  .add-items .textarea::placeholder, .f-itens .textarea::placeholder { font-family: var(--font-sans); font-size: var(--fs-sm); }
 
-  main { max-width: 1040px; margin: 0 auto; padding: 22px 20px 60px; display: flex; flex-direction: column; gap: 22px; }
-
-  .conn-banner { border: 1px solid var(--danger); background: var(--danger-bg); color: var(--danger); border-radius: 10px; padding: 12px 14px; font-size: 13.5px; display: none; }
-  .conn-banner.show { display: block; }
-
-  .hero {
-    background: var(--accent); color: #FFFFFF; border-radius: 14px; padding: 18px 22px;
-    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  @media (max-width: 1180px) {
+    .overview { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .ov-next { grid-column: 1 / -1; border-bottom: 1px solid var(--border); }
+    .ov-cell:nth-child(2) { border-left: 0; }
   }
-  .hero .lbl { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em; color: rgba(255,255,255,0.65); font-weight: 700; }
-  .hero .principal { font-size: 19px; font-weight: 800; margin-top: 3px; }
-  .hero .dias { margin-left: auto; text-align: right; }
-  .hero .dias .n { font-family: "IBM Plex Mono", monospace; font-size: 26px; font-weight: 700; color: var(--title-accent); }
-  .hero .dias .txt { font-size: 12px; color: rgba(255,255,255,0.7); }
-
-  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 18px; }
-  .panel h2 { font-size: 15.5px; font-weight: 800; margin-bottom: 14px; }
-
-  form.entry { display: flex; flex-wrap: wrap; gap: 12px 14px; }
-  .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1 1 160px; }
-  .field.pi { flex: 1 1 160px; }
-  .field.fornecedor { flex: 2 1 220px; }
-  .field.status { flex: 1 1 170px; }
-  .field.data { flex: 1 1 150px; }
-  .field.valor { flex: 0.8 1 130px; }
-  .field.itens { flex-basis: 100%; }
-  .field.itens textarea { font-family: "IBM Plex Mono", monospace; font-size: 12.5px; min-height: 110px; }
-  .field label { font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); font-weight: 600; }
-  .field .hint { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: none; letter-spacing: 0; margin-top: -3px; }
-  .field input, .field select, .field textarea {
-    background: var(--surface-2); border: 1.5px solid var(--border); color: var(--text);
-    border-radius: 9px; padding: 11px 12px; width: 100%; font-family: "IBM Plex Sans", system-ui, sans-serif;
-  }
-  .field textarea { resize: vertical; line-height: 1.4; }
-  .field input:focus, .field select:focus, .field textarea:focus { background: var(--bg); border-color: var(--accent); }
-
-  .add-btn {
-    background: var(--accent); color: var(--accent-contrast); border: none; border-radius: 999px;
-    padding: 12px 24px; font-weight: 700; font-size: 15px; white-space: nowrap; height: 46px; flex: none;
-  }
-  .add-btn:hover { background: var(--accent-strong); }
-  .add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .form-msg { flex-basis: 100%; font-size: 13px; font-weight: 600; color: var(--danger); min-height: 0; }
-
-  .order-list { display: flex; flex-direction: column; gap: 12px; }
-  .ship-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); padding: 16px 18px; border-left-width: 5px; border-left-style: solid; }
-  .ship-card.st-em_fabricacao { border-left-color: var(--st-fabricacao); }
-  .ship-card.st-aguardando_embarque { border-left-color: var(--st-aguardando); }
-  .ship-card.st-em_transito { border-left-color: var(--st-transito); }
-  .ship-card.st-chegou { border-left-color: var(--st-chegou); opacity: 0.82; }
-
-  .ship-top { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
-  .ship-main { flex: 1 1 220px; min-width: 0; }
-  .ship-main .pi-num { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: var(--text-muted); font-weight: 600; }
-  .ship-main .fornecedor { font-weight: 700; font-size: 16.5px; margin-top: 2px; }
-
-  .status-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 700; white-space: nowrap; }
-  .status-badge.st-em_fabricacao { background: var(--st-fabricacao-bg); color: var(--st-fabricacao); }
-  .status-badge.st-aguardando_embarque { background: var(--st-aguardando-bg); color: var(--st-aguardando); }
-  .status-badge.st-em_transito { background: var(--st-transito-bg); color: #8A5B00; }
-  .status-badge.st-chegou { background: var(--st-chegou-bg); color: var(--st-chegou); }
-
-  .ship-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 8px; font-size: 12.5px; color: var(--text-muted); }
-  .ship-meta b { color: var(--text); font-weight: 700; }
-
-  .ship-actions { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto; }
-  .icon-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--text-muted); display: grid; place-items: center; flex: none; }
-  .icon-btn:hover { background: var(--surface-2); color: var(--accent); }
-  .icon-btn.danger:hover { background: var(--danger-bg); color: var(--danger); }
-  .icon-btn.confirming { background: var(--danger); color: #FFFFFF; }
-  .icon-btn svg { width: 16px; height: 16px; }
-
-  .toggle-itens { border: 1px dashed var(--border); background: transparent; color: var(--accent); border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600; margin-top: 10px; }
-  .toggle-itens:hover { background: var(--surface-2); }
-
-  table.itens-table { width: 100%; font-size: 13px; border-collapse: collapse; margin-top: 10px; }
-  table.itens-table th { text-align: left; color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px; border-bottom: 2px solid var(--border); }
-  table.itens-table td { padding: 6px 8px; border-bottom: 1px solid var(--surface-2); font-family: "IBM Plex Mono", monospace; }
-  table.itens-table td.produto-cell { font-family: "IBM Plex Sans", system-ui, sans-serif; }
-  table.itens-table td.qtd-cell, table.itens-table th.qtd-th { text-align: right; }
-
-  .add-itens-row { display: flex; gap: 8px; margin-top: 10px; align-items: flex-start; }
-  .add-itens-row textarea { flex: 1 1 auto; font-family: "IBM Plex Mono", monospace; font-size: 12.5px; min-height: 60px; background: var(--surface-2); border: 1.5px solid var(--border); border-radius: 9px; padding: 8px 10px; }
-  .add-itens-row button { flex: none; }
-
-  .empty-state { padding: 22px 14px; text-align: center; color: var(--text-muted); font-size: 13.5px; }
-  footer.note { text-align: center; color: var(--text-muted); font-size: 11.5px; padding-bottom: 10px; }
-
-  @media (max-width: 720px) {
-    .topbar-inner { justify-content: center; }
-    .brand { margin-right: 0; width: 100%; justify-content: center; }
-    .add-btn { width: 100%; }
-    .ship-actions { margin-left: 0; flex-basis: 100%; }
+  @media (max-width: 1000px) { .ships .hide-sm { display: none; } }
+  @media (max-width: 640px) {
+    .overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ov-cell:nth-child(4) { border-left: 0; }
+    .ov-cell:nth-child(n+4) { border-top: 1px solid var(--border); }
   }
 </style>
 </head>
 <body>
 
-<div id="appScreen" hidden>
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <span class="brand-mark" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 14h20"/><path d="M4 14l2-7h12l2 7"/><path d="M6 14v6M18 14v6M9 20h6"/></svg>
-        </span>
-        <div>
-          <a class="back-link" href="index.html">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-            Hub Lisfer
-          </a>
-          <h1>Dashboard de Importação</h1>
-          <p>Embarques e mercadorias em processo de importação</p>
+<div class="app" id="appScreen" hidden>
+  <aside class="app-sidebar" id="appSidebar" data-active="importacao"></aside>
+  <div class="app-scrim"></div>
+  <div class="app-main">
+    <main class="page">
+      <header class="page-header">
+        <div class="page-header-text">
+          <h1 class="page-title">Importação</h1>
+          <p class="page-desc">Embarques e mercadorias em processo de importação, com previsão de chegada.</p>
         </div>
+        <div class="page-actions">
+          <button type="button" class="btn btn-primary" id="openForm" aria-expanded="false" aria-controls="formPanel"><span id="icPlus"></span>Novo embarque</button>
+        </div>
+      </header>
+
+      <div class="stack">
+        <div class="alert alert-danger" id="connBanner" role="alert" hidden>
+          <span id="connIcon"></span>
+          <span><strong>Não foi possível carregar os embarques.</strong> Verifique a conexão e recarregue a página.</span>
+        </div>
+
+        <section class="panel" id="formPanel" aria-labelledby="formTitle" hidden>
+          <div class="panel-head">
+            <h2 id="formTitle">Novo embarque</h2>
+            <span class="spacer"></span>
+            <button type="button" class="icon-btn" id="closeForm" aria-label="Fechar formulário"></button>
+          </div>
+          <form id="entryForm" novalidate>
+            <div class="panel-body form-grid">
+              <div class="field f-pi">
+                <label for="piInput">Nº do PI<span class="req">*</span></label>
+                <input class="input mono" type="text" id="piInput" placeholder="ex.: 26SKF10-02FB" autocomplete="off" required>
+              </div>
+              <div class="field f-forn">
+                <label for="fornecedorInput">Fornecedor<span class="req">*</span></label>
+                <input class="input" type="text" id="fornecedorInput" placeholder="ex.: Hangzhou Sinkee Tools" autocomplete="off" required>
+              </div>
+              <div class="field f-status">
+                <label for="statusInput">Status</label>
+                <select class="select" id="statusInput">
+                  <option value="em_fabricacao">Em fabricação</option>
+                  <option value="aguardando_embarque">Aguardando embarque</option>
+                  <option value="em_transito">Em trânsito</option>
+                  <option value="chegou">Chegou</option>
+                </select>
+              </div>
+              <div class="field f-data">
+                <label for="dataInput">Previsão de chegada</label>
+                <input class="input" type="date" id="dataInput">
+              </div>
+              <div class="field f-valor">
+                <label for="valorInput">Valor (US$)</label>
+                <input class="input mono" type="text" id="valorInput" placeholder="63401.65" inputmode="decimal">
+              </div>
+              <div class="field f-itens">
+                <label for="itensInput">Itens <span class="muted">— um por linha, no formato SKU;Produto;Quantidade</span></label>
+                <textarea class="textarea" id="itensInput" placeholder="LF-0200;14pcs Tire Removal Repair Tool Star Nut Set;800"></textarea>
+                <span class="hint" id="itensHint">Pode deixar em branco e adicionar os itens depois.</span>
+              </div>
+            </div>
+            <div class="panel-foot">
+              <button type="submit" class="btn btn-primary" id="addBtn">Salvar embarque</button>
+              <button type="button" class="btn btn-secondary" id="cancelForm">Cancelar</button>
+              <div class="form-error" id="formMsg" role="alert"></div>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel overview" aria-label="Resumo">
+          <div class="ov-cell ov-next">
+            <div class="ov-label">Próxima chegada</div>
+            <div class="ov-value" id="nextValue">—</div>
+            <div class="ov-sub" id="nextSub">&nbsp;</div>
+          </div>
+          <div class="ov-cell st-fab"><div class="ov-label"><span class="dot"></span>Em fabricação</div><div class="ov-value" id="cnt-em_fabricacao">–</div></div>
+          <div class="ov-cell st-agu"><div class="ov-label"><span class="dot"></span>Aguardando embarque</div><div class="ov-value" id="cnt-aguardando_embarque">–</div></div>
+          <div class="ov-cell st-tra"><div class="ov-label"><span class="dot"></span>Em trânsito</div><div class="ov-value" id="cnt-em_transito">–</div></div>
+          <div class="ov-cell st-che"><div class="ov-label"><span class="dot"></span>Chegaram</div><div class="ov-value" id="cnt-chegou">–</div></div>
+        </section>
+
+        <section class="panel" aria-labelledby="listTitle">
+          <div class="panel-head">
+            <h2 id="listTitle">Embarques</h2>
+            <span class="count-pill" id="shipCount">–</span>
+            <span class="spacer"></span>
+            <span class="panel-sub">Ordenados pela previsão de chegada</span>
+          </div>
+          <div id="shipList">
+            <div class="skeleton-row"><span class="skeleton" style="height:13px;width:28%"></span><span class="skeleton" style="height:22px;width:110px;border-radius:999px;margin-left:auto"></span></div>
+            <div class="skeleton-row"><span class="skeleton" style="height:13px;width:22%"></span><span class="skeleton" style="height:22px;width:110px;border-radius:999px;margin-left:auto"></span></div>
+          </div>
+        </section>
       </div>
-      <div class="user-info">
-        <span id="userGreeting">—</span>
-        <button type="button" id="logoutBtn" class="today-btn">Sair</button>
-      </div>
-    </div>
+    </main>
   </div>
-
-  <main>
-    <div class="conn-banner" id="connBanner">Não foi possível carregar os embarques. Verifique sua conexão e recarregue a página.</div>
-
-    <div class="hero" id="heroBox" hidden>
-      <div>
-        <div class="lbl">Próxima chegada prevista</div>
-        <div class="principal" id="heroPrincipal">—</div>
-      </div>
-      <div class="dias">
-        <div class="n" id="heroDias">—</div>
-        <div class="txt" id="heroTxt">dias</div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2>Adicionar embarque</h2>
-      <form class="entry" id="entryForm">
-        <div class="field pi">
-          <label for="piInput">Nº do PI</label>
-          <input type="text" id="piInput" placeholder="ex: 26SKF10-02FB" autocomplete="off" required>
-        </div>
-        <div class="field fornecedor">
-          <label for="fornecedorInput">Fornecedor</label>
-          <input type="text" id="fornecedorInput" placeholder="ex: Hangzhou Sinkee Tools" autocomplete="off" required>
-        </div>
-        <div class="field status">
-          <label for="statusInput">Status</label>
-          <select id="statusInput">
-            <option value="em_fabricacao">Em fabricação</option>
-            <option value="aguardando_embarque">Aguardando embarque</option>
-            <option value="em_transito">Em trânsito</option>
-            <option value="chegou">Chegou</option>
-          </select>
-        </div>
-        <div class="field data">
-          <label for="dataInput">Previsão de chegada</label>
-          <input type="date" id="dataInput">
-        </div>
-        <div class="field valor">
-          <label for="valorInput">Valor total (US$)</label>
-          <input type="text" id="valorInput" placeholder="ex: 63401.65" inputmode="decimal">
-        </div>
-
-        <div class="field itens">
-          <label for="itensInput">Itens (um por linha)</label>
-          <span class="hint">Formato: SKU;Produto;Quantidade — pode deixar em branco e adicionar depois</span>
-          <textarea id="itensInput" placeholder="LF-0200;14pcs Tire Removal Repair Tool Star Nut Set;800"></textarea>
-        </div>
-
-        <button type="submit" class="add-btn" id="addBtn">Adicionar embarque</button>
-        <div class="form-msg" id="formMsg"></div>
-      </form>
-    </div>
-
-    <div class="order-list" id="shipList"></div>
-
-    <footer class="note">Atualiza automaticamente para todas as pessoas com o painel aberto.</footer>
-  </main>
 </div>
 
 <script>
 (function () {
+  const ic = HubIcons.svg;
+  const escapeHtml = HubUI.escapeHtml;
   const STATUS_LABELS = { em_fabricacao: 'Em fabricação', aguardando_embarque: 'Aguardando embarque', em_transito: 'Em trânsito', chegou: 'Chegou' };
-  const TRASH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>';
-  const CHEVRON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+  const STATUS_CLASS = { em_fabricacao: 'st-fab', aguardando_embarque: 'st-agu', em_transito: 'st-tra', chegou: 'st-che' };
 
   let currentUser = null;
   let channelShip = null;
@@ -265,18 +208,26 @@
   const addBtn = el('addBtn');
   const formMsg = el('formMsg');
 
-  el('logoutBtn').addEventListener('click', () => HubAuth.logout());
+  el('icPlus').outerHTML = ic('plus');
+  el('connIcon').outerHTML = ic('alertCircle');
+  el('closeForm').innerHTML = ic('x');
+
+  function setFormOpen(open) {
+    el('formPanel').hidden = !open;
+    el('openForm').setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (open) el('piInput').focus();
+    else { entryForm.reset(); formMsg.textContent = ''; updateItensHint(); }
+  }
+  el('openForm').addEventListener('click', () => setFormOpen(el('formPanel').hidden));
+  el('closeForm').addEventListener('click', () => setFormOpen(false));
+  el('cancelForm').addEventListener('click', () => setFormOpen(false));
 
   HubAuth.requireAuth((user) => {
     currentUser = user;
-    el('userGreeting').textContent = 'Olá, ' + (HubAuth.nomeDe(user.id) || user.email);
     el('appScreen').hidden = false;
     subscribe();
   });
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  }
   function fmtDate(str) {
     if (!str) return null;
     const [y, m, d] = str.split('-').map(Number);
@@ -289,10 +240,17 @@
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
     return Math.round((alvo - hoje) / 86400000);
   }
+  function diasTexto(dias) {
+    if (dias == null) return '';
+    if (dias < 0) return Math.abs(dias) + (Math.abs(dias) === 1 ? ' dia de atraso' : ' dias de atraso');
+    if (dias === 0) return 'chega hoje';
+    return 'em ' + dias + (dias === 1 ? ' dia' : ' dias');
+  }
   function fmtUsd(v) {
     if (v == null) return '—';
     return 'US$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
+  function fmtInt(n) { return Number(n || 0).toLocaleString('pt-BR'); }
 
   function parseItensText(text) {
     return text.split('\n').map((line) => line.trim()).filter(Boolean).map((line) => {
@@ -304,6 +262,20 @@
     }).filter((it) => it.sku && it.produto && it.quantidade > 0);
   }
 
+  // mostra quantas linhas foram reconhecidas enquanto a pessoa cola os itens
+  function updateItensHint() {
+    const text = el('itensInput').value;
+    const linhas = text.split('\n').map((l) => l.trim()).filter(Boolean).length;
+    const validos = parseItensText(text);
+    const hint = el('itensHint');
+    if (!linhas) { hint.textContent = 'Pode deixar em branco e adicionar os itens depois.'; hint.style.color = ''; return; }
+    const total = validos.reduce((s, it) => s + it.quantidade, 0);
+    hint.textContent = validos.length + ' de ' + linhas + ' linhas reconhecidas · ' + fmtInt(total) + ' unidades' +
+      (validos.length < linhas ? ' — confira as linhas fora do formato SKU;Produto;Quantidade' : '');
+    hint.style.color = validos.length < linhas ? 'var(--danger)' : 'var(--success)';
+  }
+  el('itensInput').addEventListener('input', updateItensHint);
+
   // ---------------- dados (Supabase) ----------------
 
   async function loadAll() {
@@ -312,8 +284,8 @@
       .select('*')
       .order('data_chegada_estimada', { ascending: true, nullsFirst: false })
       .limit(200);
-    if (shipErr) { console.error(shipErr); connBanner.classList.add('show'); return; }
-    connBanner.classList.remove('show');
+    if (shipErr) { console.error(shipErr); connBanner.hidden = false; return; }
+    connBanner.hidden = true;
     ships = shipData || [];
 
     const ids = ships.map((s) => s.id);
@@ -344,62 +316,60 @@
       .subscribe();
   }
 
-  // ---------------- hero ----------------
+  // ---------------- resumo ----------------
 
-  function renderHero() {
+  function renderOverview() {
+    Object.keys(STATUS_LABELS).forEach((st) => {
+      el('cnt-' + st).textContent = ships.filter((s) => s.status === st).length;
+    });
     const proximos = ships
       .filter((s) => s.status !== 'chegou' && s.data_chegada_estimada)
       .sort((a, b) => a.data_chegada_estimada.localeCompare(b.data_chegada_estimada));
-    const heroBox = el('heroBox');
-    if (!proximos.length) { heroBox.hidden = true; return; }
-    const proximo = proximos[0];
-    heroBox.hidden = false;
-    el('heroPrincipal').textContent = proximo.fornecedor + ' (PI ' + proximo.pi_numero + ') — previsão ' + fmtDate(proximo.data_chegada_estimada);
-    const dias = diasAte(proximo.data_chegada_estimada);
-    if (dias == null) { el('heroDias').textContent = '—'; el('heroTxt').textContent = ''; }
-    else if (dias < 0) { el('heroDias').textContent = Math.abs(dias); el('heroTxt').textContent = 'dias em atraso'; }
-    else if (dias === 0) { el('heroDias').textContent = 'Hoje'; el('heroTxt').textContent = ''; }
-    else { el('heroDias').textContent = dias; el('heroTxt').textContent = dias === 1 ? 'dia' : 'dias'; }
+    if (!proximos.length) {
+      el('nextValue').textContent = 'Sem previsão';
+      el('nextSub').textContent = 'Nenhum embarque em aberto com data de chegada';
+      return;
+    }
+    const p = proximos[0];
+    const dias = diasAte(p.data_chegada_estimada);
+    el('nextValue').innerHTML = '<span class="' + (dias < 0 ? 'late' : '') + '">' + escapeHtml(fmtDate(p.data_chegada_estimada)) + '</span>';
+    el('nextSub').innerHTML = escapeHtml(diasTexto(dias).replace(/^em /, 'Em ') + ' · ' + p.fornecedor) + '<div class="ov-pi">PI ' + escapeHtml(p.pi_numero) + '</div>';
   }
 
-  // ---------------- render lista ----------------
+  // ---------------- lista ----------------
 
   function itensTable(shipId) {
     const itens = itensByShip[shipId] || [];
-    if (!itens.length) return '<div class="empty-state">Nenhum item cadastrado ainda.</div>';
+    if (!itens.length) return '<div class="empty" style="padding:24px 16px"><div class="empty-title">Nenhum item cadastrado</div><div class="empty-text">Cole os itens abaixo no formato SKU;Produto;Quantidade.</div></div>';
+    const total = itens.reduce((s, it) => s + (it.quantidade || 0), 0);
     const rows = itens.map((it) =>
-      '<tr><td>' + escapeHtml(it.sku) + '</td><td class="produto-cell">' + escapeHtml(it.produto) + '</td><td class="qtd-cell">' + it.quantidade + '</td></tr>'
+      '<tr><td class="mono">' + escapeHtml(it.sku) + '</td><td>' + escapeHtml(it.produto) + '</td><td class="num">' + fmtInt(it.quantidade) + '</td></tr>'
     ).join('');
-    return '<table class="itens-table"><thead><tr><th>SKU</th><th>Produto</th><th class="qtd-th">Qtd.</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    return '<div class="table-wrap"><table class="table table-compact"><thead><tr><th>SKU</th><th>Produto</th><th class="num">Quantidade</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="items-total"><span><b>' + itens.length + '</b> SKUs</span><span><b>' + fmtInt(total) + '</b> unidades</span></div>';
   }
 
-  function shipCard(ship) {
-    const card = document.createElement('div');
-    card.className = 'ship-card st-' + ship.status;
-
-    const top = document.createElement('div');
-    top.className = 'ship-top';
-
-    const main = document.createElement('div');
-    main.className = 'ship-main';
-    main.innerHTML =
-      '<div class="pi-num">PI ' + escapeHtml(ship.pi_numero) + '</div>' +
-      '<div class="fornecedor">' + escapeHtml(ship.fornecedor) + '</div>';
-
+  function shipRows(ship) {
+    const frag = document.createDocumentFragment();
+    const tr = document.createElement('tr');
+    if (ship.status === 'chegou') tr.className = 'is-arrived';
     const itens = itensByShip[ship.id] || [];
     const totalQty = itens.reduce((s, it) => s + (it.quantidade || 0), 0);
-    const metaParts = [];
-    if (ship.data_chegada_estimada) metaParts.push('<span>Previsão: <b>' + fmtDate(ship.data_chegada_estimada) + '</b></span>');
-    if (ship.valor_total_usd != null) metaParts.push('<span>Valor: <b>' + fmtUsd(ship.valor_total_usd) + '</b></span>');
-    if (itens.length) metaParts.push('<span>' + itens.length + ' SKUs · <b>' + totalQty + '</b> unidades</span>');
-    const meta = document.createElement('div');
-    meta.className = 'ship-meta';
-    meta.innerHTML = metaParts.join('');
-    main.appendChild(meta);
+    const expanded = expandedIds.has(ship.id);
+    const dias = ship.status !== 'chegou' ? diasAte(ship.data_chegada_estimada) : null;
+    const diasCls = dias == null ? '' : dias < 0 ? ' late' : dias <= 7 ? ' soon' : '';
+
+    tr.innerHTML =
+      '<td><div class="ship-forn">' + escapeHtml(ship.fornecedor) + '</div><div class="ship-pi">PI ' + escapeHtml(ship.pi_numero) + '</div></td>' +
+      '<td class="st-cell"></td>' +
+      '<td>' + (ship.data_chegada_estimada ? escapeHtml(fmtDate(ship.data_chegada_estimada)) + (dias != null ? '<span class="days' + diasCls + '">' + diasTexto(dias) + '</span>' : '') : '<span class="muted">Sem previsão</span>') + '</td>' +
+      '<td class="num hide-sm">' + (itens.length ? itens.length + ' SKUs<span class="days">' + fmtInt(totalQty) + ' un.</span>' : '<span class="muted">—</span>') + '</td>' +
+      '<td class="num hide-sm">' + fmtUsd(ship.valor_total_usd) + '</td>' +
+      '<td class="num act-cell" style="white-space:nowrap"></td>';
 
     const statusSel = document.createElement('select');
-    statusSel.className = 'status-badge st-' + ship.status;
-    statusSel.style.border = 'none'; statusSel.style.appearance = 'none'; statusSel.style.cursor = 'pointer';
+    statusSel.className = 'status-select ' + STATUS_CLASS[ship.status];
+    statusSel.setAttribute('aria-label', 'Status do embarque ' + ship.pi_numero);
     Object.keys(STATUS_LABELS).forEach((v) => {
       const o = document.createElement('option'); o.value = v; o.textContent = STATUS_LABELS[v];
       if (v === ship.status) o.selected = true;
@@ -407,77 +377,94 @@
     });
     statusSel.addEventListener('change', async () => {
       const { error } = await sb.from('importacoes').update({ status: statusSel.value }).eq('id', ship.id);
-      if (error) console.error(error);
+      if (error) { console.error(error); HubUI.toast('Não foi possível mudar o status.', { error: true }); }
+      else HubUI.toast('PI ' + ship.pi_numero + ': ' + STATUS_LABELS[statusSel.value] + '.');
       await loadAll();
     });
+    tr.querySelector('.st-cell').appendChild(statusSel);
 
-    const actions = document.createElement('div');
-    actions.className = 'ship-actions';
-
-    const delBtn = document.createElement('button');
-    delBtn.className = 'icon-btn danger' + (pendingDeleteId === ship.id ? ' confirming' : '');
-    delBtn.type = 'button';
-    delBtn.innerHTML = TRASH_SVG;
-    delBtn.setAttribute('aria-label', pendingDeleteId === ship.id ? 'Confirmar exclusão' : 'Excluir embarque');
-    delBtn.addEventListener('click', () => requestDelete(ship.id));
-
-    actions.append(statusSel, delBtn);
-    top.append(main, actions);
-    card.appendChild(top);
-
-    const toggleBtn = document.createElement('button');
-    toggleBtn.type = 'button';
-    toggleBtn.className = 'toggle-itens';
-    const expanded = expandedIds.has(ship.id);
-    toggleBtn.textContent = expanded ? 'Ocultar itens' : 'Ver itens (' + itens.length + ')';
-    toggleBtn.addEventListener('click', () => {
+    const expBtn = document.createElement('button');
+    expBtn.type = 'button';
+    expBtn.className = 'btn btn-ghost btn-sm expand-btn';
+    expBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    expBtn.innerHTML = '<span>Itens</span>' + ic('chevronDown');
+    expBtn.addEventListener('click', () => {
       if (expanded) expandedIds.delete(ship.id); else expandedIds.add(ship.id);
       render();
     });
-    card.appendChild(toggleBtn);
+
+    const confirming = pendingDeleteId === ship.id;
+    const delBtn = document.createElement('button');
+    delBtn.className = 'icon-btn danger' + (confirming ? ' is-confirming' : '');
+    delBtn.type = 'button';
+    delBtn.innerHTML = ic('trash') + (confirming ? '<span>Confirmar</span>' : '');
+    delBtn.setAttribute('aria-label', confirming ? 'Confirmar exclusão' : 'Excluir embarque ' + ship.pi_numero);
+    delBtn.title = confirming ? 'Clique de novo para excluir' : 'Excluir embarque';
+    delBtn.addEventListener('click', () => requestDelete(ship.id));
+
+    const act = tr.querySelector('.act-cell');
+    act.append(expBtn, delBtn);
+    frag.appendChild(tr);
 
     if (expanded) {
-      const wrap = document.createElement('div');
-      wrap.innerHTML = itensTable(ship.id);
-      card.appendChild(wrap);
+      const itr = document.createElement('tr');
+      itr.className = 'items-row';
+      const td = document.createElement('td');
+      td.colSpan = 6;
+      const box = document.createElement('div');
+      box.className = 'items-box';
+      box.innerHTML = itensTable(ship.id);
+      td.appendChild(box);
 
       const addRow = document.createElement('div');
-      addRow.className = 'add-itens-row';
+      addRow.className = 'add-items';
       const ta = document.createElement('textarea');
+      ta.className = 'textarea';
       ta.placeholder = 'Adicionar mais itens — SKU;Produto;Quantidade (um por linha)';
+      ta.setAttribute('aria-label', 'Adicionar itens ao embarque ' + ship.pi_numero);
       const btnAdd = document.createElement('button');
-      btnAdd.type = 'button'; btnAdd.className = 'add-btn'; btnAdd.textContent = 'Adicionar itens';
+      btnAdd.type = 'button'; btnAdd.className = 'btn btn-secondary'; btnAdd.textContent = 'Adicionar itens';
       btnAdd.addEventListener('click', async () => {
         const novos = parseItensText(ta.value);
-        if (!novos.length) return;
-        btnAdd.disabled = true;
+        if (!novos.length) { HubUI.toast('Nenhuma linha no formato SKU;Produto;Quantidade.', { error: true }); return; }
+        const done = HubUI.busy(btnAdd, 'Adicionando…');
         const { error } = await sb.from('importacao_itens').insert(novos.map((it) => ({
           importacao_id: ship.id, sku: it.sku, produto: it.produto, quantidade: it.quantidade, preco_unit_usd: it.preco
         })));
-        btnAdd.disabled = false;
-        if (error) { console.error(error); return; }
+        done();
+        if (error) { console.error(error); HubUI.toast('Não foi possível adicionar os itens.', { error: true }); return; }
         ta.value = '';
+        HubUI.toast(novos.length + (novos.length === 1 ? ' item adicionado.' : ' itens adicionados.'));
         await loadAll();
       });
       addRow.append(ta, btnAdd);
-      card.appendChild(addRow);
+      td.appendChild(addRow);
+      itr.appendChild(td);
+      frag.appendChild(itr);
     }
-
-    return card;
+    return frag;
   }
 
   function render() {
-    renderHero();
+    renderOverview();
+    el('shipCount').textContent = ships.length;
     const list = el('shipList');
     list.innerHTML = '';
     if (!ships.length) {
-      const empty = document.createElement('div');
-      empty.className = 'empty-state';
-      empty.textContent = 'Nenhum embarque cadastrado ainda.';
-      list.appendChild(empty);
+      list.innerHTML = '<div class="empty">' + ic('ship') + '<div class="empty-title">Nenhum embarque cadastrado</div>' +
+        '<div class="empty-text">Clique em "Novo embarque" para registrar um PI com fornecedor, previsão de chegada e itens.</div></div>';
       return;
     }
-    ships.forEach((s) => list.appendChild(shipCard(s)));
+    const wrap = document.createElement('div');
+    wrap.className = 'table-wrap';
+    const table = document.createElement('table');
+    table.className = 'table ships';
+    table.innerHTML = '<thead><tr><th>Fornecedor / PI</th><th>Status</th><th>Previsão de chegada</th><th class="num hide-sm">Itens</th><th class="num hide-sm">Valor</th><th class="num"><span class="sr-only">Ações</span></th></tr></thead>';
+    const tbody = document.createElement('tbody');
+    ships.forEach((s) => tbody.appendChild(shipRows(s)));
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    list.appendChild(wrap);
   }
 
   async function requestDelete(id) {
@@ -485,7 +472,8 @@
       clearTimeout(pendingDeleteTimeout);
       pendingDeleteId = null;
       const { error } = await sb.from('importacoes').delete().eq('id', id);
-      if (error) console.error(error);
+      if (error) { console.error(error); HubUI.toast('Não foi possível excluir o embarque.', { error: true }); }
+      else HubUI.toast('Embarque excluído.');
       await loadAll();
       return;
     }
@@ -509,10 +497,11 @@
 
     if (!piNumero || !fornecedor) {
       formMsg.textContent = 'Preencha ao menos o número do PI e o fornecedor.';
+      (piNumero ? el('fornecedorInput') : el('piInput')).focus();
       return;
     }
 
-    addBtn.disabled = true;
+    const done = HubUI.busy(addBtn, 'Salvando…');
     const { data: inserted, error } = await sb.from('importacoes').insert({
       pi_numero: piNumero,
       fornecedor: fornecedor,
@@ -524,7 +513,7 @@
     if (error) {
       formMsg.textContent = 'Não foi possível salvar. Tente novamente.';
       console.error(error);
-      addBtn.disabled = false;
+      done();
       return;
     }
 
@@ -532,11 +521,12 @@
       const { error: itensError } = await sb.from('importacao_itens').insert(itensParsed.map((it) => ({
         importacao_id: inserted.id, sku: it.sku, produto: it.produto, quantidade: it.quantidade, preco_unit_usd: it.preco
       })));
-      if (itensError) console.error(itensError);
+      if (itensError) { console.error(itensError); HubUI.toast('Embarque salvo, mas os itens não foram gravados. Adicione-os de novo.', { error: true }); }
     }
 
-    addBtn.disabled = false;
-    entryForm.reset();
+    done();
+    HubUI.toast('Embarque PI ' + piNumero + ' salvo' + (itensParsed.length ? ' com ' + itensParsed.length + ' itens.' : '.'));
+    setFormOpen(false);
     await loadAll();
   });
 })();
