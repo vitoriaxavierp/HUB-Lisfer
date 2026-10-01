@@ -95,6 +95,26 @@
   .calc-page .destaque.prejuizo p:first-child { color: #FFE1E3; }
   .calc-page .destaque.prejuizo p.valor-abs { color: rgba(255, 255, 255, 0.88); }
 
+  /* sugestão de preço ideal (abaixo da meta de lucro) */
+  .calc-page .ideal-box {
+    margin: -4px 0 12px; padding: 12px 14px 14px; border-radius: var(--r-md);
+    background: var(--warning-soft); border: 1px solid #F2DC9F; color: var(--warning-text);
+  }
+  .calc-page .ideal-box p { margin: 0; }
+  .calc-page .ideal-k { font-size: var(--fs-xs); font-weight: 600; }
+  .calc-page .ideal-v {
+    font-family: var(--font-display); font-size: 24px; font-weight: 800; line-height: 1.2;
+    color: var(--text); margin-top: 2px; font-variant-numeric: tabular-nums;
+  }
+  .calc-page .ideal-sub { font-size: var(--fs-sm); color: var(--text-2); margin-top: 2px; }
+  .calc-page .ideal-aviso { font-size: var(--fs-xs); color: var(--warning-text); margin-top: 6px; }
+  .calc-page .ideal-aviso:empty { display: none; }
+  .calc-page .ideal-box .ideal-usar {
+    margin-top: 10px; height: 32px; padding: 0 12px; border-radius: var(--r-sm);
+    border: 1px solid var(--ink); background: var(--surface); color: var(--text);
+    font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
+  }
+  .calc-page .ideal-box .ideal-usar:hover { background: var(--ink); color: #FFFFFF; }
   .calc-page .resultado table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
   .calc-page .resultado td { padding: 7px 0; border-bottom: 1px solid var(--surface-3); font-variant-numeric: tabular-nums; }
   .calc-page .resultado td:first-child { color: var(--text-2); }
@@ -1112,6 +1132,137 @@ document.getElementById('custoKwai').addEventListener('keydown', e => {
 document.getElementById('precoVendaKwai').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('calcularKwai').click();
 });
+</script>
+
+<script>
+/* ==================== PREÇO IDEAL (meta de lucro) ====================
+   Bloco separado de propósito: não altera nenhuma fórmula acima. Quando o
+   lucro fica abaixo da meta (ou no prejuízo), procura o MENOR preço de venda
+   que atinge a meta usando as mesmas funções calcularLucro* de cada
+   marketplace. A busca é feita centavo a centavo porque várias taxas mudam
+   por faixa de preço (frete ML, Shopee, Amazon, TikTok), então uma fórmula
+   fechada erraria nas bordas das faixas. */
+(function () {
+  const META_LUCRO = 0.10;
+  const num = (id) => parseFloat(document.getElementById(id).value.replace(',', '.'));
+  const val = (id) => document.getElementById(id).value;
+
+  // Para cada cartão: qual botão recalcula, qual campo é o preço praticado e
+  // como montar a função lucro(preço) com os demais campos do cartão.
+  const CARTOES = [
+    { sufixo: '', botao: 'calcular', campoPreco: 'precoVenda', lucroEm: () => {
+        const custo = num('custo'), comissaoPct = parseFloat(val('modalidade'));
+        if (val('modeloFreteML') === 'detalhado') {
+          const peso = num('peso'), tipoEnvio = val('tipoEnvio');
+          return { custo, fn: (p) => calcularLucroML(custo, peso, comissaoPct, tipoEnvio, p).lucro };
+        }
+        const conta = val('contaML');
+        return { custo, fn: (p) => calcularLucroSimplificadoML(custo, comissaoPct, conta, p).lucro };
+      } },
+    { sufixo: 'Nuvemshop', botao: 'calcularNuvemshop', campoPreco: 'precoVendaNuvemshop', lucroEm: () => {
+        const custo = num('custoNuvemshop');
+        return { custo, fn: (p) => calcularLucroNuvemshop(custo, p).lucro };
+      } },
+    { sufixo: 'Shopee', botao: 'calcularShopee', campoPreco: 'precoVendaShopee', lucroEm: () => {
+        const custo = num('custoShopee'), conta = val('contaShopee');
+        return { custo, fn: (p) => calcularLucroShopee(custo, conta, p).lucro };
+      } },
+    { sufixo: 'Amazon', botao: 'calcularAmazon', campoPreco: 'precoVendaAmazon', lucroEm: () => {
+        const custo = num('custoAmazon'), conta = val('contaAmazon');
+        const freteTxt = val('freteAcimaAmazon').replace(',', '.');
+        const freteAcima = freteTxt === '' ? 0 : parseFloat(freteTxt);
+        return { custo, fn: (p) => calcularLucroAmazon(custo, conta, freteAcima, p).lucro,
+          aviso: freteTxt === '' ? 'Se o preço ideal passar de R$ 79,00, o frete dessa faixa não foi informado e foi considerado R$ 0,00.' : '' };
+      } },
+    { sufixo: 'Magalu', botao: 'calcularMagalu', campoPreco: 'precoVendaMagalu', lucroEm: () => {
+        const custo = num('custoMagalu'), peso = num('pesoMagalu'), conta = val('contaMagalu');
+        const tier = parseInt(val('despachoMagalu'), 10);
+        return { custo, fn: (p) => calcularLucroMagalu(custo, conta, peso, tier, p).lucro };
+      } },
+    { sufixo: 'Tiktok', botao: 'calcularTiktok', campoPreco: 'precoVendaTiktok', lucroEm: () => {
+        const custo = num('custoTiktok');
+        return { custo, fn: (p) => calcularLucroTiktok(custo, p).lucro };
+      } },
+    { sufixo: 'Kwai', botao: 'calcularKwai', campoPreco: 'precoVendaKwai', lucroEm: () => {
+        const custo = num('custoKwai'), comissaoPct = parseFloat(val('faseKwai'));
+        return { custo, fn: (p) => calcularLucroKwai(custo, comissaoPct, p).lucro };
+      } }
+  ];
+
+  // Menor preço (em centavos) com lucro/preço >= meta. Abaixo do custo nunca
+  // há lucro, então a busca começa no custo.
+  function precoIdeal(custo, fn) {
+    const inicio = Math.max(1, Math.ceil(custo * 100));
+    const limite = Math.max(inicio * 50, 100000);
+    for (let c = inicio; c <= limite; c++) {
+      const p = c / 100;
+      if (fn(p) / p >= META_LUCRO - 1e-9) return p;
+    }
+    return null;
+  }
+
+  function caixaDe(cartao) {
+    const id = 'ideal' + cartao.sufixo;
+    let box = document.getElementById(id);
+    if (box) return box;
+    box = document.createElement('div');
+    box.className = 'ideal-box';
+    box.id = id;
+    box.setAttribute('role', 'status');
+    box.innerHTML =
+      '<p class="ideal-k">Preço ideal para ' + Math.round(META_LUCRO * 100) + '% de lucro</p>' +
+      '<p class="ideal-v"></p>' +
+      '<p class="ideal-sub"></p>' +
+      '<p class="ideal-aviso"></p>' +
+      '<button type="button" class="ideal-usar">Usar este preço</button>';
+    document.getElementById('destaque' + cartao.sufixo).after(box);
+    box.querySelector('.ideal-usar').addEventListener('click', () => {
+      const campo = document.getElementById(cartao.campoPreco);
+      campo.value = box.dataset.preco.replace('.', ',');
+      document.getElementById(cartao.botao).click();
+      campo.focus();
+    });
+    return box;
+  }
+
+  function atualizar(cartao) {
+    const resultado = document.getElementById('resultado' + cartao.sufixo);
+    const existente = document.getElementById('ideal' + cartao.sufixo);
+    const esconder = () => { if (existente) existente.hidden = true; };
+    if (!resultado || resultado.style.display === 'none') return esconder();
+
+    const atual = num(cartao.campoPreco);
+    const { custo, fn, aviso } = cartao.lucroEm();
+    if (!(custo > 0) || !(atual > 0)) return esconder();
+    const lucroAtual = fn(atual);
+    if (lucroAtual / atual >= META_LUCRO - 1e-9) return esconder();
+
+    const box = caixaDe(cartao);
+    const ideal = precoIdeal(custo, fn);
+    box.hidden = false;
+    if (ideal == null) {
+      box.querySelector('.ideal-v').textContent = '—';
+      box.querySelector('.ideal-sub').textContent = 'Não foi possível chegar a ' + Math.round(META_LUCRO * 100) + '% de lucro com essas taxas.';
+      box.querySelector('.ideal-usar').hidden = true;
+      box.querySelector('.ideal-aviso').textContent = '';
+      return;
+    }
+    const lucroIdeal = fn(ideal);
+    const diff = ideal - atual;
+    box.dataset.preco = ideal.toFixed(2);
+    box.querySelector('.ideal-v').textContent = fmt(ideal);
+    box.querySelector('.ideal-sub').textContent =
+      'Lucro de ' + fmt(lucroIdeal) + ' (' + fmtPct(lucroIdeal / ideal) + ') · ' +
+      (diff >= 0 ? fmt(diff) + ' acima' : fmt(-diff) + ' abaixo') + ' do preço atual';
+    box.querySelector('.ideal-aviso').textContent = aviso && ideal >= 79 ? aviso : '';
+    box.querySelector('.ideal-usar').hidden = false;
+  }
+
+  CARTOES.forEach((cartao) => {
+    // registrado depois do listener original: roda logo após o cálculo
+    document.getElementById(cartao.botao).addEventListener('click', () => atualizar(cartao));
+  });
+})();
 </script>
 
 </main>

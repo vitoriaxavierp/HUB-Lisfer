@@ -364,6 +364,7 @@ Firmes e discretos; o peso vem da cor, não do tamanho.
 - **Partes:** `.panel-head` (14px 20px, borda inferior, título 15px 600 + `.panel-sub` + `.spacer` + ações), `.panel-body` (20px; 16px no celular), `.panel-foot` (fundo `--surface-2`, borda superior, onde fica o botão principal do formulário).
 - **Listas dentro do painel:** linhas separadas por `--border`, hover `--surface-2`, sem margem entre elas.
 - **Cartão de calculadora (`.calc-page .card`):** é o mesmo painel (mesmos tokens) com padding 20px 22px 22px; quando é alvo de âncora (`:target`), ganha borda tinta e halo. O resultado principal (`.destaque`) é um bloco tinta com rótulo amarelo e valor em Archivo 28px; em prejuízo vira vermelho.
+- **Preço ideal (`.ideal-box`, só em Lucratividade):** aparece logo abaixo do `.destaque` quando o lucro fica abaixo da meta de 10% ou no prejuízo. Fundo `--warning-soft` com borda âmbar, rótulo em `--warning-text`, valor em Archivo 24px, linha de apoio com o lucro nesse preço e a diferença para o preço atual, e o botão secundário "Usar este preço" (contorno tinta) que preenche o campo e recalcula. Mostra sempre o **menor** preço que atinge a meta, buscado centavo a centavo com as mesmas funções de cálculo do cartão.
 
 ### Inputs / Fields
 - **Estrutura:** `.field` em coluna com gap de 6px; rótulo acima (13px 500 `--text-2`), `*` obrigatório em `--danger`, dica `.hint` 12px.
