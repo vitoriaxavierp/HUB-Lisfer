@@ -55,6 +55,36 @@ def sessao_valida(headers):
         return False
 
 
+def tem_modulo(headers, modulo):
+    """True se a pessoa logada tem o modulo liberado (ou e master). Usa a
+    funcao tem_modulo do banco com o token da propria pessoa, entao vale a
+    mesma regra das tabelas. Qualquer falha nega o acesso."""
+    token = headers.get("Authorization", "")[len("Bearer "):].strip()
+    url = os.environ.get("SUPABASE_URL")
+    anon_key = os.environ.get("SUPABASE_ANON_KEY")
+    if not token or not url or not anon_key:
+        return False
+    req = urllib.request.Request(
+        f"{url}/rest/v1/rpc/tem_modulo",
+        data=json.dumps({"m": modulo}).encode("utf-8"),
+        headers={"Authorization": f"Bearer {token}", "apikey": anon_key, "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read() or b"false") is True
+    except urllib.error.HTTPError as e:
+        print(f"[seguranca] checagem de modulo recusada: HTTP {e.code}")
+        return False
+    except Exception as e:
+        print(f"[seguranca] falha ao checar modulo: {type(e).__name__}")
+        return False
+
+
+def recusar_modulo(handler):
+    responder_json(handler, 403, {"erro": "Você não tem acesso a este módulo. Peça a uma administradora do Hub para liberar."})
+
+
 def ler_json(handler):
     """Le e decodifica o corpo JSON, recusando corpos grandes demais."""
     try:

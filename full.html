@@ -68,14 +68,16 @@
       "desc": "Gere o PDF para imprimir e separar o envio, com os itens como estão no Full e agrupados por marca."
     }
   ];
-  document.getElementById('toolRows').innerHTML = TOOLS.map((t) =>
+  const MODULO = {"full-lista-compras.html": "full_compras", "full-lista-separacao.html": "full_separacao"};
+  const render = () => document.getElementById('toolRows').innerHTML = TOOLS.filter((t) => HubAuth.pode(MODULO[t.href])).map((t) =>
     '<li><a href="' + t.href + '"><span class="ic">' + ic(t.icon) + '</span>' +
     '<span><div class="name">' + t.name + '</div><div class="desc">' + t.desc + '</div></span>' +
     '<span class="go">Abrir' + ic('chevronRight') + '</span></a></li>'
   ).join('');
   HubAuth.requireAuth(() => {
+    render();
     document.getElementById('appScreen').hidden = false;
-  });
+  }, Object.values(MODULO));
 })();
 </script>
 </body>

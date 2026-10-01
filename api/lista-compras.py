@@ -22,6 +22,9 @@ class handler(BaseHTTPRequestHandler):
             if not seguranca.sessao_valida(self.headers):
                 seguranca.recusar_sessao(self)
                 return
+            if not seguranca.tem_modulo(self.headers, "full_compras"):
+                seguranca.recusar_modulo(self)
+                return
 
             payload = seguranca.ler_json(self)
 

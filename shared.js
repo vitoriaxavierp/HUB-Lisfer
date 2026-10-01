@@ -47,6 +47,8 @@ const HubIcons = (function () {
     ship: '<path d="M2 20c2 1 4 1 6 0s4-1 6 0 4 1 6 0"/><path d="M4 17l-1-5h18l-2 5"/><path d="M6 12V7h9l3 5"/><path d="M10 7V4"/>',
     eye: '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/>',
     eyeOff: '<path d="M3 3l18 18"/><path d="M10.6 5.1A11 11 0 0 1 12 5c7 0 11 7 11 7a13.2 13.2 0 0 1-3.1 3.8M6.5 6.6C3.7 8.3 1 12 1 12s4 7 11 7a10.6 10.6 0 0 0 4.2-.9"/><path d="M9.5 9.9a3 3 0 0 0 4.2 4.2"/>',
+    users: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.6-3.6 3.2-5.5 6.5-5.5s5.9 1.9 6.5 5.5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.7.7 2.8 2.4 3 5.2"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
     mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
     lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'
   };
@@ -114,6 +116,20 @@ const HubUI = (function () {
 })();
 
 // ------------------------------------------------------------------
+// Módulos e permissões
+// ------------------------------------------------------------------
+// Chaves usadas na tabela "permissoes" do Supabase. A regra de verdade
+// fica no banco (RLS) e nas APIs; aqui só decidimos o que mostrar.
+const HubModulos = [
+  { key: 'coletas', label: 'Coletas', grupo: 'Operação' },
+  { key: 'full_compras', label: 'Full · Lista de Compras', grupo: 'Operação' },
+  { key: 'full_separacao', label: 'Full · Lista de Separação', grupo: 'Operação' },
+  { key: 'importacao', label: 'Importação', grupo: 'Operação' },
+  { key: 'calc_precos', label: 'Calculadora de Preços', grupo: 'Vendas' },
+  { key: 'calc_lucro', label: 'Calculadora de Lucratividade', grupo: 'Vendas' }
+];
+
+// ------------------------------------------------------------------
 // Menu lateral (igual em todas as páginas)
 // ------------------------------------------------------------------
 const HubShell = (function () {
@@ -122,27 +138,31 @@ const HubShell = (function () {
       { key: 'inicio', label: 'Início', href: 'index.html', icon: 'home' }
     ] },
     { title: 'Operação', items: [
-      { key: 'coletas', label: 'Coletas', href: 'coletas.html', icon: 'coletas' },
+      { key: 'coletas', label: 'Coletas', href: 'coletas.html', icon: 'coletas', modulo: 'coletas' },
       { key: 'full', label: 'Full', href: 'full.html', icon: 'full', children: [
-        { key: 'full-compras', label: 'Lista de Compras', href: 'full-lista-compras.html' },
-        { key: 'full-separacao', label: 'Lista de Separação', href: 'full-lista-separacao.html' }
+        { key: 'full-compras', label: 'Lista de Compras', href: 'full-lista-compras.html', modulo: 'full_compras' },
+        { key: 'full-separacao', label: 'Lista de Separação', href: 'full-lista-separacao.html', modulo: 'full_separacao' }
       ] },
-      { key: 'importacao', label: 'Importação', href: 'importacao.html', icon: 'importacao' }
+      { key: 'importacao', label: 'Importação', href: 'importacao.html', icon: 'importacao', modulo: 'importacao' }
     ] },
     { title: 'Vendas', items: [
       { key: 'calculadoras', label: 'Calculadoras', href: 'calculadoras.html', icon: 'calc', children: [
-        { key: 'calc-precos', label: 'Preços', href: 'calculadora-precos.html' },
-        { key: 'calc-lucro', label: 'Lucratividade', href: 'calculadora-lucratividade.html' }
+        { key: 'calc-precos', label: 'Preços', href: 'calculadora-precos.html', modulo: 'calc_precos' },
+        { key: 'calc-lucro', label: 'Lucratividade', href: 'calculadora-lucratividade.html', modulo: 'calc_lucro' }
       ] }
     ] },
     { title: 'Em breve', items: [
       { key: 'pontos', label: 'Pontos do mês', icon: 'pontos', soon: true },
       { key: 'reputacao', label: 'Reputação das contas', icon: 'reputacao', soon: true },
       { key: 'anuncios', label: 'Anúncios pendentes', icon: 'anuncios', soon: true }
+    ] },
+    { title: 'Administração', master: true, items: [
+      { key: 'usuarios', label: 'Usuários e acessos', href: 'usuarios.html', icon: 'users' }
     ] }
   ];
 
   let rendered = false;
+  let acessoAtual = null;
 
   function link(item, active, isSub) {
     if (item.soon) {
@@ -154,34 +174,49 @@ const HubShell = (function () {
       (isSub ? '' : HubIcons.svg(item.icon)) + '<span>' + item.label + '</span></a>';
   }
 
-  function render() {
-    if (rendered) return;
-    const aside = document.getElementById('appSidebar');
-    if (!aside) return;
-    rendered = true;
-    const active = aside.dataset.active || '';
-    const app = aside.closest('.app');
+  // o item aparece se não exige módulo, se o módulo está liberado ou, no
+  // caso de um item com subitens, se pelo menos um subitem está liberado
+  function visivel(item) {
+    if (item.soon) return true;
+    if (item.children) return item.children.some(visivel);
+    if (!item.modulo) return true;
+    return !!acessoAtual && HubAuth.pode(item.modulo);
+  }
 
+  function navHtml(active) {
     let nav = '';
     NAV.forEach((group) => {
+      if (group.master && !(acessoAtual && acessoAtual.is_master)) return;
+      const itens = group.items.filter(visivel);
+      if (!itens.length) return;
       nav += '<div class="sb-group">';
       if (group.title) nav += '<div class="sb-group-title">' + group.title + '</div>';
-      group.items.forEach((item) => {
+      itens.forEach((item) => {
         nav += link(item, active, false);
         if (item.children) {
+          const filhos = item.children.filter(visivel);
           const open = item.key === active || item.children.some((c) => c.key === active);
-          if (open) {
-            nav += '<div class="sb-sub">' + item.children.map((c) => link(c, active, true)).join('') + '</div>';
+          if (open && filhos.length) {
+            nav += '<div class="sb-sub">' + filhos.map((c) => link(c, active, true)).join('') + '</div>';
           }
         }
       });
       nav += '</div>';
     });
+    return nav;
+  }
+
+  function render() {
+    if (rendered) return;
+    const aside = document.getElementById('appSidebar');
+    if (!aside) return;
+    rendered = true;
+    const app = aside.closest('.app');
 
     aside.innerHTML =
       '<a class="sb-brand" href="index.html" aria-label="Hub Lisfer — início">' +
         '<img src="logo-hub.png" alt="Lisfer Ferramentas"><span class="sb-product">HUB</span></a>' +
-      '<nav class="sb-nav" aria-label="Módulos">' + nav + '</nav>' +
+      '<nav class="sb-nav" id="sbNav" aria-label="Módulos">' + navHtml(aside.dataset.active || '') + '</nav>' +
       '<div class="sb-user">' +
         '<span class="sb-avatar" id="sbAvatar" aria-hidden="true">·</span>' +
         '<span class="sb-user-name"><span id="sbUserName">—</span><span class="sb-user-mail" id="sbUserMail"></span></span>' +
@@ -210,6 +245,14 @@ const HubShell = (function () {
     }
   }
 
+  function setAcesso(acesso) {
+    acessoAtual = acesso;
+    render();
+    const nav = document.getElementById('sbNav');
+    const aside = document.getElementById('appSidebar');
+    if (nav && aside) nav.innerHTML = navHtml(aside.dataset.active || '');
+  }
+
   function setUser(nome, email) {
     render();
     const n = document.getElementById('sbUserName');
@@ -219,10 +262,25 @@ const HubShell = (function () {
     document.getElementById('sbAvatar').textContent = HubUI.initials(nome || email);
   }
 
+  // troca o conteúdo da página por um aviso de "sem acesso"
+  function semAcesso(main, erro) {
+    if (!main) return;
+    main.innerHTML =
+      '<div class="panel" style="max-width:560px;margin:40px auto 0">' +
+        '<div class="empty" style="padding:44px 28px">' + HubIcons.svg(erro ? 'alertCircle' : 'lock') +
+          '<div class="empty-title">' + (erro ? 'Não foi possível verificar seus acessos' : 'Você não tem acesso a este módulo') + '</div>' +
+          '<div class="empty-text">' + (erro
+            ? 'Recarregue a página. Se continuar, avise uma administradora do Hub.'
+            : 'Peça a uma administradora do Hub para liberar este módulo para você.') + '</div>' +
+          '<a class="btn btn-secondary" href="index.html" style="margin-top:14px">Voltar ao início</a>' +
+        '</div>' +
+      '</div>';
+  }
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);
   else render();
 
-  return { render: render, setUser: setUser };
+  return { render: render, setUser: setUser, setAcesso: setAcesso, semAcesso: semAcesso };
 })();
 
 // ------------------------------------------------------------------
@@ -233,6 +291,7 @@ const HubAuth = (function () {
   let profilesList = [];
   let profilesById = {};
   let authListenerAdded = false;
+  let acesso = null;
 
   async function loadProfiles() {
     const { data, error } = await sb.from('profiles').select('id, nome').order('nome', { ascending: true });
@@ -242,21 +301,51 @@ const HubAuth = (function () {
     profilesList.forEach((p) => { profilesById[p.id] = p.nome || p.id; });
   }
 
+  // { is_master: bool, modulos: [...] } da pessoa logada, vindo do banco.
+  // Devolve null se não deu para verificar (nesse caso nada é liberado).
+  async function carregarAcesso() {
+    const { data, error } = await sb.rpc('meus_acessos');
+    if (error || !data) {
+      console.error(error);
+      acesso = null;
+      HubShell.setAcesso({ is_master: false, modulos: [] });
+      return null;
+    }
+    acesso = { is_master: !!data.is_master, modulos: data.modulos || [] };
+    HubShell.setAcesso(acesso);
+    return acesso;
+  }
+
+  function pode(modulo) {
+    if (!acesso) return false;
+    return acesso.is_master || acesso.modulos.indexOf(modulo) !== -1;
+  }
+
   function nomeDe(id) {
     return profilesById[id] || null;
   }
 
   // Usar em páginas de MÓDULO (não na tela de login): garante que existe
-  // sessão ativa — se não houver, manda de volta para o login — e só então
-  // chama onReady(user).
-  function requireAuth(onReady) {
-    sb.auth.getSession().then(({ data }) => {
+  // sessão ativa (senão volta ao login), confere se o módulo da página está
+  // liberado e só então chama onReady(user). `modulo` pode ser uma chave,
+  // uma lista (basta uma liberada), 'master' ou nada (qualquer pessoa logada).
+  function requireAuth(onReady, modulo) {
+    sb.auth.getSession().then(async ({ data }) => {
       if (!data.session) { window.location.href = 'index.html'; return; }
       currentUser = data.session.user;
-      loadProfiles().then(() => {
-        HubShell.setUser(nomeDe(currentUser.id), currentUser.email);
-        onReady(currentUser);
-      });
+      const resultados = await Promise.all([loadProfiles(), carregarAcesso()]);
+      const ac = resultados[1];
+      HubShell.setUser(nomeDe(currentUser.id), currentUser.email);
+      const lista = modulo == null ? [] : [].concat(modulo);
+      const liberado = modulo == null ||
+        (modulo === 'master' ? !!(ac && ac.is_master) : lista.some(pode));
+      if (!liberado) {
+        const app = document.getElementById('appScreen');
+        HubShell.semAcesso(app && app.querySelector('main'), !ac);
+        if (app) app.hidden = false;
+        return;
+      }
+      onReady(currentUser);
     });
     if (!authListenerAdded) {
       authListenerAdded = true;
@@ -273,7 +362,10 @@ const HubAuth = (function () {
   return {
     get user() { return currentUser; },
     get profiles() { return profilesList; },
+    get acesso() { return acesso; },
     nomeDe: nomeDe,
+    pode: pode,
+    carregarAcesso: carregarAcesso,
     requireAuth: requireAuth,
     logout: logout,
     loadProfiles: loadProfiles

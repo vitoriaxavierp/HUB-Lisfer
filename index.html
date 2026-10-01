@@ -153,12 +153,20 @@
           <p class="page-desc" id="todayLabel">&nbsp;</p>
         </div>
         <div class="page-actions">
-          <a class="btn btn-primary" href="coletas.html"><span id="ic-plus"></span>Nova coleta</a>
+          <a class="btn btn-primary" href="coletas.html" id="novaColetaBtn"><span id="ic-plus"></span>Nova coleta</a>
         </div>
       </header>
 
-      <div class="home-grid">
-        <section class="panel" aria-labelledby="hojeTitle">
+      <section class="panel" id="semModulos" hidden>
+        <div class="empty" style="padding:48px 28px">
+          <span id="icLock"></span>
+          <div class="empty-title">Nenhum módulo liberado para você ainda</div>
+          <div class="empty-text">Peça a uma administradora do Hub para liberar os módulos que você usa no dia a dia.</div>
+        </div>
+      </section>
+
+      <div class="home-grid" id="homeGrid">
+        <section class="panel" aria-labelledby="hojeTitle" id="hojePanel">
           <div class="panel-head">
             <h2 id="hojeTitle">Coletas de hoje</h2>
             <div class="today-summary" id="todaySummary"></div>
@@ -173,7 +181,7 @@
         </section>
 
         <div class="home-side">
-          <section class="panel" aria-labelledby="impTitle">
+          <section class="panel" aria-labelledby="impTitle" id="impPanel">
             <div class="panel-head">
               <h2 id="impTitle">Próxima importação</h2>
               <span class="spacer"></span>
@@ -186,7 +194,7 @@
             </div>
           </section>
 
-          <section class="panel" aria-labelledby="toolsTitle">
+          <section class="panel" aria-labelledby="toolsTitle" id="toolsPanel">
             <div class="panel-head"><h2 id="toolsTitle">Ferramentas</h2></div>
             <ul class="tool-list" id="toolList"></ul>
           </section>
@@ -220,12 +228,13 @@
   ].map(([i, t]) => '<li>' + ic(i) + '<span>' + t + '</span></li>').join('');
 
   const TOOLS = [
-    { href: 'full-lista-compras.html', icon: 'compras', name: 'Lista de Compras do Full', desc: 'O que comprar para o envio, cruzado com o estoque do Tiny' },
-    { href: 'full-lista-separacao.html', icon: 'separacao', name: 'Lista de Separação do Full', desc: 'PDF pronto para imprimir, agrupado por marca' },
-    { href: 'calculadora-precos.html', icon: 'preco', name: 'Calculadora de preços', desc: 'Preço de venda sugerido em cada marketplace' },
-    { href: 'calculadora-lucratividade.html', icon: 'lucro', name: 'Calculadora de lucratividade', desc: 'Lucro ou prejuízo no preço que você pratica' }
+    { href: 'full-lista-compras.html', modulo: 'full_compras', icon: 'compras', name: 'Lista de Compras do Full', desc: 'O que comprar para o envio, cruzado com o estoque do Tiny' },
+    { href: 'full-lista-separacao.html', modulo: 'full_separacao', icon: 'separacao', name: 'Lista de Separação do Full', desc: 'PDF pronto para imprimir, agrupado por marca' },
+    { href: 'calculadora-precos.html', modulo: 'calc_precos', icon: 'preco', name: 'Calculadora de preços', desc: 'Preço de venda sugerido em cada marketplace' },
+    { href: 'calculadora-lucratividade.html', modulo: 'calc_lucro', icon: 'lucro', name: 'Calculadora de lucratividade', desc: 'Lucro ou prejuízo no preço que você pratica' }
   ];
-  el('toolList').innerHTML = TOOLS.map((t) =>
+  el('icLock').outerHTML = ic('lock');
+  const renderTools = () => el('toolList').innerHTML = TOOLS.filter((t) => HubAuth.pode(t.modulo)).map((t) =>
     '<li><a href="' + t.href + '"><span class="tool-ic">' + ic(t.icon) + '</span>' +
     '<span><span class="tool-name">' + t.name + '</span><br><span class="tool-desc">' + t.desc + '</span></span>' +
     '<span class="chev">' + ic('chevronRight') + '</span></a></li>'
@@ -348,10 +357,22 @@
     el('heroGreeting').textContent = saudacao() + (nome ? ', ' + nome.split(' ')[0] : '');
     const hoje = new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
     el('todayLabel').textContent = hoje.charAt(0).toUpperCase() + hoje.slice(1);
+    await HubAuth.carregarAcesso();
     el('loginScreen').hidden = true;
     el('hubScreen').hidden = false;
-    loadToday();
-    loadArrival();
+    const podeColetas = HubAuth.pode('coletas');
+    const podeImp = HubAuth.pode('importacao');
+    const temTools = TOOLS.some((t) => HubAuth.pode(t.modulo));
+    el('hojePanel').hidden = !podeColetas;
+    el('novaColetaBtn').hidden = !podeColetas;
+    el('impPanel').hidden = !podeImp;
+    el('toolsPanel').hidden = !temTools;
+    el('homeGrid').hidden = !(podeColetas || podeImp || temTools);
+    el('homeGrid').style.gridTemplateColumns = podeColetas ? '' : 'minmax(0, 1fr)';
+    el('semModulos').hidden = !el('homeGrid').hidden;
+    renderTools();
+    if (podeColetas) loadToday();
+    if (podeImp) loadArrival();
   }
 
   sb.auth.getSession().then(({ data }) => {

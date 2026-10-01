@@ -150,7 +150,7 @@
 
   HubAuth.requireAuth(() => {
     el('appScreen').hidden = false;
-  });
+  }, 'full_compras');
 
   const uploadZone = el('uploadZone');
   const fileInput = el('fileInput');

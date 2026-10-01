@@ -68,14 +68,16 @@
       "desc": "Informe o custo e o preço que você pratica e veja a margem de lucro, ou se está no prejuízo."
     }
   ];
-  document.getElementById('toolRows').innerHTML = TOOLS.map((t) =>
+  const MODULO = {"calculadora-precos.html": "calc_precos", "calculadora-lucratividade.html": "calc_lucro"};
+  const render = () => document.getElementById('toolRows').innerHTML = TOOLS.filter((t) => HubAuth.pode(MODULO[t.href])).map((t) =>
     '<li><a href="' + t.href + '"><span class="ic">' + ic(t.icon) + '</span>' +
     '<span><div class="name">' + t.name + '</div><div class="desc">' + t.desc + '</div></span>' +
     '<span class="go">Abrir' + ic('chevronRight') + '</span></a></li>'
   ).join('');
   HubAuth.requireAuth(() => {
+    render();
     document.getElementById('appScreen').hidden = false;
-  });
+  }, Object.values(MODULO));
 })();
 </script>
 </body>

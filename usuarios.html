@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Usuários e acessos — Hub Lisfer</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="hub.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<style>
+  .search { position: relative; width: 280px; max-width: 100%; }
+  .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-3); pointer-events: none; }
+  .search .input { padding-left: 34px; }
+
+  .perm th.mod { text-align: center; white-space: normal; min-width: 92px; line-height: 1.3; }
+  .perm th.mod small { display: block; font-weight: 500; color: var(--text-3); }
+  .perm td.mod { text-align: center; }
+  .perm td:first-child, .perm th:first-child { padding-left: 20px; }
+  .perm td:last-child, .perm th:last-child { padding-right: 16px; }
+  .u-nome { font-weight: 600; }
+  .u-mail { font-size: var(--fs-xs); color: var(--text-3); }
+  .u-meta { font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; }
+  .perm tr.is-master td { background: var(--brand-soft); }
+  .perm tr.is-master:hover td { background: var(--brand-soft); }
+  .perm tr.is-none .u-nome::after {
+    content: "sem acesso"; margin-left: 8px; font-size: var(--fs-2xs); font-weight: 600; color: var(--danger);
+    background: var(--danger-soft); border-radius: var(--r-pill); padding: 1px 7px; vertical-align: 1px;
+  }
+
+  /* interruptor */
+  .switch { position: relative; display: inline-flex; width: 36px; height: 20px; cursor: pointer; }
+  .switch input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+  .switch span { width: 100%; height: 100%; border-radius: var(--r-pill); background: var(--border-strong); transition: background var(--t-fast) ease; }
+  .switch span::after {
+    content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%;
+    background: #FFFFFF; box-shadow: var(--shadow-xs); transition: transform var(--t-base) var(--ease-out);
+  }
+  .switch input:checked + span { background: var(--ink); }
+  .switch input:checked + span::after { transform: translateX(16px); }
+  .switch input:focus-visible + span { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .switch input:disabled { cursor: not-allowed; }
+  .switch input:disabled + span { opacity: 0.55; }
+  .switch.is-saving span { opacity: 0.6; }
+
+  .row-actions { display: flex; gap: 4px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<div class="app" id="appScreen" hidden>
+  <aside class="app-sidebar" id="appSidebar" data-active="usuarios"></aside>
+  <div class="app-scrim"></div>
+  <div class="app-main">
+    <main class="page">
+      <header class="page-header">
+        <div class="page-header-text">
+          <h1 class="page-title">Usuários e acessos</h1>
+          <p class="page-desc">Escolha quais módulos cada pessoa pode usar. A mudança vale na hora: o módulo some do menu e os dados dele ficam bloqueados.</p>
+        </div>
+        <div class="page-actions">
+          <label class="search"><span id="icSearch"></span><span class="sr-only">Buscar usuária</span>
+            <input class="input" type="search" id="busca" placeholder="Buscar por nome ou e-mail" autocomplete="off"></label>
+        </div>
+      </header>
+
+      <div class="stack">
+        <div class="alert alert-info">
+          <span id="icInfo"></span>
+          <span><strong>Contas novas</strong> são criadas no Supabase (Authentication › Users › Add user) e começam <strong>sem nenhum módulo</strong>. Depois de criar, volte aqui para liberar os acessos. As administradoras (master) têm acesso total e não podem ser alteradas por esta tela.</span>
+        </div>
+
+        <div class="alert alert-danger" id="erroBox" role="alert" hidden><span id="icErro"></span><span id="erroMsg"></span></div>
+
+        <section class="panel" aria-labelledby="listTitle">
+          <div class="panel-head">
+            <h2 id="listTitle">Equipe</h2>
+            <span class="count-pill" id="countPill">–</span>
+          </div>
+          <div class="table-wrap" id="tableWrap">
+            <div class="skeleton-row"><span class="skeleton" style="height:13px;width:24%"></span><span class="skeleton" style="height:20px;width:40%;margin-left:auto"></span></div>
+            <div class="skeleton-row"><span class="skeleton" style="height:13px;width:30%"></span><span class="skeleton" style="height:20px;width:40%;margin-left:auto"></span></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+(function () {
+  const el = (id) => document.getElementById(id);
+  const ic = HubIcons.svg;
+  const esc = HubUI.escapeHtml;
+  let usuarios = [];
+  let meuId = null;
+
+  el('icSearch').outerHTML = ic('search');
+  el('icInfo').outerHTML = ic('info');
+  el('icErro').outerHTML = ic('alertCircle');
+
+  function quando(iso) {
+    if (!iso) return 'nunca entrou';
+    const d = new Date(iso);
+    return 'último acesso ' + d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  async function carregar() {
+    const { data, error } = await sb.rpc('listar_usuarios');
+    if (error) {
+      console.error(error);
+      el('erroMsg').textContent = 'Não foi possível carregar a lista de usuárias. Recarregue a página.';
+      el('erroBox').hidden = false;
+      return;
+    }
+    el('erroBox').hidden = true;
+    usuarios = data || [];
+    render();
+  }
+
+  function render() {
+    const termo = el('busca').value.trim().toLowerCase();
+    const lista = usuarios.filter((u) => !termo || (u.nome || '').toLowerCase().includes(termo) || (u.email || '').toLowerCase().includes(termo));
+    el('countPill').textContent = usuarios.length;
+    if (!lista.length) {
+      el('tableWrap').innerHTML = '<div class="empty">' + ic('users') + '<div class="empty-title">' + (termo ? 'Ninguém encontrado' : 'Nenhuma usuária') + '</div>' +
+        '<div class="empty-text">' + (termo ? 'Confira o nome ou e-mail digitado.' : 'Crie as contas no Supabase em Authentication › Users.') + '</div></div>';
+      return;
+    }
+    const head = '<thead><tr><th>Usuária</th>' +
+      HubModulos.map((m) => {
+        const partes = m.label.split(' · ');
+        return '<th class="mod">' + esc(partes[partes.length - 1].replace('Calculadora de ', '')) +
+          (partes.length > 1 ? '<small>' + esc(partes[0]) + '</small>' : (m.key.indexOf('calc_') === 0 ? '<small>Calculadora</small>' : '')) + '</th>';
+      }).join('') +
+      '<th class="num"><span class="sr-only">Ações</span></th></tr></thead>';
+    const rows = lista.map((u) => {
+      const mods = u.modulos || [];
+      const cls = u.is_master ? 'is-master' : (mods.length ? '' : 'is-none');
+      const cells = HubModulos.map((m) => {
+        const on = u.is_master || mods.indexOf(m.key) !== -1;
+        return '<td class="mod"><label class="switch" title="' + esc(m.label) + '"><input type="checkbox" data-user="' + u.id + '" data-mod="' + m.key + '"' +
+          (on ? ' checked' : '') + (u.is_master ? ' disabled' : '') + ' aria-label="' + esc(m.label + ' para ' + (u.nome || u.email)) + '"><span></span></label></td>';
+      }).join('');
+      const acoes = u.is_master
+        ? '<span class="badge badge-pending"><span class="dot"></span>Master</span>'
+        : '<div class="row-actions"><button type="button" class="btn btn-ghost btn-sm" data-all="' + u.id + '">Liberar tudo</button>' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-none="' + u.id + '">Remover tudo</button></div>';
+      return '<tr class="' + cls + '"><td><div class="u-nome">' + esc(u.nome || '—') + (u.id === meuId ? ' <span class="muted" style="font-weight:400">(você)</span>' : '') + '</div>' +
+        '<div class="u-mail">' + esc(u.email || '') + '</div><div class="u-meta">' + quando(u.ultimo_acesso) + '</div></td>' + cells + '<td class="num">' + acoes + '</td></tr>';
+    }).join('');
+    el('tableWrap').innerHTML = '<table class="table perm">' + head + '<tbody>' + rows + '</tbody></table>';
+  }
+
+  async function salvar(userId, modulos, origem) {
+    const u = usuarios.find((x) => x.id === userId);
+    if (!u || u.is_master) return;
+    const anterior = u.modulos || [];
+    u.modulos = modulos;
+    if (origem) origem.classList.add('is-saving');
+    const { error } = await sb.from('permissoes').upsert({
+      user_id: userId, modulos: modulos, atualizado_por: meuId, atualizado_em: new Date().toISOString()
+    });
+    if (error) {
+      console.error(error);
+      u.modulos = anterior;
+      HubUI.toast('Não foi possível salvar o acesso de ' + (u.nome || u.email) + '.', { error: true });
+    } else {
+      HubUI.toast('Acessos de ' + (u.nome || u.email) + ' atualizados.');
+    }
+    render();
+  }
+
+  el('tableWrap').addEventListener('change', (e) => {
+    const cb = e.target.closest('input[data-mod]');
+    if (!cb) return;
+    const u = usuarios.find((x) => x.id === cb.dataset.user);
+    if (!u) return;
+    const set = new Set(u.modulos || []);
+    if (cb.checked) set.add(cb.dataset.mod); else set.delete(cb.dataset.mod);
+    salvar(u.id, HubModulos.map((m) => m.key).filter((k) => set.has(k)), cb.closest('.switch'));
+  });
+  el('tableWrap').addEventListener('click', (e) => {
+    const all = e.target.closest('[data-all]');
+    const none = e.target.closest('[data-none]');
+    if (all) salvar(all.dataset.all, HubModulos.map((m) => m.key));
+    if (none) salvar(none.dataset.none, []);
+  });
+  el('busca').addEventListener('input', render);
+
+  HubAuth.requireAuth((user) => {
+    meuId = user.id;
+    el('appScreen').hidden = false;
+    carregar();
+  }, 'master');
+})();
+</script>
+</body>
+</html>
