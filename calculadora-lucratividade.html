@@ -41,6 +41,12 @@
   }
   .calc-page .card:target { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(17, 19, 21, 0.08); }
   .calc-page .card h3.calc-title { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 800; }
+  /* logo do marketplace ao lado do nome (tamanhos com o mesmo peso visual, ver logos/) */
+  .calc-page .card h3.calc-title { display: flex; align-items: center; gap: 10px; min-height: 28px; }
+  .calc-page .mk-logo { display: block; flex: none; }
+  .calc-page .calc-jump a { display: inline-flex; align-items: center; gap: 6px; }
+  .calc-page .mk-mini { display: block; flex: none; opacity: 0.85; }
+  .calc-page .calc-jump a:hover .mk-mini { opacity: 1; }
   .calc-page .subtitle { font-size: var(--fs-sm); color: var(--text-3); margin: 2px 0 18px; }
 
   .calc-page .card .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
@@ -158,7 +164,7 @@
     <nav class="breadcrumb" aria-label="Você está em"><a href="calculadoras.html">Calculadoras</a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg><span>Lucratividade</span></nav>
     <h1 class="page-title">Lucratividade</h1>
     <p class="page-desc">Informe o custo e o preço que você pratica para ver a margem real, ou se a venda dá prejuízo.</p>
-    <nav class="calc-jump" aria-label="Ir para o marketplace"><a href="#calc-mercado-livre">Mercado Livre</a><a href="#calc-loja-propria">Loja Própria</a><a href="#calc-shopee">Shopee</a><a href="#calc-amazon">Amazon</a><a href="#calc-magalu">Magalu</a><a href="#calc-tiktok">TikTok Shop</a><a href="#calc-kwai">Kwai</a></nav>
+    <nav class="calc-jump" aria-label="Ir para o marketplace"><a href="#calc-mercado-livre"><img class="mk-mini" src="logos/mercadolivre.png" width="22" height="15" alt="">Mercado Livre</a><a href="#calc-loja-propria"><img class="mk-mini" src="logos/nuvemshop.png" width="19" height="14" alt="">Loja Própria</a><a href="#calc-shopee"><img class="mk-mini" src="logos/shopee.png" width="16" height="17" alt="">Shopee</a><a href="#calc-amazon"><img class="mk-mini" src="logos/amazon.png" width="16" height="16" alt="">Amazon</a><a href="#calc-magalu"><img class="mk-mini" src="logos/magalu.png" width="34" height="7" alt="">Magalu</a><a href="#calc-tiktok"><img class="mk-mini" src="logos/tiktokshop.png" width="15" height="17" alt="">TikTok Shop</a><a href="#calc-kwai"><img class="mk-mini" src="logos/kwai.png" width="15" height="17" alt="">Kwai</a></nav>
   </div>
   <div class="page-actions"><nav class="calc-switch" aria-label="Tipo de calculadora"><a href="calculadora-precos.html" >Preços</a><a href="calculadora-lucratividade.html" aria-current="page">Lucratividade</a></nav></div>
 </header>
@@ -166,7 +172,7 @@
 <h2 class="section-title">Mercado Livre e Loja Própria</h2>
 <div class="calculadoras calculadoras-2col">
 <div class="card" id="calc-mercado-livre">
-  <h3 class="calc-title">Mercado Livre</h3>
+  <h3 class="calc-title"><img class="mk-logo" src="logos/mercadolivre.png" width="35" height="24" alt=""><span>Mercado Livre</span></h3>
   <p class="subtitle">Informe o preço que você pratica e veja o lucro real</p>
 
   <div class="row">
@@ -255,7 +261,7 @@
 </div>
 
 <div class="card nuvemshop-card" id="calc-loja-propria">
-  <h3 class="calc-title">Loja Própria · Nuvemshop</h3>
+  <h3 class="calc-title"><img class="mk-logo" src="logos/nuvemshop.png" width="31" height="22" alt=""><span>Loja Própria · Nuvemshop</span></h3>
   <p class="subtitle">Informe o preço que você pratica e veja o lucro real</p>
 
   <div class="row">
@@ -304,7 +310,7 @@
 
 <!-- SHOPEE -->
 <div class="card shopee-card" id="calc-shopee">
-  <h3 class="calc-title">Shopee</h3>
+  <h3 class="calc-title"><img class="mk-logo" src="logos/shopee.png" width="25" height="27" alt=""><span>Shopee</span></h3>
   <p class="subtitle">Estrutura real Lisfer (2 contas)</p>
 
   <div class="row">
@@ -352,7 +358,7 @@
 
 <!-- AMAZON -->
 <div class="card amazon-card" id="calc-amazon">
-  <h3 class="calc-title">Amazon</h3>
+  <h3 class="calc-title"><img class="mk-logo" src="logos/amazon.png" width="26" height="26" alt=""><span>Amazon</span></h3>
   <p class="subtitle">Estrutura real Lisfer (2 contas)</p>
 
   <div class="row">
@@ -406,7 +412,7 @@
 
 <!-- MAGALU -->
 <div class="card magalu-card" id="calc-magalu">
-  <h3 class="calc-title">Magalu</h3>
+  <h3 class="calc-title"><img class="mk-logo" src="logos/magalu.png" width="55" height="12" alt=""><span>Magalu</span></h3>
   <p class="subtitle">Estrutura real Lisfer (2 contas)</p>
 
   <div class="row">
@@ -473,7 +479,7 @@
 
 <!-- TIKTOK SHOP -->
 <div class="card tiktok-card" id="calc-tiktok">
-  <h3 class="calc-title">TikTok Shop</h3>
+  <h3 class="calc-title"><img class="mk-logo" src="logos/tiktokshop.png" width="24" height="28" alt=""><span>TikTok Shop</span></h3>
   <p class="subtitle">Estrutura real Lisfer (2 contas)</p>
 
   <div class="row">
@@ -515,7 +521,7 @@
 
 <!-- KWAI -->
 <div class="card kwai-card" id="calc-kwai">
-  <h3 class="calc-title">Kwai Shop</h3>
+  <h3 class="calc-title"><img class="mk-logo" src="logos/kwai.png" width="24" height="28" alt=""><span>Kwai Shop</span></h3>
   <p class="subtitle">Comissão e taxa fixa por item</p>
 
   <div class="row">
