@@ -91,6 +91,16 @@
     line-height: 1.2; margin-top: 2px; font-variant-numeric: tabular-nums;
   }
   .calc-page .destaque p.valor-abs { font-size: var(--fs-sm); font-weight: 500; margin-top: 2px; color: rgba(255, 255, 255, 0.78); }
+  /* Nuvemshop: valor que o cliente vê no Pix (10% de desconto na loja) */
+  .calc-page .pix-box {
+    display: flex; align-items: center; gap: 10px; margin-top: 10px;
+    background: var(--success-soft); border: 1px solid rgba(27, 122, 58, 0.22); border-radius: var(--r-md);
+    padding: 10px 14px; color: var(--success);
+  }
+  .calc-page .pix-box svg { width: 18px; height: 18px; flex: none; }
+  .calc-page .pix-box p { margin: 0; }
+  .calc-page .pix-box .pix-k { font-size: var(--fs-xs); font-weight: 600; }
+  .calc-page .pix-box .pix-v { margin-left: auto; font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 800; font-variant-numeric: tabular-nums; }
   .calc-page .destaque.prejuizo { background: var(--danger); }
   .calc-page .destaque.prejuizo p:first-child { color: #FFE1E3; }
   .calc-page .destaque.prejuizo p.valor-abs { color: rgba(255, 255, 255, 0.88); }
@@ -235,6 +245,11 @@
     <div class="destaque">
       <p>Preço de venda sugerido</p>
       <p id="precoFinalNuvemshop">R$ 0,00</p>
+    </div>
+    <div class="pix-box" id="pixNuvemshop" role="status">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.4L13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="8" cy="8" r="1.5"/></svg>
+      <p class="pix-k">No Pix (10% de desconto na loja)</p>
+      <p class="pix-v" id="pixValorNuvemshop">R$ 0,00</p>
     </div>
     <table>
       <tr><td>Custo do produto</td><td id="rCustoNuvemshop"></td></tr>
@@ -799,6 +814,8 @@ document.getElementById('calcularNuvemshop').addEventListener('click', () => {
   document.getElementById('rSistemaNuvemshop').textContent = fmt(r.sistema);
   document.getElementById('rFixoNuvemshop').textContent = r.fixo > 0 ? fmt(r.fixo) : '—';
   document.getElementById('rLucroNuvemshop').textContent = fmt(r.lucro);
+  // valor exibido no Pix da Nuvemshop (10% de desconto); não altera o cálculo acima
+  document.getElementById('pixValorNuvemshop').textContent = fmt(Math.round(r.preco * 0.9 * 100) / 100);
   resultado.style.display = 'block';
 });
 
