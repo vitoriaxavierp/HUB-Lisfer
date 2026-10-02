@@ -580,3 +580,7 @@ input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.6; cursor: po
   background: var(--k, var(--brand)); color: var(--k-on, var(--brand-ink));
   font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.02em;
 }
+
+/* conta do Mercado Livre (Full): ponto + nome na cor da conta */
+.full-conta { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px 0 7px; border-radius: var(--r-pill); background: var(--k-soft); color: var(--k-text); font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; }
+.full-conta-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--k); flex: none; }

@@ -382,6 +382,13 @@ Firmes e discretos; o peso vem da cor, não do tamanho.
 - **Página Tarefas (`tarefas.html`, no menu logo abaixo de Início):** abas Recebidas / Enviadas (todas as pessoas) e Painel de controle (só masters). O painel tem 5 números (abertas, atrasadas em vermelho, feitas em 7 dias em verde, tempo típico, % no prazo), a tabela "Por pessoa" (clicar filtra a lista) e a lista completa com De → Para, situação (Aberta, Atrasada, Feita, Feita com atraso), prazo, datas, tempo e "visto". Filtros por texto, situação, pessoa e período; exporta CSV do que está filtrado.
 - Chegada de tarefa nova e conclusão do que você pediu viram toast em tempo real. "Nova tarefa" é botão secundário no cabeçalho do painel (o preto continua sendo "Nova coleta").
 
+### Full · Envios e calendário (`full.html`)
+- Regras comuns em `full-comum.js` (`HubFull`): contas com cor fixa (Lisfer 1 amarelo, Lisfer 2 laranja, Lalfer Deus azul, Lalfer 2 turquesa), etapas (Planejado → Em preparação → Pronto para coleta → Coletado → Recebido no ML, mais Cancelado), checklist de 5 itens. Chip de conta `.full-conta` no `hub.css`.
+- Página: faixa de resumo (coletas em 7 dias, coleta atrasada em vermelho, a caminho do ML, envios do mês), lista com abas Próximos / A caminho do ML / Histórico e filtro por conta, e calendário mensal com um ponto por envio na cor da conta (ponto vazado = já coletado); clicar num dia filtra a lista e "Novo envio" já vem com a data.
+- Linha do envio: bloco de data (amarelo se é hoje, vermelho se a coleta passou), conta, "Full #número" em mono, observação, SKUs/unidades, divergência do recebimento, progresso do checklist, etapa e responsável.
+- Detalhe (`dialog.ed`): etapas clicáveis (feitas em verde, atual em tinta), informações editáveis, checklist com quem marcou e quando, itens do PDF com "Recebido no ML" por SKU e diferença, recebimento, histórico gravado pelo banco e exclusão em dois cliques. Abre direto por `full.html#envio=<id>`.
+- A Lista de Compras ganhou o painel "Salvar no controle do Full" (vincula cada PDF ao envio pelo número ou cria um envio). O Início mostra "Próximas coletas do Full" (14 dias + atrasadas).
+
 ### Inputs / Fields
 - **Estrutura:** `.field` em coluna com gap de 6px; rótulo acima (13px 500 `--text-2`), `*` obrigatório em `--danger`, dica `.hint` 12px.
 - **Campo (`.input`, `.select`, `.textarea`):** 38px, branco, borda `--border-strong`, raio 8px, 14px. Placeholder `#8C949C`, sempre em sans.

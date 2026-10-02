@@ -987,12 +987,15 @@
     el('cdFechar').focus();
     await carregarAtividade();
   }
-  function fecharDetalhe() { if (dlg.open) dlg.close(); }
-  dlg.addEventListener('close', () => {
+  function fecharDetalhe() { if (dlg.open) dlg.close(); aoFecharDetalhe(); }
+  dlg.addEventListener('close', aoFecharDetalhe);
+  // limpeza ao fechar (chamada direto e também pelo evento, que cobre o Esc)
+  function aoFecharDetalhe() {
+    if (!st.detalhe) return;
     st.detalhe = null;
     const voltar = origemFoco && document.contains(origemFoco) ? origemFoco : (origemFoco && origemFoco.dataset && board.querySelector('.kc[data-id="' + origemFoco.dataset.id + '"]'));
     if (voltar && voltar.focus) voltar.focus();
-  });
+  }
   el('cdFechar').addEventListener('click', fecharDetalhe);
   dlg.addEventListener('click', (e) => { if (e.target === dlg) fecharDetalhe(); });
 

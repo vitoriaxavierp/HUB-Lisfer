@@ -159,4 +159,17 @@ def gerar_lista_compras_de_varios(caminhos_pdfs, nomes_arquivos=None):
         "itens_consolidados": itens_finais,
         "lista_compras_por_marca": dict(por_marca),
         "pendentes_confirmacao": pendentes_confirmacao,
+        # o que estava em cada PDF, separado, para salvar no controle de envios
+        "envios": [
+            {
+                "arquivo": nome,
+                "frete": d.get("frete"),
+                "total_unidades_declarado": d.get("total_unidades_declarado"),
+                "itens": [
+                    {"sku": i["sku"], "titulo": i.get("nome"), "codigo_ml": i.get("codigo_ml"), "unidades": i["unidades"]}
+                    for i in d["itens"]
+                ],
+            }
+            for d, nome in zip(dados_pdfs, nomes_arquivos)
+        ],
     }

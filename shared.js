@@ -128,6 +128,7 @@ const HubUI = (function () {
 // fica no banco (RLS) e nas APIs; aqui só decidimos o que mostrar.
 const HubModulos = [
   { key: 'coletas', label: 'Coletas', grupo: 'Operação' },
+  { key: 'full_envios', label: 'Full · Envios e calendário', grupo: 'Operação' },
   { key: 'full_compras', label: 'Full · Lista de Compras', grupo: 'Operação' },
   { key: 'full_separacao', label: 'Full · Lista de Separação', grupo: 'Operação' },
   { key: 'importacao', label: 'Importação', grupo: 'Operação' },
@@ -150,6 +151,7 @@ const HubShell = (function () {
     { title: 'Operação', items: [
       { key: 'coletas', label: 'Coletas', href: 'coletas.html', icon: 'coletas', modulo: 'coletas' },
       { key: 'full', label: 'Full', href: 'full.html', icon: 'full', children: [
+        { key: 'full-envios', label: 'Envios e calendário', href: 'full.html', modulo: 'full_envios' },
         { key: 'full-compras', label: 'Lista de Compras', href: 'full-lista-compras.html', modulo: 'full_compras' },
         { key: 'full-separacao', label: 'Lista de Separação', href: 'full-lista-separacao.html', modulo: 'full_separacao' }
       ] },

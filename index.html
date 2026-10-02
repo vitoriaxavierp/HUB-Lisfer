@@ -12,6 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
 <script src="config.js"></script>
 <script src="shared.js"></script>
+<script src="full-comum.js"></script>
 <style>
   /* ---------- login ---------- */
   .login { min-height: 100vh; display: grid; grid-template-columns: minmax(360px, 5fr) 7fr; background: var(--surface); }
@@ -100,6 +101,21 @@
   .tool-list .chev svg { width: 16px; height: 16px; }
 
   @media (max-width: 1000px) { .home-grid { grid-template-columns: 1fr; } }
+
+  /* próximas coletas do Full */
+  .fl-list { list-style: none; margin: 0; padding: 0; }
+  .fl { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 12px; align-items: center; padding: 10px 20px; border-top: 1px solid var(--border); text-decoration: none; color: inherit; }
+  .fl-list li:first-child .fl { border-top: 0; }
+  .fl:hover { background: var(--surface-2); }
+  .fl-d { text-align: center; border-radius: var(--r-md); background: var(--surface-3); padding: 4px 0; }
+  .fl-d b { display: block; font-family: var(--font-display); font-size: 18px; font-weight: 800; line-height: 1.1; }
+  .fl-d small { font-size: var(--fs-2xs); font-weight: 600; color: var(--text-3); }
+  .fl.hoje .fl-d { background: var(--brand-soft); }
+  .fl.atr .fl-d { background: var(--danger-soft); }
+  .fl.atr .fl-d b, .fl.atr .fl-d small { color: var(--danger); }
+  .fl-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .fl-sub { font-size: var(--fs-xs); color: var(--text-3); margin-top: 3px; }
+  .fl-sub.atr { color: var(--danger); font-weight: 600; }
   /* ---------- tarefas ---------- */
   .tk-panel { margin-bottom: var(--s-6); }
   .tk-cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
@@ -281,6 +297,15 @@
         </section>
 
         <div class="home-side">
+          <section class="panel" aria-labelledby="flTitle" id="flPanel" hidden>
+            <div class="panel-head">
+              <h2 id="flTitle">Próximas coletas do Full</h2>
+              <span class="spacer"></span>
+              <a class="btn btn-ghost btn-sm" href="full.html">Ver calendário</a>
+            </div>
+            <ul class="fl-list" id="flList"></ul>
+          </section>
+
           <section class="panel" aria-labelledby="impTitle" id="impPanel">
             <div class="panel-head">
               <h2 id="impTitle">Próxima importação</h2>
@@ -677,6 +702,31 @@
   // a tarefa feita some depois de 1 dia, e os "há X min" ficam em dia
   setInterval(() => { if (tk.carregado && !el('hubScreen').hidden) carregarTarefas(); }, 5 * 60 * 1000);
 
+  // ---------------- próximas coletas do Full ----------------
+  async function loadFull() {
+    const box = el('flList');
+    const F = HubFull;
+    const ate = new Date(); ate.setDate(ate.getDate() + 14);
+    const ateIso = ate.getFullYear() + '-' + String(ate.getMonth() + 1).padStart(2, '0') + '-' + String(ate.getDate()).padStart(2, '0');
+    const { data, error } = await sb.from('full_envios').select('id, conta, numero, data_coleta, hora_coleta, etapa, checklist')
+      .in('etapa', ['planejado', 'preparacao', 'pronto']).lte('data_coleta', ateIso).order('data_coleta', { ascending: true }).limit(30);
+    if (error) { box.innerHTML = '<li class="tk-vazio">Não foi possível carregar os envios do Full.</li>'; return; }
+    const lista = data || [];
+    if (!lista.length) { box.innerHTML = '<li class="tk-vazio">Nenhuma coleta do Full nos próximos 14 dias.</li>'; return; }
+    const MES = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+    box.innerHTML = lista.map((e) => {
+      const [, m, d] = e.data_coleta.split('-');
+      const n = F.diasAte(e.data_coleta);
+      const feitos = F.CHECKLIST.filter((c) => (e.checklist || {})[c.key]).length;
+      const sub = n < 0 ? 'coleta atrasada · ainda em "' + F.etapa(e.etapa).nome + '"'
+        : 'coleta ' + F.quandoColeta(e.data_coleta) + (e.hora_coleta ? ' · ' + esc(e.hora_coleta) : '') + ' · ' + F.etapa(e.etapa).nome + ' · checklist ' + feitos + '/' + F.CHECKLIST.length;
+      return '<li><a class="fl' + (n === 0 ? ' hoje' : '') + (n < 0 ? ' atr' : '') + '" href="full.html#envio=' + e.id + '">' +
+        '<span class="fl-d"><b>' + d + '</b><small>' + MES[Number(m) - 1] + '</small></span>' +
+        '<span><span class="fl-top">' + F.chipConta(e.conta) + (e.numero ? '<span class="mono" style="font-size:var(--fs-xs)">#' + esc(e.numero) + '</span>' : '') + '</span>' +
+        '<div class="fl-sub' + (n < 0 ? ' atr' : '') + '">' + sub + '</div></span></a></li>';
+    }).join('');
+  }
+
   async function onLoggedIn(user) {
     await HubAuth.loadProfiles();
     const nome = HubAuth.nomeDe(user.id) || '';
@@ -690,16 +740,19 @@
     const podeColetas = HubAuth.pode('coletas');
     const podeImp = HubAuth.pode('importacao');
     const temTools = TOOLS.some((t) => HubAuth.pode(t.modulo));
+    const podeFull = HubAuth.pode('full_envios');
+    el('flPanel').hidden = !podeFull;
     el('hojePanel').hidden = !podeColetas;
     el('novaColetaBtn').hidden = !podeColetas;
     el('impPanel').hidden = !podeImp;
     el('toolsPanel').hidden = !temTools;
-    el('homeGrid').hidden = !(podeColetas || podeImp || temTools);
+    el('homeGrid').hidden = !(podeColetas || podeImp || temTools || podeFull);
     el('homeGrid').style.gridTemplateColumns = podeColetas ? '' : 'minmax(0, 1fr)';
     el('semModulos').hidden = !el('homeGrid').hidden;
     renderTools();
     if (podeColetas) loadToday();
     if (podeImp) loadArrival();
+    if (podeFull) loadFull();
     tk.me = user;
     tk.antes = null;
     carregarTarefas();

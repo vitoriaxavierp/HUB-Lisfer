@@ -12,6 +12,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
 <script src="config.js"></script>
 <script src="shared.js"></script>
+<script src="full-comum.js"></script>
 <style>
   .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .fact { padding: 16px 20px; border-left: 1px solid var(--border); min-width: 0; }
@@ -46,6 +47,15 @@
     .fact:nth-child(3) { border-left: 0; }
     .fact:nth-child(n+3) { border-top: 1px solid var(--border); }
   }
+  .vinc-list { list-style: none; margin: 0; padding: 0; }
+  .vinc { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px 20px; border-top: 1px solid var(--border); }
+  .vinc:first-child { border-top: 0; }
+  .vinc-num { font-family: var(--font-mono); font-weight: 500; }
+  .vinc-info { font-size: var(--fs-sm); color: var(--text-2); }
+  .vinc .select, .vinc .input { height: 32px; width: auto; min-width: 150px; }
+  .vinc .spacer { flex: 1; }
+  .vinc-ok { display: inline-flex; align-items: center; gap: 6px; color: var(--success); font-size: var(--fs-sm); font-weight: 600; }
+  .vinc-ok svg { width: 16px; height: 16px; }
 </style>
 </head>
 <body>
@@ -96,6 +106,11 @@
               <div class="fact"><div class="k">Unidades no envio</div><div class="v" id="statUnidades">—</div></div>
               <div class="fact hl"><div class="k">SKUs para comprar</div><div class="v" id="statComprar">—</div></div>
             </div>
+          </section>
+
+          <section class="panel" id="vinculoPanel" aria-labelledby="vincTitle" hidden>
+            <div class="panel-head"><h2 id="vincTitle">Salvar no controle do Full</h2><span class="panel-sub">Guarda os SKUs e as quantidades no envio e marca "Lista de compras feita"</span></div>
+            <ul class="vinc-list" id="vinculoLista"></ul>
           </section>
 
           <div class="alert alert-info" id="regraCurva">
@@ -220,8 +235,75 @@
     return 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  // ---------- salvar os itens no controle de envios do Full ----------
+  let enviosFull = null;
+  async function renderVinculo(r) {
+    const painel = el('vinculoPanel');
+    const lista = (r.envios || []).filter((e) => e.itens && e.itens.length);
+    if (!HubAuth.pode('full_envios') || !lista.length) { painel.hidden = true; return; }
+    const { data, error } = await sb.from('full_envios').select('*').order('data_coleta', { ascending: true }).limit(2000);
+    if (error) { console.error(error); painel.hidden = true; return; }
+    enviosFull = data || [];
+    painel.hidden = false;
+    const esc = HubUI.escapeHtml;
+    const abertosSemNumero = enviosFull.filter((e) => !e.numero && e.etapa !== 'cancelado' && e.etapa !== 'recebido');
+    el('vinculoLista').innerHTML = lista.map((pdf, i) => {
+      const unid = pdf.itens.reduce((s, x) => s + x.unidades, 0);
+      const achado = pdf.frete && enviosFull.find((e) => e.numero && e.numero.toUpperCase() === String(pdf.frete).toUpperCase());
+      const cab = '<span class="vinc-num">' + (pdf.frete ? 'Full #' + esc(pdf.frete) : esc(pdf.arquivo || 'PDF ' + (i + 1))) + '</span><span class="vinc-info">' + pdf.itens.length + ' SKUs · ' + unid + ' un.</span>';
+      if (achado) {
+        return '<li class="vinc" data-i="' + i + '">' + cab + '<span class="vinc-info">→ ' + HubFull.chipConta(achado.conta) + ' coleta ' + HubFull.dataCurta(achado.data_coleta) + '</span><span class="spacer"></span>' +
+          '<button type="button" class="btn btn-secondary btn-sm" data-salvar="' + i + '" data-envio="' + achado.id + '">Salvar itens neste envio</button></li>';
+      }
+      return '<li class="vinc" data-i="' + i + '">' + cab + '<span class="spacer"></span>' +
+        '<label class="sr-only" for="vEnv' + i + '">Envio</label><select class="select" id="vEnv' + i + '" data-alvo="' + i + '">' +
+          abertosSemNumero.map((e) => '<option value="' + e.id + '">' + esc(HubFull.conta(e.conta).nome) + ' · coleta ' + HubFull.dataCurta(e.data_coleta) + ' (sem número)</option>').join('') +
+          '<option value="__novo"' + (abertosSemNumero.length ? '' : ' selected') + '>Criar envio novo…</option></select>' +
+        '<span class="vinc-novo" data-novo="' + i + '"' + (abertosSemNumero.length ? ' hidden' : '') + '>' +
+          '<label class="sr-only" for="vConta' + i + '">Conta</label><select class="select" id="vConta' + i + '"><option value="">Conta</option>' + HubFull.CONTAS.map((c) => '<option value="' + c.conta + '">' + c.nome + '</option>').join('') + '</select> ' +
+          '<label class="sr-only" for="vData' + i + '">Data da coleta</label><input class="input" type="date" id="vData' + i + '"></span>' +
+        '<button type="button" class="btn btn-secondary btn-sm" data-salvar="' + i + '">Salvar</button></li>';
+    }).join('');
+  }
+  el('vinculoLista').addEventListener('change', (e) => {
+    const s = e.target.closest('[data-alvo]');
+    if (!s) return;
+    el('vinculoLista').querySelector('[data-novo="' + s.dataset.alvo + '"]').hidden = s.value !== '__novo';
+  });
+  el('vinculoLista').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-salvar]');
+    if (!b) return;
+    const i = Number(b.dataset.salvar);
+    const pdf = ultimoResultado.envios.filter((x) => x.itens && x.itens.length)[i];
+    let envio = b.dataset.envio ? enviosFull.find((x) => x.id === b.dataset.envio) : null;
+    const done = HubUI.busy(b, 'Salvando…');
+    try {
+      if (!envio) {
+        const alvo = el('vEnv' + i).value;
+        if (alvo === '__novo') {
+          const conta = el('vConta' + i).value, data = el('vData' + i).value;
+          if (!conta || !data) { done(); HubUI.toast('Escolha a conta e a data da coleta do envio novo.', { error: true }); (conta ? el('vData' + i) : el('vConta' + i)).focus(); return; }
+          const r = await sb.from('full_envios').insert({ conta, data_coleta: data, numero: pdf.frete || null, etapa: 'preparacao' }).select();
+          if (r.error) throw r.error;
+          envio = r.data[0];
+        } else envio = enviosFull.find((x) => x.id === alvo);
+      }
+      const err = await HubFull.salvarItens(envio, pdf.itens, { numero: pdf.frete, marcarCompras: true });
+      if (err) throw err;
+      done();
+      b.closest('.vinc').innerHTML = b.closest('.vinc').querySelector('.vinc-num').outerHTML + '<span class="vinc-ok">' + HubIcons.svg('checkCircle') + 'Salvo em ' + HubUI.escapeHtml(HubFull.conta(envio.conta).nome) + ' · coleta ' + HubFull.dataCurta(envio.data_coleta) + '</span>' +
+        '<span class="spacer"></span><a class="btn btn-ghost btn-sm" href="full.html#envio=' + envio.id + '">Abrir envio</a>';
+      HubUI.toast('Itens salvos no envio ' + HubFull.conta(envio.conta).nome + ' de ' + HubFull.dataCurta(envio.data_coleta) + '.');
+    } catch (err) {
+      done();
+      console.error(err);
+      HubUI.toast(/duplicate|unique/i.test(err.message || '') ? 'Esse número de Full já está em outro envio.' : 'Não foi possível salvar no controle do Full.', { error: true });
+    }
+  });
+
   function renderResultado(r) {
     ultimoResultado = r;
+    renderVinculo(r);
     el('resultado').hidden = false;
     el('statFrete').textContent = r.frete || '—';
     el('statProdutos').textContent = r.produtos_declarados != null ? formatarNumero(r.produtos_declarados) : '—';
