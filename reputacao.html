@@ -14,52 +14,88 @@
 <script src="shared.js"></script>
 <style>
   /* cores do termômetro do Mercado Livre (dado, não decoração) */
-  :root {
-    --rep-1: #D93025; --rep-2: #F57C00; --rep-3: #F2B705; --rep-4: #8BC34A; --rep-5: #2E9E4F;
+  :root { --rep-1: #D93025; --rep-2: #F57C00; --rep-3: #F2B705; --rep-4: #8BC34A; --rep-5: #2E9E4F; }
+
+  .sync-line { font-size: var(--fs-sm); color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+  .sync-line .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+  .sync-line.parcial .dot { background: var(--brand); }
+
+  /* resumo do topo */
+  .total { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(4, minmax(0, 1fr)); }
+  .t-cell { padding: 18px 20px; border-left: 1px solid var(--border); min-width: 0; }
+  .t-cell:first-child { border-left: 0; }
+  .t-k { font-size: var(--fs-xs); color: var(--text-3); font-weight: 500; }
+  .t-v { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-xl); line-height: 1.15; margin-top: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .t-cell.main .t-v { font-size: 30px; }
+  .t-s { font-size: var(--fs-xs); color: var(--text-2); margin-top: 2px; font-variant-numeric: tabular-nums; }
+  @media (max-width: 1100px) {
+    .total { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .t-cell.main { grid-column: 1 / -1; border-bottom: 1px solid var(--border); }
+    .t-cell:nth-child(2), .t-cell:nth-child(4) { border-left: 0; }
+    .t-cell:nth-child(n+4) { border-top: 1px solid var(--border); }
   }
-  .rep-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-6); }
-  @media (max-width: 980px) { .rep-grid { grid-template-columns: 1fr; } }
 
-  .rep-head { display: flex; align-items: flex-start; gap: 12px; padding: 18px 20px 0; }
-  .rep-head h2 { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 800; }
-  .rep-nick { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); margin-top: 2px; }
-  .rep-head .spacer { flex: 1; }
+  /* cartões por conta */
+  .contas { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--s-4); }
+  @media (max-width: 1240px) { .contas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) { .contas { grid-template-columns: 1fr; } }
+  .conta { display: flex; flex-direction: column; text-align: left; padding: 0; cursor: default; transition: border-color var(--t-fast) ease, box-shadow var(--t-fast) ease; }
+  .conta.is-ativa { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(17, 19, 21, 0.08); }
+  .c-top { width: 100%; border: 0; background: none; text-align: left; padding: 16px 16px 12px; cursor: pointer; border-radius: var(--r-lg) var(--r-lg) 0 0; }
+  .c-top:hover { background: var(--surface-2); }
+  .c-nome { display: flex; align-items: center; gap: 8px; }
+  .c-nome h2 { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 800; }
+  .c-nome .chev { margin-left: auto; color: var(--text-3); }
+  .c-nome .chev svg { width: 16px; height: 16px; }
+  .c-nick { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--text-3); margin-top: 1px; }
+  .c-fat { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-xl); margin-top: 10px; font-variant-numeric: tabular-nums; }
+  .c-sub { font-size: var(--fs-xs); color: var(--text-2); font-variant-numeric: tabular-nums; }
+  .termo { display: grid; grid-template-columns: repeat(5, 1fr); gap: 3px; margin-top: 12px; }
+  .termo span { height: 6px; border-radius: 2px; opacity: 0.22; }
+  .termo span:nth-child(1) { background: var(--rep-1); } .termo span:nth-child(2) { background: var(--rep-2); }
+  .termo span:nth-child(3) { background: var(--rep-3); } .termo span:nth-child(4) { background: var(--rep-4); }
+  .termo span:nth-child(5) { background: var(--rep-5); }
+  .termo span.on { opacity: 1; height: 8px; margin-top: -1px; }
+  .c-nivel { font-size: var(--fs-xs); font-weight: 600; margin-top: 6px; color: var(--text-2); }
+  .c-metr { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--border); margin-top: auto; }
+  .c-metr button {
+    border: 0; background: none; padding: 10px 8px; text-align: left; cursor: pointer; min-width: 0;
+    border-left: 1px solid var(--border); font: inherit;
+  }
+  .c-metr button:first-child { border-left: 0; border-radius: 0 0 0 var(--r-lg); }
+  .c-metr button:last-child { border-radius: 0 0 var(--r-lg) 0; }
+  .c-metr button:hover { background: var(--surface-2); }
+  .c-metr .k { display: block; font-size: var(--fs-2xs); color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .c-metr .v { display: block; font-weight: 700; font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
+  .c-metr .s { display: block; font-size: var(--fs-2xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .c-erro { padding: 0 16px 16px; }
 
-  .termo { padding: 16px 20px 4px; }
-  .termo-barra { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-  .termo-barra span { height: 10px; border-radius: 3px; opacity: 0.22; }
-  .termo-barra span:nth-child(1) { background: var(--rep-1); }
-  .termo-barra span:nth-child(2) { background: var(--rep-2); }
-  .termo-barra span:nth-child(3) { background: var(--rep-3); }
-  .termo-barra span:nth-child(4) { background: var(--rep-4); }
-  .termo-barra span:nth-child(5) { background: var(--rep-5); }
-  .termo-barra span.on { opacity: 1; height: 14px; margin-top: -2px; box-shadow: 0 1px 3px rgba(17, 19, 21, 0.2); }
-  .termo-txt { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-  .termo-nivel { font-weight: 700; font-size: var(--fs-md); }
-  .ml-badge { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 700; }
-  .ml-platinum { background: #E7EAEE; color: #3B4652; }
-  .ml-gold { background: #FBF0CF; color: #7A5600; }
-  .ml-silver { background: #EEF0F2; color: #59626C; }
-  .ml-badge svg { width: 13px; height: 13px; }
-
-  .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 16px 20px 0; border: 1px solid var(--border); border-radius: var(--r-md); }
-  .kpi { padding: 12px 14px; border-left: 1px solid var(--border); min-width: 0; }
-  .kpi:first-child { border-left: 0; }
-  .kpi .k { font-size: var(--fs-xs); color: var(--text-3); font-weight: 500; }
-  .kpi .v { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 800; margin-top: 2px; font-variant-numeric: tabular-nums; }
-  .kpi .s { font-size: var(--fs-xs); color: var(--text-2); font-variant-numeric: tabular-nums; }
-
-  .rep-foot { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 14px 20px 18px; font-size: var(--fs-sm); color: var(--text-2); }
-  .aval { flex: 1 1 220px; min-width: 0; }
-  .aval-barra { display: flex; height: 8px; border-radius: var(--r-pill); overflow: hidden; background: var(--surface-3); margin-top: 6px; }
-  .aval-barra .p { background: var(--success); }
-  .aval-barra .n { background: var(--border-strong); }
-  .aval-barra .x { background: var(--danger); }
-  .aval-leg { display: flex; gap: 12px; margin-top: 6px; font-size: var(--fs-xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
-  .aval-leg i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px; vertical-align: 0; }
-
-  .card-erro { padding: 20px; }
-  .meta-line { font-size: var(--fs-sm); color: var(--text-3); }
+  /* detalhe */
+  .tabs { display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .tabs button {
+    border: 0; background: none; padding: 12px 12px 10px; font: inherit; font-size: var(--fs-sm); font-weight: 600;
+    color: var(--text-2); border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; white-space: nowrap;
+  }
+  .tabs button:hover { color: var(--text); }
+  .tabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--ink); }
+  .tabs .count-pill { margin-left: 6px; }
+  .det-intro { padding: 16px 20px; display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; border-bottom: 1px solid var(--border); }
+  .det-intro .alert { flex: 1 1 360px; }
+  .mini { display: flex; gap: 22px; flex-wrap: wrap; }
+  .mini .k { font-size: var(--fs-xs); color: var(--text-3); }
+  .mini .v { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-lg); font-variant-numeric: tabular-nums; }
+  .det-tools { display: flex; gap: 10px; align-items: center; padding: 10px 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .det .table th:first-child, .det .table td:first-child { padding-left: 20px; }
+  .det .table td { vertical-align: top; }
+  .det .table a { color: var(--text); text-decoration: underline; text-decoration-color: var(--border-strong); text-underline-offset: 3px; }
+  .det .table a:hover { text-decoration-color: currentColor; }
+  .prod { min-width: 220px; }
+  .prod .t { font-weight: 500; }
+  .prod .s { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-3); }
+  .barra-pct { height: 4px; background: var(--surface-3); border-radius: 2px; margin-top: 4px; min-width: 60px; }
+  .barra-pct span { display: block; height: 100%; background: var(--ink); border-radius: 2px; }
+  .atraso-h { font-weight: 600; color: var(--danger); white-space: nowrap; }
+  .table-scroll { max-height: 640px; overflow: auto; }
 </style>
 </head>
 <body>
@@ -72,17 +108,40 @@
       <header class="page-header">
         <div class="page-header-text">
           <h1 class="page-title">Reputação das contas</h1>
-          <p class="page-desc">Termômetro e indicadores das 4 contas do Mercado Livre, direto do ML. Os indicadores contam os últimos 60 dias, o mesmo período que o ML usa para a cor.</p>
+          <p class="page-desc">Faturamento e reputação das 4 contas do Mercado Livre. Clique numa conta ou num indicador para ver os pedidos.</p>
+          <div class="sync-line" id="syncLine" style="margin-top:8px"></div>
         </div>
         <div class="page-actions">
-          <span class="meta-line" id="consultado"></span>
+          <div class="segmented" role="group" aria-label="Período">
+            <button type="button" data-periodo="mes" aria-pressed="true">Mês atual</button>
+            <button type="button" data-periodo="d60" aria-pressed="false">Últimos 60 dias</button>
+          </div>
           <button type="button" class="btn btn-secondary" id="atualizar"><span id="icAtualizar"></span>Atualizar</button>
         </div>
       </header>
 
       <div class="stack">
         <div class="alert alert-danger" id="erroGeral" role="alert" hidden><span id="icErro"></span><span id="erroMsg"></span></div>
-        <div class="rep-grid" id="grid" aria-live="polite"></div>
+
+        <section class="panel total" aria-label="Faturamento total" id="totalBox"></section>
+
+        <div class="contas" id="contas"></div>
+
+        <section class="panel det" id="detalhe" hidden aria-labelledby="detTitulo">
+          <div class="panel-head">
+            <h2 id="detTitulo">—</h2>
+            <span class="panel-sub" id="detSub"></span>
+            <span class="spacer"></span>
+            <button type="button" class="icon-btn" id="fecharDet" aria-label="Fechar detalhe"></button>
+          </div>
+          <div class="tabs" role="tablist" id="tabs">
+            <button type="button" role="tab" data-aba="faturamento">Produtos e faturamento</button>
+            <button type="button" role="tab" data-aba="atrasos">Atrasos no envio<span class="count-pill" id="n-atrasos">–</span></button>
+            <button type="button" role="tab" data-aba="reclamacoes">Reclamações<span class="count-pill" id="n-reclamacoes">–</span></button>
+            <button type="button" role="tab" data-aba="cancelamentos">Cancelamentos<span class="count-pill" id="n-cancelamentos">–</span></button>
+          </div>
+          <div id="detCorpo"></div>
+        </section>
       </div>
     </main>
   </div>
@@ -94,87 +153,306 @@
   const ic = HubIcons.svg;
   const esc = HubUI.escapeHtml;
 
-  const NIVEIS = {
-    '1_red': [1, 'Vermelho'], '2_orange': [2, 'Laranja'], '3_yellow': [3, 'Amarelo'],
-    '4_light_green': [4, 'Verde-claro'], '5_green': [5, 'Verde']
-  };
+  const CONTAS = [
+    { conta: '1', nome: 'Lisfer 1', empresa: 'Lisfer' },
+    { conta: '2', nome: 'Lisfer 2', empresa: 'Lisfer' },
+    { conta: '4', nome: 'Lalfer Deus', empresa: 'Lalfer' },
+    { conta: '3', nome: 'Lalfer 2', empresa: 'Lalfer' }
+  ];
+  const NOME = Object.fromEntries(CONTAS.map((c) => [c.conta, c.nome]));
+  const NIVEIS = { '1_red': [1, 'Vermelho'], '2_orange': [2, 'Laranja'], '3_yellow': [3, 'Amarelo'], '4_light_green': [4, 'Verde-claro'], '5_green': [5, 'Verde'] };
   const LIDER = { platinum: 'MercadoLíder Platinum', gold: 'MercadoLíder Gold', silver: 'MercadoLíder' };
+  const QUEM = { seller: 'Vendedor', buyer: 'Comprador', meli: 'Mercado Livre', mediator: 'Mercado Livre' };
+
+  const st = { periodo: 'mes', resumo: {}, rep: {}, cobertura: {}, sync: {}, conta: null, aba: 'faturamento', soReputacao: true };
 
   el('icAtualizar').outerHTML = ic('refresh');
   el('icErro').outerHTML = ic('alertCircle');
+  el('fecharDet').innerHTML = ic('x');
 
-  const pct = (t) => t == null ? '—' : (t * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+  // ---------------- formatos e datas ----------------
+  const brl = (v) => v == null ? '—' : 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const brl0 = (v) => v == null ? '—' : 'R$ ' + Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
   const int = (n) => n == null ? '—' : Number(n).toLocaleString('pt-BR');
-  const pct0 = (t) => t == null ? '—' : Math.round(t * 100) + '%';
-
-  function skeleton() {
-    el('grid').innerHTML = [0, 1, 2, 3].map(() =>
-      '<section class="panel"><div class="panel-body stack-sm">' +
-      '<span class="skeleton" style="height:20px;width:40%"></span>' +
-      '<span class="skeleton" style="height:12px;width:100%;margin-top:14px"></span>' +
-      '<span class="skeleton" style="height:70px;width:100%;margin-top:14px"></span>' +
-      '</div></section>').join('');
+  const pct = (t, casas) => t == null ? '—' : (t * 100).toLocaleString('pt-BR', { minimumFractionDigits: casas == null ? 2 : casas, maximumFractionDigits: casas == null ? 2 : casas }) + '%';
+  const iso = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const hoje = () => iso(new Date());
+  function menosDias(n) { const d = new Date(); d.setDate(d.getDate() - n); return iso(d); }
+  function periodo(p) {
+    const d = new Date();
+    return p === 'mes' ? { de: iso(new Date(d.getFullYear(), d.getMonth(), 1)), ate: hoje(), rotulo: d.toLocaleDateString('pt-BR', { month: 'long' }) }
+      : { de: menosDias(59), ate: hoje(), rotulo: 'últimos 60 dias' };
+  }
+  const dataBR = (s) => s ? new Date(s.length <= 10 ? s + 'T12:00:00' : s).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '—';
+  const dataHora = (s) => s ? new Date(s).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
+  function atrasoTexto(prazo, saiu) {
+    if (!prazo) return '';
+    const fim = saiu ? new Date(saiu) : new Date();
+    const h = Math.round((fim - new Date(prazo)) / 36e5);
+    if (h <= 0) return '';
+    return h < 48 ? h + ' h' : Math.round(h / 24) + ' dias';
+  }
+  const linkPedido = (p) => p ? '<a href="https://www.mercadolivre.com.br/vendas/' + encodeURIComponent(p) + '/detalhe" target="_blank" rel="noopener noreferrer">' + esc(p) + '</a>' : '—';
+  function linkMlb(m) {
+    const d = String(m || '').replace(/\D/g, '');
+    return d ? '<a href="https://produto.mercadolivre.com.br/MLB-' + d + '" target="_blank" rel="noopener noreferrer" class="mono">' + esc(m) + '</a>' : '—';
   }
 
-  function kpi(rotulo, m) {
-    return '<div class="kpi"><div class="k">' + rotulo + '</div>' +
-      '<div class="v">' + pct(m && m.taxa) + '</div>' +
-      '<div class="s">' + int(m && m.quantidade) + (m && m.quantidade === 1 ? ' caso' : ' casos') + '</div></div>';
+  // ---------------- carga ----------------
+  async function token() {
+    const { data } = await sb.auth.getSession();
+    return data.session ? data.session.access_token : null;
   }
 
-  function cartao(c) {
-    if (!c.ok) {
-      return '<section class="panel"><div class="rep-head"><div><h2>' + esc(c.nome) + '</h2></div></div>' +
-        '<div class="card-erro"><div class="alert alert-warning">' + ic('alert') + '<span>' + esc(c.erro || 'Não foi possível consultar esta conta.') + '</span></div></div></section>';
-    }
-    const [nivel, nomeNivel] = NIVEIS[c.nivel] || [0, 'Sem reputação'];
-    const barra = [1, 2, 3, 4, 5].map((i) => '<span class="' + (i === nivel ? 'on' : '') + '"></span>').join('');
-    const lider = c.mercadolider ? '<span class="ml-badge ml-' + esc(c.mercadolider) + '">' + ic('reputacao') + esc(LIDER[c.mercadolider] || c.mercadolider) + '</span>' : '';
-    const av = (c.historico && c.historico.avaliacoes) || {};
-    const p = av.positive || 0, n = av.neutral || 0, x = av.negative || 0;
-    return '<section class="panel" aria-label="' + esc(c.nome) + '">' +
-      '<div class="rep-head"><div><h2>' + esc(c.nome) + '</h2><div class="rep-nick">' + esc(c.apelido || '') + ' · ' + esc(c.empresa) + '</div></div>' +
-        '<span class="spacer"></span>' +
-        (c.perfil ? '<a class="btn btn-ghost btn-sm" href="' + esc(c.perfil) + '" target="_blank" rel="noopener noreferrer">' + ic('external') + 'Perfil no ML</a>' : '') + '</div>' +
-      '<div class="termo"><div class="termo-barra" role="img" aria-label="Termômetro: ' + esc(nomeNivel) + '">' + barra + '</div>' +
-        '<div class="termo-txt"><span class="termo-nivel">' + esc(nomeNivel) + '</span>' + lider + '</div></div>' +
-      '<div class="kpis">' + kpi('Reclamações', c.reclamacoes) + kpi('Atrasos no envio', c.atrasos) + kpi('Cancelamentos', c.cancelamentos) + '</div>' +
-      '<div class="rep-foot">' +
-        '<div><strong style="color:var(--text)">' + int(c.vendas_periodo) + '</strong> vendas nos últimos 60 dias</div>' +
-        '<div class="aval">Avaliações (histórico, ' + int(c.historico && c.historico.total) + ' vendas)' +
-          '<div class="aval-barra" role="img" aria-label="' + pct0(p) + ' positivas, ' + pct0(n) + ' neutras, ' + pct0(x) + ' negativas">' +
-          '<span class="p" style="width:' + (p * 100) + '%"></span><span class="n" style="width:' + (n * 100) + '%"></span><span class="x" style="width:' + (x * 100) + '%"></span></div>' +
-          '<div class="aval-leg"><span><i style="background:var(--success)"></i>' + pct0(p) + ' positivas</span><span><i style="background:var(--border-strong)"></i>' + pct0(n) + ' neutras</span><span><i style="background:var(--danger)"></i>' + pct0(x) + ' negativas</span></div>' +
-        '</div>' +
-      '</div></section>';
+  async function carregarReputacao() {
+    try {
+      const resp = await fetch('/api/reputacao', { headers: { Authorization: 'Bearer ' + await token() }, cache: 'no-store' });
+      const j = await resp.json();
+      if (!resp.ok) throw new Error(j.erro);
+      st.rep = Object.fromEntries((j.contas || []).map((c) => [c.conta, c]));
+    } catch (e) { console.error(e); st.rep = {}; }
+  }
+
+  async function carregarVendas() {
+    const p = periodo(st.periodo);
+    const [res, sync, cob] = await Promise.all([
+      sb.rpc('ml_resumo', { p_de: p.de, p_ate: p.ate }),
+      sb.from('ml_sync').select('chave,valor,atualizado_em'),
+      sb.rpc('ml_cobertura_envios', { p_de: menosDias(60) })
+    ]);
+    if (res.error) throw res.error;
+    st.resumo = Object.fromEntries((res.data || []).map((r) => [r.conta, r]));
+    st.sync = Object.fromEntries(((sync.data) || []).map((r) => [r.chave, r]));
+    st.cobertura = Object.fromEntries(((cob.data) || []).map((r) => [r.conta, r]));
   }
 
   async function carregar() {
     el('erroGeral').hidden = true;
-    skeleton();
-    const done = HubUI.busy(el('atualizar'), 'Consultando…');
+    const done = HubUI.busy(el('atualizar'), 'Atualizando…');
     try {
-      const { data } = await sb.auth.getSession();
-      const token = data.session ? data.session.access_token : null;
-      const resp = await fetch('/api/reputacao', { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' });
-      const json = await resp.json().catch(() => ({}));
-      if (!resp.ok) throw new Error(json.erro || 'Não foi possível consultar a reputação.');
-      el('grid').innerHTML = (json.contas || []).map(cartao).join('');
-      const quando = json.consultado_em ? new Date(json.consultado_em) : new Date();
-      el('consultado').textContent = 'Consultado às ' + quando.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      await Promise.all([carregarReputacao(), carregarVendas()]);
     } catch (e) {
       console.error(e);
-      el('grid').innerHTML = '';
-      el('erroMsg').textContent = e.message || 'Erro de conexão. Tente de novo.';
+      el('erroMsg').textContent = 'Não foi possível carregar o faturamento. Se acabou de configurar, confira se o script ml_dados.sql já foi rodado no Supabase.';
       el('erroGeral').hidden = false;
-    } finally {
-      done();
+    } finally { done(); }
+    render();
+    if (st.conta) abrir(st.conta, st.aba, true);
+  }
+
+  // ---------------- topo ----------------
+  function renderSync() {
+    const ex = st.sync.execucao;
+    const diasLidos = CONTAS.map((c) => Object.keys(((st.sync['vendas:' + c.conta] || {}).valor || {}).dias || {}).length);
+    const completo = diasLidos.every((n) => n >= 60);
+    const line = el('syncLine');
+    line.className = 'sync-line' + (completo ? '' : ' parcial');
+    if (!ex) { line.innerHTML = '<span class="dot"></span>Aguardando a primeira leitura do serviço de dados.'; return; }
+    const min = Math.max(0, Math.round((Date.now() - ex.valor.em) / 60000));
+    line.innerHTML = '<span class="dot"></span>Vendas atualizadas há ' + (min < 1 ? 'menos de 1 min' : min + ' min') +
+      (completo ? '' : ' · carregando histórico (' + Math.min(...diasLidos) + ' de 61 dias lidos em todas as contas)');
+  }
+
+  function renderTotal() {
+    const p = periodo(st.periodo);
+    const soma = (lista, campo) => lista.reduce((s, c) => s + Number((st.resumo[c.conta] || {})[campo] || 0), 0);
+    const fat = soma(CONTAS, 'faturamento'), ped = soma(CONTAS, 'pedidos');
+    const lis = CONTAS.filter((c) => c.empresa === 'Lisfer'), lal = CONTAS.filter((c) => c.empresa === 'Lalfer');
+    el('totalBox').innerHTML =
+      '<div class="t-cell main"><div class="t-k">Faturamento total · ' + esc(p.rotulo) + '</div><div class="t-v">' + brl(fat) + '</div><div class="t-s">' + dataBR(p.de) + ' a ' + dataBR(p.ate) + ' · pedidos pagos</div></div>' +
+      '<div class="t-cell"><div class="t-k">Pedidos</div><div class="t-v">' + int(ped) + '</div></div>' +
+      '<div class="t-cell"><div class="t-k">Ticket médio</div><div class="t-v">' + (ped ? brl(fat / ped) : '—') + '</div></div>' +
+      '<div class="t-cell"><div class="t-k">Lisfer (2 contas)</div><div class="t-v">' + brl0(soma(lis, 'faturamento')) + '</div><div class="t-s">' + (fat ? pct(soma(lis, 'faturamento') / fat, 0) + ' do total' : '') + '</div></div>' +
+      '<div class="t-cell"><div class="t-k">Lalfer (2 contas)</div><div class="t-v">' + brl0(soma(lal, 'faturamento')) + '</div><div class="t-s">' + (fat ? pct(soma(lal, 'faturamento') / fat, 0) + ' do total' : '') + '</div></div>';
+  }
+
+  function metr(conta, aba, rotulo, m) {
+    return '<button type="button" data-conta="' + conta + '" data-aba="' + aba + '"><span class="k">' + rotulo + '</span>' +
+      '<span class="v">' + (m ? pct(m.taxa) : '—') + '</span><span class="s">' + (m ? int(m.quantidade) + (m.quantidade === 1 ? ' caso' : ' casos') : '') + '</span></button>';
+  }
+
+  function renderContas() {
+    el('contas').innerHTML = CONTAS.map((c) => {
+      const r = st.rep[c.conta] || {};
+      const v = st.resumo[c.conta] || {};
+      const [nivel, nomeNivel] = NIVEIS[r.nivel] || [0, r.ok === false ? 'Reputação indisponível' : '—'];
+      const ticket = v.pedidos ? Number(v.faturamento) / Number(v.pedidos) : null;
+      return '<section class="panel conta' + (st.conta === c.conta ? ' is-ativa' : '') + '">' +
+        '<button type="button" class="c-top" data-conta="' + c.conta + '" data-aba="faturamento" aria-label="Ver detalhes de ' + esc(c.nome) + '">' +
+          '<div class="c-nome"><h2>' + esc(c.nome) + '</h2><span class="chev">' + ic('chevronRight') + '</span></div>' +
+          '<div class="c-nick">' + esc(r.apelido || c.empresa) + '</div>' +
+          '<div class="c-fat">' + brl(v.faturamento) + '</div>' +
+          '<div class="c-sub">' + int(v.pedidos) + ' pedidos · ticket ' + brl(ticket) + '</div>' +
+          '<div class="termo" role="img" aria-label="Termômetro: ' + esc(nomeNivel) + '">' + [1, 2, 3, 4, 5].map((i) => '<span class="' + (i === nivel ? 'on' : '') + '"></span>').join('') + '</div>' +
+          '<div class="c-nivel">' + esc(nomeNivel) + (r.mercadolider ? ' · ' + esc(LIDER[r.mercadolider] || r.mercadolider) : '') + '</div>' +
+        '</button>' +
+        '<div class="c-metr">' + metr(c.conta, 'reclamacoes', 'Reclamações', r.reclamacoes) + metr(c.conta, 'atrasos', 'Atrasos', r.atrasos) + metr(c.conta, 'cancelamentos', 'Cancelam.', r.cancelamentos) + '</div>' +
+      '</section>';
+    }).join('');
+  }
+
+  function render() { renderSync(); renderTotal(); renderContas(); }
+
+  // ---------------- detalhe ----------------
+  async function abrir(conta, aba, semRolar) {
+    st.conta = conta; st.aba = aba || 'faturamento';
+    history.replaceState(null, '', '#conta=' + conta + '&aba=' + st.aba);
+    renderContas();
+    const det = el('detalhe');
+    det.hidden = false;
+    const r = st.rep[conta] || {};
+    el('detTitulo').textContent = NOME[conta];
+    el('detSub').textContent = r.apelido || '';
+    document.querySelectorAll('#tabs button').forEach((b) => b.setAttribute('aria-selected', b.dataset.aba === st.aba ? 'true' : 'false'));
+    el('detCorpo').innerHTML = '<div class="panel-body"><span class="skeleton" style="height:14px;width:40%"></span><span class="skeleton" style="height:120px;margin-top:14px"></span></div>';
+    if (!semRolar) det.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    contarAbas(conta);
+    try {
+      if (st.aba === 'faturamento') await abaFaturamento(conta);
+      if (st.aba === 'atrasos') await abaAtrasos(conta);
+      if (st.aba === 'reclamacoes') await abaReclamacoes(conta);
+      if (st.aba === 'cancelamentos') await abaCancelamentos(conta);
+    } catch (e) {
+      console.error(e);
+      el('detCorpo').innerHTML = '<div class="panel-body"><div class="alert alert-danger">' + ic('alertCircle') + '<span>Não foi possível carregar este detalhe. Tente de novo.</span></div></div>';
     }
   }
 
+  async function contarAbas(conta) {
+    const d60 = menosDias(60);
+    const [a, rc, ca] = await Promise.all([
+      sb.from('ml_envios').select('shipment_id', { count: 'exact', head: true }).eq('conta', conta).eq('sla_status', 'delayed').gte('dia_venda', d60),
+      sb.from('ml_reclamacoes').select('reclamacao', { count: 'exact', head: true }).eq('conta', conta).gte('data', d60).eq('afeta_reputacao', true),
+      sb.from('ml_cancelamentos').select('pedido', { count: 'exact', head: true }).eq('conta', conta).gte('data', d60)
+    ]);
+    el('n-atrasos').textContent = a.count ?? '–';
+    el('n-reclamacoes').textContent = rc.count ?? '–';
+    el('n-cancelamentos').textContent = ca.count ?? '–';
+  }
+
+  function vazio(titulo, texto) {
+    return '<div class="empty">' + ic('checkCircle') + '<div class="empty-title">' + titulo + '</div><div class="empty-text">' + texto + '</div></div>';
+  }
+
+  async function abaFaturamento(conta) {
+    const p = periodo(st.periodo);
+    const v = st.resumo[conta] || {};
+    const { data, error } = await sb.rpc('ml_top_skus', { p_conta: conta, p_de: p.de, p_ate: p.ate, p_limite: 100 });
+    if (error) throw error;
+    const fat = Number(v.faturamento || 0);
+    const intro = '<div class="det-intro"><div class="mini">' +
+      '<div><div class="k">Faturamento · ' + esc(p.rotulo) + '</div><div class="v">' + brl(v.faturamento) + '</div></div>' +
+      '<div><div class="k">Pedidos</div><div class="v">' + int(v.pedidos) + '</div></div>' +
+      '<div><div class="k">Unidades</div><div class="v">' + int(v.unidades) + '</div></div>' +
+      '<div><div class="k">Ticket médio</div><div class="v">' + (v.pedidos ? brl(fat / v.pedidos) : '—') + '</div></div>' +
+      '</div></div>';
+    if (!data || !data.length) { el('detCorpo').innerHTML = intro + vazio('Sem vendas lidas neste período', 'Os dados aparecem conforme o serviço lê os pedidos do Mercado Livre.'); return; }
+    const max = Number(data[0].faturamento) || 1;
+    el('detCorpo').innerHTML = intro +
+      '<div class="table-scroll"><table class="table"><thead><tr><th>#</th><th>Produto</th><th class="num">Unidades</th><th class="num">Pedidos</th><th class="num">Preço médio</th><th class="num">Faturamento</th><th class="num">% da conta</th></tr></thead><tbody>' +
+      data.map((s, i) => '<tr><td class="muted">' + (i + 1) + '</td>' +
+        '<td class="prod"><div class="t">' + esc(s.titulo || '—') + '</div><div class="s">' + esc(s.sku) + (s.anuncios > 1 ? ' · ' + s.anuncios + ' anúncios' : '') + '</div></td>' +
+        '<td class="num">' + int(s.unidades) + '</td><td class="num">' + int(s.pedidos) + '</td>' +
+        '<td class="num">' + (s.unidades ? brl(s.faturamento / s.unidades) : '—') + '</td>' +
+        '<td class="num"><strong>' + brl(s.faturamento) + '</strong><div class="barra-pct"><span style="width:' + Math.max(2, s.faturamento / max * 100) + '%"></span></div></td>' +
+        '<td class="num">' + (fat ? pct(s.faturamento / fat, 1) : '—') + '</td></tr>').join('') +
+      '</tbody></table></div>';
+  }
+
+  async function abaAtrasos(conta) {
+    const r = st.rep[conta] || {};
+    const cob = st.cobertura[conta] || {};
+    const { data, error } = await sb.from('ml_envios').select('*').eq('conta', conta).eq('sla_status', 'delayed')
+      .gte('dia_venda', menosDias(60)).order('dia_venda', { ascending: false }).limit(500);
+    if (error) throw error;
+    const oficial = r.atrasos && r.atrasos.quantidade;
+    const cobertura = cob.total ? cob.verificados / cob.total : 0;
+    const intro = '<div class="det-intro">' +
+      '<div class="mini"><div><div class="k">ML conta (60 dias)</div><div class="v">' + int(oficial) + '</div></div>' +
+      '<div><div class="k">Taxa oficial</div><div class="v">' + (r.atrasos ? pct(r.atrasos.taxa) : '—') + '</div></div>' +
+      '<div><div class="k">Na lista abaixo</div><div class="v">' + int((data || []).length) + '</div></div>' +
+      '<div><div class="k">Envios conferidos</div><div class="v">' + pct(cobertura, 0) + '</div></div></div>' +
+      '<div class="alert alert-info">' + ic('info') + '<span><strong>O que é atraso:</strong> o pacote saiu depois da data-limite de despacho que o Mercado Livre deu ao vendedor. A classificação é do próprio ML, envio por envio. Envios do Full não entram, porque quem despacha é o ML.' +
+        (cobertura < 0.98 ? ' <strong>A conferência ainda está em andamento</strong> (' + int(cob.verificados) + ' de ' + int(cob.total) + ' envios), por isso a lista pode ter menos casos que o número oficial.' :
+          (oficial != null && oficial !== (data || []).length ? ' A lista pode diferir um pouco do número oficial porque o ML conta por data de despacho e a lista agrupa por data da venda.' : '')) + '</span></div></div>';
+    if (!data || !data.length) { el('detCorpo').innerHTML = intro + vazio('Nenhum envio atrasado encontrado', cobertura < 0.98 ? 'Ainda conferindo os envios dos últimos 60 dias.' : 'Todos os envios conferidos saíram no prazo.'); return; }
+    el('detCorpo').innerHTML = intro +
+      '<div class="table-scroll"><table class="table"><thead><tr><th>Venda</th><th>Pedido</th><th>Anúncio</th><th>Produto</th><th>Prazo para despachar</th><th>Saiu em</th><th>Atraso</th></tr></thead><tbody>' +
+      data.map((e) => '<tr><td>' + dataBR(e.dia_venda) + '</td><td class="mono">' + linkPedido(e.pedido) + '</td><td>' + linkMlb(e.mlb) + '</td>' +
+        '<td class="prod"><div class="t">' + esc(e.titulo || '—') + '</div><div class="s">' + esc(e.sku || '') + '</div></td>' +
+        '<td>' + dataHora(e.prazo) + '</td><td>' + (e.despachado_em ? dataHora(e.despachado_em) : '<span class="badge badge-danger">ainda não saiu</span>') + '</td>' +
+        '<td class="atraso-h">' + atrasoTexto(e.prazo, e.despachado_em) + '</td></tr>').join('') +
+      '</tbody></table></div>';
+  }
+
+  async function abaReclamacoes(conta) {
+    const r = st.rep[conta] || {};
+    let q = sb.from('ml_reclamacoes').select('*').eq('conta', conta).gte('data', menosDias(60)).order('data', { ascending: false }).limit(500);
+    if (st.soReputacao) q = q.eq('afeta_reputacao', true);
+    const { data, error } = await q;
+    if (error) throw error;
+    const intro = '<div class="det-intro"><div class="mini"><div><div class="k">ML conta (60 dias)</div><div class="v">' + int(r.reclamacoes && r.reclamacoes.quantidade) + '</div></div>' +
+      '<div><div class="k">Taxa oficial</div><div class="v">' + (r.reclamacoes ? pct(r.reclamacoes.taxa) : '—') + '</div></div></div>' +
+      '<div class="alert alert-info">' + ic('info') + '<span><strong>Reclamações que pesam:</strong> o ML só desconta da reputação as reclamações em que considera que o vendedor teve responsabilidade. As que ele resolveu a favor do vendedor ou cobriu não contam. Os casos vêm do módulo de Devoluções.</span></div></div>' +
+      '<div class="det-tools"><label class="check"><input type="checkbox" id="soRep"' + (st.soReputacao ? ' checked' : '') + '> Só as que afetam a reputação</label></div>';
+    if (!data || !data.length) { el('detCorpo').innerHTML = intro + vazio(st.soReputacao ? 'Nenhuma reclamação afetando a reputação' : 'Nenhuma reclamação', 'Últimos 60 dias.'); ligarSoRep(conta); return; }
+    el('detCorpo').innerHTML = intro +
+      '<div class="table-scroll"><table class="table"><thead><tr><th>Data</th><th>Pedido</th><th>Anúncio</th><th>Produto</th><th>Motivo</th><th>Desfecho</th><th class="num">Valor</th></tr></thead><tbody>' +
+      data.map((c) => '<tr><td>' + dataBR(c.data) + '</td><td class="mono">' + linkPedido(c.pedido) + '</td><td>' + linkMlb(c.mlb) + '</td>' +
+        '<td class="prod"><div class="t">' + esc(c.titulo || '—') + '</div><div class="s">' + esc(c.sku || '') + '</div></td>' +
+        '<td>' + esc(c.categoria || c.motivo || '—') + (c.afeta_reputacao ? '<br><span class="badge badge-danger">afeta a reputação</span>' : '') + '</td>' +
+        '<td>' + esc((c.desfecho || '').replace(/^\W+\s*/, '') || '—') + '</td><td class="num">' + brl(c.valor) + '</td></tr>').join('') +
+      '</tbody></table></div>';
+    ligarSoRep(conta);
+  }
+  function ligarSoRep(conta) {
+    const cb = el('soRep');
+    if (cb) cb.addEventListener('change', () => { st.soReputacao = cb.checked; abrir(conta, 'reclamacoes', true); });
+  }
+
+  async function abaCancelamentos(conta) {
+    const r = st.rep[conta] || {};
+    const { data, error } = await sb.from('ml_cancelamentos').select('*').eq('conta', conta).gte('data', menosDias(60)).order('data', { ascending: false }).limit(500);
+    if (error) throw error;
+    const doVendedor = (data || []).filter((c) => c.quem === 'seller').length;
+    const intro = '<div class="det-intro"><div class="mini"><div><div class="k">ML conta (60 dias)</div><div class="v">' + int(r.cancelamentos && r.cancelamentos.quantidade) + '</div></div>' +
+      '<div><div class="k">Taxa oficial</div><div class="v">' + (r.cancelamentos ? pct(r.cancelamentos.taxa) : '—') + '</div></div>' +
+      '<div><div class="k">Cancelados pelo vendedor</div><div class="v">' + int(doVendedor) + '</div></div></div>' +
+      '<div class="alert alert-info">' + ic('info') + '<span><strong>Cancelamentos que pesam:</strong> para a reputação, o ML conta os cancelamentos por responsabilidade do vendedor (ex.: sem estoque, etiqueta não impressa). A lista abaixo mostra todos, com quem cancelou.</span></div></div>';
+    if (!data || !data.length) { el('detCorpo').innerHTML = intro + vazio('Nenhum cancelamento', 'Últimos 60 dias.'); return; }
+    el('detCorpo').innerHTML = intro +
+      '<div class="table-scroll"><table class="table"><thead><tr><th>Data</th><th>Pedido</th><th>Produto</th><th>Quem cancelou</th><th>Motivo</th><th class="num">Valor</th></tr></thead><tbody>' +
+      data.map((c) => '<tr><td>' + dataBR(c.data) + '</td><td class="mono">' + linkPedido(c.pedido) + '</td>' +
+        '<td class="prod"><div class="t">' + esc(c.titulo || '—') + '</div><div class="s">' + esc(c.sku || '') + '</div></td>' +
+        '<td>' + (c.quem === 'seller' ? '<span class="badge badge-danger">Vendedor</span>' : esc(QUEM[c.quem] || c.quem || '—')) + '</td>' +
+        '<td>' + esc(c.motivo || '—') + '</td><td class="num">' + brl(c.valor) + '</td></tr>').join('') +
+      '</tbody></table></div>';
+  }
+
+  // ---------------- eventos ----------------
+  document.querySelectorAll('[data-periodo]').forEach((b) => b.addEventListener('click', async () => {
+    st.periodo = b.dataset.periodo;
+    document.querySelectorAll('[data-periodo]').forEach((x) => x.setAttribute('aria-pressed', x === b ? 'true' : 'false'));
+    try { await carregarVendas(); } catch (e) { console.error(e); }
+    render();
+    if (st.conta && st.aba === 'faturamento') abrir(st.conta, 'faturamento', true);
+  }));
+  el('contas').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-conta]');
+    if (b) abrir(b.dataset.conta, b.dataset.aba);
+  });
+  el('tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-aba]');
+    if (b && st.conta) abrir(st.conta, b.dataset.aba, true);
+  });
+  el('fecharDet').addEventListener('click', () => {
+    st.conta = null; el('detalhe').hidden = true; history.replaceState(null, '', location.pathname); renderContas();
+  });
   el('atualizar').addEventListener('click', carregar);
 
   HubAuth.requireAuth(() => {
+    const h = new URLSearchParams(location.hash.slice(1));
+    if (h.get('conta') && NOME[h.get('conta')]) { st.conta = h.get('conta'); st.aba = h.get('aba') || 'faturamento'; }
     el('appScreen').hidden = false;
     carregar();
   }, 'reputacao');
