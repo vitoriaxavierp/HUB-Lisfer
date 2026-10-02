@@ -22,7 +22,12 @@
   .perm td.mod { text-align: center; }
   .perm td:first-child, .perm th:first-child { padding-left: 20px; }
   .perm td:last-child, .perm th:last-child { padding-right: 16px; }
-  .u-nome { font-weight: 600; }
+  .u-nome { font-weight: 600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .u-nome .icon-btn { width: 24px; height: 24px; }
+  .u-nome .icon-btn svg { width: 13px; height: 13px; }
+  .tag-email { font-size: var(--fs-2xs); font-weight: 600; color: var(--warning-text); background: var(--warning-soft); border-radius: var(--r-pill); padding: 1px 7px; }
+  .nome-edit { display: flex; gap: 6px; align-items: center; margin-bottom: 2px; }
+  .nome-edit .input { height: 32px; width: 220px; }
   .u-mail { font-size: var(--fs-xs); color: var(--text-3); }
   .u-meta { font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; }
   .perm tr.is-master td { background: var(--brand-soft); }
@@ -71,7 +76,7 @@
       <div class="stack">
         <div class="alert alert-info">
           <span id="icInfo"></span>
-          <span><strong>Contas novas</strong> são criadas no Supabase (Authentication › Users › Add user) e começam <strong>sem nenhum módulo</strong>. Depois de criar, volte aqui para liberar os acessos. As administradoras (master) têm acesso total e não podem ser alteradas por esta tela.</span>
+          <span><strong>Contas novas</strong> são criadas no Supabase (Authentication › Users › Add user) e começam <strong>sem nenhum módulo</strong>. Depois de criar, volte aqui para colocar o nome da pessoa (lápis ao lado do nome) e liberar os acessos. As administradoras (master) têm acesso total e não podem ser alteradas por esta tela.</span>
         </div>
 
         <div class="alert alert-danger" id="erroBox" role="alert" hidden><span id="icErro"></span><span id="erroMsg"></span></div>
@@ -98,6 +103,7 @@
   const esc = HubUI.escapeHtml;
   let usuarios = [];
   let meuId = null;
+  let editandoNome = null;
 
   el('icSearch').outerHTML = ic('search');
   el('icInfo').outerHTML = ic('info');
@@ -150,10 +156,49 @@
         ? '<span class="badge badge-pending"><span class="dot"></span>Master</span>'
         : '<div class="row-actions"><button type="button" class="btn btn-ghost btn-sm" data-all="' + u.id + '">Liberar tudo</button>' +
           '<button type="button" class="btn btn-ghost btn-sm" data-none="' + u.id + '">Remover tudo</button></div>';
-      return '<tr class="' + cls + '"><td><div class="u-nome">' + esc(u.nome || '—') + (u.id === meuId ? ' <span class="muted" style="font-weight:400">(você)</span>' : '') + '</div>' +
+      const prefixo = (u.email || '').split('@')[0];
+      const nomeDoEmail = !u.nome || u.nome === prefixo;
+      const nomeCel = editandoNome === u.id
+        ? '<div class="nome-edit"><input class="input" data-nome-input="' + u.id + '" value="' + esc(u.nome || '') + '" maxlength="60" aria-label="Nome de ' + esc(u.email || '') + '" placeholder="Nome e sobrenome">' +
+          '<button type="button" class="btn btn-primary btn-sm" data-nome-salvar="' + u.id + '">Salvar</button>' +
+          '<button type="button" class="btn btn-ghost btn-sm" data-nome-cancelar="1">Cancelar</button></div>'
+        : '<div class="u-nome"><span>' + esc(u.nome || '—') + '</span>' + (u.id === meuId ? '<span class="muted" style="font-weight:400">(você)</span>' : '') +
+          (nomeDoEmail ? '<span class="tag-email" title="Ainda está com o nome tirado do e-mail">nome do e-mail</span>' : '') +
+          '<button type="button" class="icon-btn" data-nome="' + u.id + '" aria-label="Editar nome de ' + esc(u.email || '') + '" title="Editar nome">' + ic('pencil') + '</button></div>';
+      return '<tr class="' + cls + '"><td>' + nomeCel +
         '<div class="u-mail">' + esc(u.email || '') + '</div><div class="u-meta">' + quando(u.ultimo_acesso) + '</div></td>' + cells + '<td class="num">' + acoes + '</td></tr>';
     }).join('');
     el('tableWrap').innerHTML = '<table class="table perm">' + head + '<tbody>' + rows + '</tbody></table>';
+    if (editandoNome) {
+      const inp = el('tableWrap').querySelector('[data-nome-input]');
+      if (inp) { inp.focus(); inp.select(); }
+    }
+  }
+
+  async function salvarNome(userId) {
+    const u = usuarios.find((x) => x.id === userId);
+    const inp = el('tableWrap').querySelector('[data-nome-input="' + userId + '"]');
+    if (!u || !inp) return;
+    const nome = inp.value.replace(/\s+/g, ' ').trim();
+    if (!nome) { HubUI.toast('O nome não pode ficar vazio.', { error: true }); inp.focus(); return; }
+    if (nome === u.nome) { editandoNome = null; render(); return; }
+    const btn = el('tableWrap').querySelector('[data-nome-salvar="' + userId + '"]');
+    const done = HubUI.busy(btn, 'Salvando…');
+    const { data, error } = await sb.from('profiles').update({ nome: nome }).eq('id', userId).select('id');
+    done();
+    if (error || !data || !data.length) {
+      console.error(error);
+      HubUI.toast('Não foi possível salvar o nome. Confira se o script nomes.sql já foi rodado no Supabase.', { error: true, duration: 6000 });
+      return;
+    }
+    u.nome = nome;
+    editandoNome = null;
+    HubUI.toast('Nome atualizado para ' + nome + '.');
+    render();
+    if (userId === meuId) {
+      await HubAuth.loadProfiles();
+      HubShell.setUser(nome, HubAuth.user && HubAuth.user.email);
+    }
   }
 
   async function salvar(userId, modulos, origem) {
@@ -185,10 +230,21 @@
     salvar(u.id, HubModulos.map((m) => m.key).filter((k) => set.has(k)), cb.closest('.switch'));
   });
   el('tableWrap').addEventListener('click', (e) => {
+    const editar = e.target.closest('[data-nome]');
+    const salvarBtn = e.target.closest('[data-nome-salvar]');
+    if (editar) { editandoNome = editar.dataset.nome; render(); return; }
+    if (salvarBtn) { salvarNome(salvarBtn.dataset.nomeSalvar); return; }
+    if (e.target.closest('[data-nome-cancelar]')) { editandoNome = null; render(); return; }
     const all = e.target.closest('[data-all]');
     const none = e.target.closest('[data-none]');
     if (all) salvar(all.dataset.all, HubModulos.map((m) => m.key));
     if (none) salvar(none.dataset.none, []);
+  });
+  el('tableWrap').addEventListener('keydown', (e) => {
+    const inp = e.target.closest('[data-nome-input]');
+    if (!inp) return;
+    if (e.key === 'Enter') { e.preventDefault(); salvarNome(inp.dataset.nomeInput); }
+    if (e.key === 'Escape') { editandoNome = null; render(); }
   });
   el('busca').addEventListener('input', render);
 
