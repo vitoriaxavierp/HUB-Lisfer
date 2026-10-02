@@ -394,6 +394,10 @@ Firmes e discretos; o peso vem da cor, não do tamanho.
 - Tabela com status em pílula (azul em trânsito, amarelo aguardando postagem, verde entregue, vermelho problema) e o motivo do alerta logo abaixo; coleta do Hub com avatar da vendedora ou select "Vincular a uma coleta…"; rastreio em mono com botão de copiar; prazo em vermelho com "N dias úteis de atraso".
 - Clicar na linha abre a linha do tempo (datas do Melhor Envio + problemas percebidos pelo Hub) e os detalhes. O Início mostra "Melhor Envio: atenção" só quando há alerta.
 
+### Importação · produtos do embarque
+- Etapas: Em fabricação (neutro) → Pronto, aguardando embarque (azul) → No mar (amarelo) → Chegou no Brasil (roxo) → Recebido no estoque (verde).
+- Itens abertos como tabela de produtos: foto do anúncio do ML (56px, quadro neutro quando não há), SKU em mono + selo da marca, nome, peças chegando em Archivo, vendas dos últimos 60 dias somando as 4 contas (faturamento, pedidos, peças, chips por conta nas cores das contas) e a situação do anúncio (ativos em verde, sem anúncio ativo em amarelo, "No quadro: lista" na cor da lista, "Ainda não anunciado" em vermelho com "Adicionar ao quadro").
+
 ### Inputs / Fields
 - **Estrutura:** `.field` em coluna com gap de 6px; rótulo acima (13px 500 `--text-2`), `*` obrigatório em `--danger`, dica `.hint` 12px.
 - **Campo (`.input`, `.select`, `.textarea`):** 38px, branco, borda `--border-strong`, raio 8px, 14px. Placeholder `#8C949C`, sempre em sans.

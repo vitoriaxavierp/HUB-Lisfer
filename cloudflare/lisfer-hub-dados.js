@@ -192,10 +192,19 @@ async function rodar(env) {
     if (ok) { estado["devolucoes"] = { lido: Date.now(), ...ok }; alterado.add("devolucoes"); }
   }
 
-  // 3) envios — prazo de despacho como o ML informa
+  // 3) envios — prazo de despacho como o ML informa (deixa 10 chamadas para o passo 4)
   if (!ctx.parar && ctx.orcamento > 0) {
+    const reserva = Math.min(10, ctx.orcamento);
+    ctx.orcamento -= reserva;
     const n = await verificarEnvios(ctx, hoje);
     ctx.log.push("envios: " + n + " conferido(s)");
+    ctx.orcamento += reserva;
+  }
+
+  // 4) anúncios e foto de cada SKU que está chegando na Importação
+  if (!ctx.parar && ctx.orcamento >= 5) {
+    const n = await verificarSkusImportacao(ctx);
+    if (n) ctx.log.push("importação: " + n + " SKU(s) conferido(s) no ML");
   }
 
   estado["execucao"] = { em: Date.now(), ms: Date.now() - inicio, log: ctx.log, parou_por_limite: ctx.parar };
@@ -369,6 +378,54 @@ async function status(env) {
     }
   });
   return out;
+}
+
+// ---------------------------------------------------------------- Importação
+
+// Para cada SKU dos embarques, procura o anúncio nas 4 contas (pelo SKU do
+// vendedor) e guarda título, status, preço, estoque, link e a foto principal.
+// Reconfere uma vez por dia; os SKUs nunca conferidos vão primeiro.
+async function verificarSkusImportacao(ctx) {
+  const env = ctx.env;
+  const itens = (await sb(env, "GET", "importacao_itens?select=sku&limit=5000")) || [];
+  const skus = [...new Set(itens.map((i) => String(i.sku || "").trim().toUpperCase()).filter(Boolean))];
+  if (!skus.length) return 0;
+  const feitos = {};
+  ((await sb(env, "GET", "produto_ml?select=sku,verificado_em&limit=5000")) || []).forEach((r) => { feitos[r.sku] = Date.parse(r.verificado_em); });
+  const fila = skus.filter((k) => !feitos[k] || Date.now() - feitos[k] > 24 * HORA)
+    .sort((a, b) => (feitos[a] || 0) - (feitos[b] || 0));
+  const linhas = [];
+  for (const sku of fila) {
+    if (ctx.parar || ctx.orcamento < ORDEM.length + 1) break;
+    const achados = [];
+    let falhou = false;
+    for (const conta of ORDEM) {
+      const r = await ml(ctx, conta, "/users/" + CONTAS[conta] + "/items/search?seller_sku=" + encodeURIComponent(sku) + "&limit=20");
+      if (!r.ok) { falhou = true; break; }
+      ((r.dados && r.dados.results) || []).slice(0, 20).forEach((mlb) => achados.push({ conta, mlb: String(mlb) }));
+    }
+    if (falhou) break;
+    const anuncios = [];
+    let imagem = null;
+    if (achados.length) {
+      const conta = achados[0].conta;
+      const ids = achados.slice(0, 20).map((a) => a.mlb).join(",");
+      const r = await ml(ctx, conta, "/items?ids=" + ids + "&attributes=id,title,status,price,available_quantity,secure_thumbnail,thumbnail,permalink");
+      const corpo = r.ok && Array.isArray(r.dados) ? r.dados : [];
+      const porId = {};
+      corpo.forEach((x) => { const b = x && x.body; if (b && b.id) porId[b.id] = b; });
+      achados.forEach((a) => {
+        const b = porId[a.mlb] || {};
+        anuncios.push({ conta: a.conta, mlb: a.mlb, titulo: b.title || null, status: b.status || null,
+          preco: b.price != null ? Number(b.price) : null, estoque: b.available_quantity != null ? Number(b.available_quantity) : null,
+          link: b.permalink || null });
+        if (!imagem && (b.secure_thumbnail || b.thumbnail)) imagem = String(b.secure_thumbnail || b.thumbnail).replace(/^http:/, "https:");
+      });
+    }
+    linhas.push({ sku, anuncios, imagem, verificado_em: new Date().toISOString() });
+  }
+  if (linhas.length) await sb(env, "POST", "produto_ml?on_conflict=sku", linhas, "resolution=merge-duplicates");
+  return linhas.length;
 }
 
 // ---------------------------------------------------------------- Melhor Envio

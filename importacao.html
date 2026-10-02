@@ -14,7 +14,7 @@
 <script src="shared.js"></script>
 <style>
   /* resumo do topo: próxima chegada + contagem por status */
-  .overview { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr)); }
+  .overview { display: grid; grid-template-columns: minmax(0, 1.4fr) repeat(5, minmax(0, 1fr)); }
   .ov-cell { padding: 18px 20px; border-left: 1px solid var(--border); min-width: 0; }
   .ov-cell:first-child { border-left: 0; }
   .ov-label { font-size: var(--fs-xs); font-weight: 500; color: var(--text-3); display: flex; align-items: center; gap: 6px; }
@@ -28,6 +28,7 @@
   .st-fab { --st: #646D77; --st-bg: var(--surface-3); }
   .st-agu { --st: var(--info); --st-bg: var(--info-soft); }
   .st-tra { --st: var(--warning-text); --st-bg: var(--warning-soft); --st-dot: var(--brand); }
+  .st-bra { --st: #5634A8; --st-bg: #EEE9FB; --st-dot: #7048D1; }
   .st-che { --st: var(--success); --st-bg: var(--success-soft); }
   .ov-label .dot { background: var(--st-dot, var(--st)); }
 
@@ -70,20 +71,50 @@
   .items-box .table td { white-space: normal; }
   .items-total { display: flex; gap: 18px; padding: 10px 14px; border-top: 1px solid var(--border); font-size: var(--fs-sm); color: var(--text-2); background: var(--surface-2); }
   .items-total b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .prods td { vertical-align: top; }
+  .prod-img { width: 56px; height: 56px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--border); object-fit: contain; display: block; }
+  .prod-img.vazia { display: grid; place-items: center; color: var(--text-3); font-size: var(--fs-2xs); font-weight: 600; text-align: center; line-height: 1.2; }
+  .prod-img.vazia svg { width: 20px; height: 20px; }
+  .prod-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .prod-sku { font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 500; color: var(--text); }
+  .prod-nome { margin-top: 3px; color: var(--text-2); line-height: 1.35; max-width: 48ch; }
+  .prod-qtd { font-family: var(--font-display); font-size: var(--fs-lg); font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .prod-qtd small { font-family: var(--font-sans); font-size: var(--fs-xs); font-weight: 500; color: var(--text-3); }
+  .marca { font-size: var(--fs-2xs); font-weight: 600; padding: 1px 7px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--text-2); white-space: nowrap; }
+  .marca-lisfer { background: var(--brand-soft); color: var(--brand-text); }
+  .marca-nacional { background: var(--info-soft); color: var(--info); }
+  .marca-loxer { background: var(--ink); color: #FFFFFF; }
+  .ml-fat { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ml-sub { font-size: var(--fs-xs); color: var(--text-3); margin-top: 2px; }
+  .ml-contas { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+  .ml-conta { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px; border-radius: var(--r-pill); background: var(--k-soft); color: var(--k-text); font-size: var(--fs-2xs); font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .ml-conta i { width: 6px; height: 6px; border-radius: 50%; background: var(--k); }
+  .an-st { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; }
+  .an-st .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .an-ativo { background: var(--success-soft); color: var(--success); }
+  .an-pausado { background: var(--warning-soft); color: var(--warning-text); }
+  .an-nao { background: var(--danger-soft); color: var(--danger); }
+  .an-quadro { background: var(--k-soft); color: var(--k-text); }
+  .an-quadro .dot { background: var(--k); }
+  .an-procura { background: var(--surface-3); color: var(--text-3); }
+  .an-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; font-size: var(--fs-xs); }
+  .an-links a { color: var(--text-2); }
+  .prods .btn { margin-top: 6px; }
+  .zero { color: var(--text-3); }
   .add-items { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; }
   .add-items .textarea { font-family: var(--font-mono); font-size: var(--fs-xs); min-height: 64px; }
   .add-items .textarea::placeholder, .f-itens .textarea::placeholder { font-family: var(--font-sans); font-size: var(--fs-sm); }
 
   @media (max-width: 1180px) {
-    .overview { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .overview { grid-template-columns: repeat(5, minmax(0, 1fr)); }
     .ov-next { grid-column: 1 / -1; border-bottom: 1px solid var(--border); }
     .ov-cell:nth-child(2) { border-left: 0; }
   }
   @media (max-width: 1000px) { .ships .hide-sm { display: none; } }
   @media (max-width: 640px) {
     .overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .ov-cell:nth-child(4) { border-left: 0; }
-    .ov-cell:nth-child(n+4) { border-top: 1px solid var(--border); }
+    .ov-cell:nth-child(2n) { border-left: 0; }
+    .ov-cell:nth-child(n+3) { border-top: 1px solid var(--border); }
   }
 </style>
 </head>
@@ -119,7 +150,7 @@
           <form id="entryForm" novalidate>
             <div class="panel-body form-grid">
               <div class="field f-pi">
-                <label for="piInput">Nº do PI<span class="req">*</span></label>
+                <label for="piInput">Nº do pedido (PI)<span class="req">*</span></label>
                 <input class="input mono" type="text" id="piInput" placeholder="ex.: 26SKF10-02FB" autocomplete="off" required>
               </div>
               <div class="field f-forn">
@@ -130,9 +161,10 @@
                 <label for="statusInput">Status</label>
                 <select class="select" id="statusInput">
                   <option value="em_fabricacao">Em fabricação</option>
-                  <option value="aguardando_embarque">Aguardando embarque</option>
-                  <option value="em_transito">Em trânsito</option>
-                  <option value="chegou">Chegou</option>
+                  <option value="aguardando_embarque">Pronto, aguardando embarque</option>
+                  <option value="em_transito">No mar</option>
+                  <option value="no_brasil">Chegou no Brasil</option>
+                  <option value="chegou">Recebido no estoque</option>
                 </select>
               </div>
               <div class="field f-data">
@@ -165,8 +197,9 @@
           </div>
           <div class="ov-cell st-fab"><div class="ov-label"><span class="dot"></span>Em fabricação</div><div class="ov-value" id="cnt-em_fabricacao">–</div></div>
           <div class="ov-cell st-agu"><div class="ov-label"><span class="dot"></span>Aguardando embarque</div><div class="ov-value" id="cnt-aguardando_embarque">–</div></div>
-          <div class="ov-cell st-tra"><div class="ov-label"><span class="dot"></span>Em trânsito</div><div class="ov-value" id="cnt-em_transito">–</div></div>
-          <div class="ov-cell st-che"><div class="ov-label"><span class="dot"></span>Chegaram</div><div class="ov-value" id="cnt-chegou">–</div></div>
+          <div class="ov-cell st-tra"><div class="ov-label"><span class="dot"></span>No mar</div><div class="ov-value" id="cnt-em_transito">–</div></div>
+          <div class="ov-cell st-bra"><div class="ov-label"><span class="dot"></span>Chegou no Brasil</div><div class="ov-value" id="cnt-no_brasil">–</div></div>
+          <div class="ov-cell st-che"><div class="ov-label"><span class="dot"></span>Recebidos</div><div class="ov-value" id="cnt-chegou">–</div></div>
         </section>
 
         <section class="panel" aria-labelledby="listTitle">
@@ -190,8 +223,8 @@
 (function () {
   const ic = HubIcons.svg;
   const escapeHtml = HubUI.escapeHtml;
-  const STATUS_LABELS = { em_fabricacao: 'Em fabricação', aguardando_embarque: 'Aguardando embarque', em_transito: 'Em trânsito', chegou: 'Chegou' };
-  const STATUS_CLASS = { em_fabricacao: 'st-fab', aguardando_embarque: 'st-agu', em_transito: 'st-tra', chegou: 'st-che' };
+  const STATUS_LABELS = { em_fabricacao: 'Em fabricação', aguardando_embarque: 'Pronto, aguardando embarque', em_transito: 'No mar', no_brasil: 'Chegou no Brasil', chegou: 'Recebido no estoque' };
+  const STATUS_CLASS = { em_fabricacao: 'st-fab', aguardando_embarque: 'st-agu', em_transito: 'st-tra', no_brasil: 'st-bra', chegou: 'st-che' };
 
   let currentUser = null;
   let channelShip = null;
@@ -338,16 +371,137 @@
 
   // ---------------- lista ----------------
 
+  // ---------------- produtos: foto, vendas no ML e situação do anúncio ----------------
+  const CONTAS_ML = [
+    { conta: '1', nome: 'Lisfer 1', cor: 'amarelo' }, { conta: '2', nome: 'Lisfer 2', cor: 'laranja' },
+    { conta: '4', nome: 'Lalfer Deus', cor: 'azul' }, { conta: '3', nome: 'Lalfer 2', cor: 'turquesa' }
+  ];
+  const nomeConta = (c) => (CONTAS_ML.find((x) => x.conta === String(c)) || { nome: 'Conta ' + c }).nome;
+  const produtos = {};           // SKU -> resultado de importacao_produtos
+  const carregando = new Set();
+  let produtosErro = null;
+  const brl = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+
+  // Regras de SKU da Lisfer: LF- é Lisfer importação, exceto LF-0100,
+  // LF-0102, LF-0103 e LF-0104 (Lisfer nacional); LX- é Loxer (Lalfer).
+  const NACIONAIS = ['LF-0100', 'LF-0102', 'LF-0103', 'LF-0104'];
+  function marcaDoSku(sku) {
+    const s = String(sku || '').trim().toUpperCase();
+    if (s.startsWith('LX-')) return { cls: 'marca-loxer', txt: 'Loxer' };
+    if (s.startsWith('LF-')) {
+      const cod = s.match(/^LF-\d{4}/);
+      if (cod && NACIONAIS.indexOf(cod[0]) !== -1) return { cls: 'marca-nacional', txt: 'Lisfer nacional' };
+      return { cls: 'marca-lisfer', txt: 'Lisfer importação' };
+    }
+    return null;
+  }
+
+  async function carregarProdutos(shipId) {
+    const skus = [...new Set((itensByShip[shipId] || []).map((i) => String(i.sku).trim().toUpperCase()))]
+      .filter((k) => !(k in produtos) && !carregando.has(k));
+    if (!skus.length) return;
+    skus.forEach((k) => carregando.add(k));
+    const { data, error } = await sb.rpc('importacao_produtos', { p_skus: skus });
+    skus.forEach((k) => carregando.delete(k));
+    if (error) {
+      console.error(error);
+      produtosErro = /importacao_produtos|does not exist|schema cache/i.test(error.message || '')
+        ? 'Para ver fotos, vendas e anúncios, rode o arquivo supabase/importacao_produtos.sql no Supabase.'
+        : 'Não foi possível carregar as vendas e os anúncios destes produtos.';
+      render();
+      return;
+    }
+    produtosErro = null;
+    (data || []).forEach((r) => { produtos[r.sku] = r; });
+    skus.forEach((k) => { if (!(k in produtos)) produtos[k] = null; });
+    render();
+  }
+
+  function fotoHtml(sku, r) {
+    if (r && r.imagem) return '<img class="prod-img" src="' + escapeHtml(r.imagem) + '" alt="" loading="lazy" referrerpolicy="no-referrer">';
+    return '<span class="prod-img vazia" title="Sem foto: o produto ainda não tem anúncio no Mercado Livre">' + ic('full') + '</span>';
+  }
+
+  function vendasHtml(r) {
+    if (!r) return '<span class="zero">—</span>';
+    if (!Number(r.pecas) && !Number(r.faturamento)) return '<span class="zero">Sem vendas nos últimos 60 dias</span>';
+    const pc = r.por_conta || {};
+    return '<div class="ml-fat">' + brl(r.faturamento) + '</div>' +
+      '<div class="ml-sub">' + fmtInt(r.pedidos) + (Number(r.pedidos) === 1 ? ' pedido' : ' pedidos') + ' · ' + fmtInt(r.pecas) + ' peças vendidas · 60 dias' +
+        (r.ultima_venda ? ' · última venda ' + r.ultima_venda.split('-').reverse().slice(0, 2).join('/') : '') + '</div>' +
+      (r.faturamento_kits_mistos ? '<div class="ml-sub">Inclui peças vendidas em kits com outros produtos (o faturamento desses kits não entra).</div>' : '') +
+      '<div class="ml-contas">' + CONTAS_ML.filter((c) => pc[c.conta] && (Number(pc[c.conta].pecas) || Number(pc[c.conta].faturamento))).map((c) =>
+        '<span class="ml-conta k-' + c.cor + '" title="' + c.nome + ': ' + fmtInt(pc[c.conta].pedidos) + ' pedidos, ' + fmtInt(pc[c.conta].pecas) + ' peças"><i></i>' + c.nome + ' ' + brl(pc[c.conta].faturamento) + '</span>').join('') + '</div>';
+  }
+
+  function anuncioHtml(sku, it, r) {
+    const anuncios = (r && r.anuncios) || [];
+    if (anuncios.length) {
+      const ativos = anuncios.filter((a) => a.status === 'active').length;
+      const pausados = anuncios.filter((a) => a.status === 'paused').length;
+      const outros = anuncios.length - ativos - pausados;
+      const selo = ativos ? '<span class="an-st an-ativo"><span class="dot"></span>' + ativos + (ativos === 1 ? ' anúncio ativo' : ' anúncios ativos') + '</span>'
+        : '<span class="an-st an-pausado"><span class="dot"></span>Anunciado, sem anúncio ativo</span>';
+      const contas = [...new Set(anuncios.map((a) => nomeConta(a.conta)))].join(', ');
+      return selo + '<div class="ml-sub">' + escapeHtml(contas) + (pausados ? ' · ' + pausados + ' pausado(s)' : '') + (outros ? ' · ' + outros + ' encerrado(s)/outros' : '') + '</div>' +
+        '<div class="an-links">' + anuncios.filter((a) => a.link).slice(0, 4).map((a) => '<a href="' + escapeHtml(a.link) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(a.mlb) + '</a>').join('') + '</div>';
+    }
+    const q = r && r.quadro;
+    if (q) {
+      return '<span class="an-st an-quadro k-' + escapeHtml(q.cor || 'cinza') + '"><span class="dot"></span>' + (q.pronto ? 'Pronto no quadro' : 'No quadro: ' + escapeHtml(q.lista || '—')) + '</span>' +
+        '<div class="ml-sub">' + (q.responsavel ? 'com ' + escapeHtml(q.responsavel) : 'sem responsável') + (q.prioridade ? ' · prioridade ' + escapeHtml(q.prioridade) : '') +
+          (q.pronto && r && r.verificado_em ? ' · ainda não encontrado nas 4 contas do Mercado Livre' : '') + '</div>' +
+        (HubAuth.pode('anuncios') ? '<a class="btn btn-ghost btn-sm" href="anuncios.html">Abrir o quadro</a>' : '');
+    }
+    if (r && !r.verificado_em && !Number(r.pecas)) {
+      return '<span class="an-st an-procura"><span class="dot"></span>Procurando no Mercado Livre…</span><div class="ml-sub">O Hub confere as 4 contas automaticamente.</div>';
+    }
+    if (r && !Number(r.pecas)) {
+      return '<span class="an-st an-nao"><span class="dot"></span>Ainda não anunciado</span><div class="ml-sub">Não está em nenhuma das 4 contas nem no quadro de Anúncios novos.</div>' +
+        (HubAuth.pode('anuncios') ? '<button type="button" class="btn btn-secondary btn-sm" data-quadro="' + escapeHtml(sku) + '" data-nome="' + escapeHtml(it.produto) + '">' + ic('plus') + 'Adicionar ao quadro</button>' : '');
+    }
+    return r ? '<span class="an-st an-ativo"><span class="dot"></span>Vendido no Mercado Livre</span>' : '<span class="zero">—</span>';
+  }
+
   function itensTable(shipId) {
     const itens = itensByShip[shipId] || [];
     if (!itens.length) return '<div class="empty" style="padding:24px 16px"><div class="empty-title">Nenhum item cadastrado</div><div class="empty-text">Cole os itens abaixo no formato SKU;Produto;Quantidade.</div></div>';
     const total = itens.reduce((s, it) => s + (it.quantidade || 0), 0);
-    const rows = itens.map((it) =>
-      '<tr><td class="mono">' + escapeHtml(it.sku) + '</td><td>' + escapeHtml(it.produto) + '</td><td class="num">' + fmtInt(it.quantidade) + '</td></tr>'
-    ).join('');
-    return '<div class="table-wrap"><table class="table table-compact"><thead><tr><th>SKU</th><th>Produto</th><th class="num">Quantidade</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
-      '<div class="items-total"><span><b>' + itens.length + '</b> SKUs</span><span><b>' + fmtInt(total) + '</b> unidades</span></div>';
+    const pend = itens.some((it) => !(String(it.sku).trim().toUpperCase() in produtos));
+    const rows = itens.slice().sort((a, b) => b.quantidade - a.quantidade).map((it) => {
+      const sku = String(it.sku).trim().toUpperCase();
+      const r = produtos[sku];
+      const carregou = sku in produtos;
+      const m = marcaDoSku(sku);
+      return '<tr><td style="width:72px">' + (carregou ? fotoHtml(sku, r) : '<span class="skeleton" style="width:56px;height:56px;display:block"></span>') + '</td>' +
+        '<td><div class="prod-top"><span class="prod-sku">' + escapeHtml(it.sku) + '</span>' + (m ? '<span class="marca ' + m.cls + '">' + m.txt + '</span>' : '') + '</div>' +
+          '<div class="prod-nome">' + escapeHtml(it.produto) + '</div></td>' +
+        '<td class="num"><span class="prod-qtd">' + fmtInt(it.quantidade) + ' <small>peças</small></span></td>' +
+        '<td>' + (carregou ? vendasHtml(r) : '<span class="skeleton" style="height:12px;width:120px;display:block"></span>') + '</td>' +
+        '<td>' + (carregou ? anuncioHtml(sku, it, r) : '<span class="skeleton" style="height:22px;width:130px;display:block;border-radius:999px"></span>') + '</td></tr>';
+    }).join('');
+    if (pend) setTimeout(() => carregarProdutos(shipId), 0);
+    return (produtosErro ? '<div class="alert alert-warning" style="margin:12px">' + ic('alert') + '<span>' + escapeHtml(produtosErro) + '</span></div>' : '') +
+      '<div class="table-wrap"><table class="table prods"><thead><tr><th><span class="sr-only">Foto</span></th><th>Produto</th><th class="num">Chegando</th><th>Mercado Livre · 4 contas · 60 dias</th><th>Anúncio</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="items-total"><span><b>' + itens.length + '</b> SKUs</span><span><b>' + fmtInt(total) + '</b> peças chegando</span></div>';
   }
+
+  // cria o cartão no quadro de Anúncios novos (primeira lista)
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-quadro]');
+    if (!b) return;
+    const done = HubUI.busy(b, 'Adicionando…');
+    const { data: cols, error: e1 } = await sb.from('anuncios_colunas').select('id').order('ordem', { ascending: true }).limit(1);
+    const { data: ult } = await sb.from('anuncios').select('posicao').eq('coluna_id', cols && cols[0] && cols[0].id).order('posicao', { ascending: false }).limit(1);
+    const posicao = ((ult && ult[0] && ult[0].posicao) || 0) + 1000;
+    const { error } = e1 || !cols || !cols.length ? { error: e1 || new Error('sem listas') }
+      : await sb.from('anuncios').insert({ sku: b.dataset.quadro, produto: b.dataset.nome, coluna_id: cols[0].id, posicao });
+    done();
+    if (error) { console.error(error); HubUI.toast('Não foi possível adicionar ao quadro.', { error: true }); return; }
+    delete produtos[b.dataset.quadro];
+    HubUI.toast(b.dataset.quadro + ' adicionado ao quadro de Anúncios novos.');
+    render();
+  });
 
   function shipRows(ship) {
     const frag = document.createDocumentFragment();
@@ -459,7 +613,7 @@
     wrap.className = 'table-wrap';
     const table = document.createElement('table');
     table.className = 'table ships';
-    table.innerHTML = '<thead><tr><th>Fornecedor / PI</th><th>Status</th><th>Previsão de chegada</th><th class="num hide-sm">Itens</th><th class="num hide-sm">Valor</th><th class="num"><span class="sr-only">Ações</span></th></tr></thead>';
+    table.innerHTML = '<thead><tr><th>Fornecedor / pedido (PI)</th><th>Status</th><th>Previsão de chegada</th><th class="num hide-sm">Itens</th><th class="num hide-sm">Valor</th><th class="num"><span class="sr-only">Ações</span></th></tr></thead>';
     const tbody = document.createElement('tbody');
     ships.forEach((s) => tbody.appendChild(shipRows(s)));
     table.appendChild(tbody);
