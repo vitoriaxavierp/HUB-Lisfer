@@ -17,7 +17,7 @@
  * Configuração na Cloudflare (Settings deste Worker):
  *   - Service binding  ML                  -> lisfer-ia-mercadolivre
  *   - Variável         SUPABASE_URL        -> https://<projeto>.supabase.co
- *   - Secret           SUPABASE_SERVICE_KEY-> chave service_role do Supabase
+ *   - Secret           SUPABASE_SERVICE_KEY-> chave secreta do Supabase (sb_secret_... ou service_role)
  *   - Secret           CHAVE               -> senha para /status e /rodar
  *   - (opcional)       ORCAMENTO           -> chamadas ao ML por execução (padrão 24;
  *                                             no plano pago da Cloudflare pode subir para 60)
@@ -91,11 +91,11 @@ async function relatorioDevolucoes(ctx, params) {
 }
 
 async function sb(env, metodo, caminho, corpo, prefer) {
-  const headers = {
-    apikey: env.SUPABASE_SERVICE_KEY,
-    Authorization: "Bearer " + env.SUPABASE_SERVICE_KEY,
-    "Content-Type": "application/json"
-  };
+  const chave = String(env.SUPABASE_SERVICE_KEY || "").trim();
+  const headers = { apikey: chave, "Content-Type": "application/json" };
+  // chave antiga (JWT service_role) vai também no Authorization; a nova
+  // (sb_secret_...) só no apikey
+  if (chave.startsWith("eyJ")) headers.Authorization = "Bearer " + chave;
   if (prefer) headers.Prefer = prefer;
   const r = await fetch(env.SUPABASE_URL.replace(/\/$/, "") + "/rest/v1/" + caminho, {
     method: metodo,
