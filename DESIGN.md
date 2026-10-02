@@ -368,6 +368,12 @@ Firmes e discretos; o peso vem da cor, não do tamanho.
 - **Sem acesso (`HubShell.semAcesso`):** quando a pessoa abre um módulo que não tem liberado, o conteúdo da página vira um painel vazio centralizado com ícone de cadeado, título "Você não tem acesso a este módulo" e botão "Voltar ao início". O menu lateral só mostra o que está liberado.
 - **Preço ideal (`.ideal-box`, só em Lucratividade):** aparece logo abaixo do `.destaque` quando o lucro fica abaixo da meta de 10% ou no prejuízo. Fundo `--warning-soft` com borda âmbar, rótulo em `--warning-text`, valor em Archivo 24px, linha de apoio com o lucro nesse preço e a diferença para o preço atual, e o botão secundário "Usar este preço" (contorno tinta) que preenche o campo e recalcula. Mostra sempre o **menor** preço que atinge a meta, buscado centavo a centavo com as mesmas funções de cálculo do cartão.
 
+### Quadro de anúncios (estilo Trello, em Anúncios novos)
+- **Página larga:** `main.page.page-board` tira o limite de 1240px; o quadro (`.kb`) rola na horizontal.
+- **Lista (`.kl`):** 272px, fundo `--surface-3`, raio 12px, sem borda; cabeçalho arrastável com nome clicável (renomeia na hora), contador e menu `…` (`.kmenu`, fixo, `--shadow-lg`). Lista de prontos mostra um check verde antes do nome. Os cartões rolam dentro da lista; no pé, "+ Adicionar um cartão" abre o compositor (aceita várias linhas coladas da planilha). No fim do quadro, "+ Adicionar outra lista".
+- **Cartão (`.kc`):** branco, raio 8px, sombra de 1px; topo com prioridade (`.prio`: Urgente vermelho sólido, Alta amarelo suave, Normal neutro), SKU em mono e selo da marca; nome do produto em 14px 500; rodapé com data de pronto (verde), ícones de descrição e comentários e avatar do responsável (`.av`, amarelo Lisfer). Arrastar deixa um "buraco" cinza no lugar.
+- **Detalhe (`dialog.cd`):** abre ao clicar no cartão. Título editável, responsável, lista, SKU, prioridade em segmentado, descrição, e Atividade (comentários em balão + histórico gravado pelo banco, com opção de esconder o histórico). Lateral com "Mover para…" e exclusão em dois cliques.
+
 ### Inputs / Fields
 - **Estrutura:** `.field` em coluna com gap de 6px; rótulo acima (13px 500 `--text-2`), `*` obrigatório em `--danger`, dica `.hint` 12px.
 - **Campo (`.input`, `.select`, `.textarea`):** 38px, branco, borda `--border-strong`, raio 8px, 14px. Placeholder `#8C949C`, sempre em sans.

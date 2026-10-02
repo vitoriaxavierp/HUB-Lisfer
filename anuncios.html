@@ -13,64 +13,209 @@
 <script src="config.js"></script>
 <script src="shared.js"></script>
 <style>
+  /* o quadro usa a largura toda da tela */
+  .page.page-board { max-width: none; min-width: 0; }
+  .app-main { min-width: 0; }
+
   .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   .search { position: relative; width: 280px; max-width: 100%; }
   .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-3); pointer-events: none; }
   .search .input { padding-left: 34px; }
-  .toolbar .select { width: auto; min-width: 200px; }
+  .toolbar .select { width: auto; min-width: 180px; }
+  .toolbar .spacer { flex: 1; }
+  .toolbar-meta { font-size: var(--fs-sm); color: var(--text-3); }
 
-  /* formulário */
-  .add-tabs { margin-bottom: 16px; }
-  .f-sku { grid-column: span 3; } .f-prod { grid-column: span 6; } .f-resp { grid-column: span 3; }
-  .f-lista { grid-column: 1 / -1; }
-  .f-lista .textarea { font-family: var(--font-mono); font-size: var(--fs-sm); min-height: 150px; }
-  .f-lista .textarea::placeholder { font-family: var(--font-sans); }
-  @media (max-width: 900px) { .f-sku, .f-resp { grid-column: span 6; } .f-prod { grid-column: 1 / -1; } }
-
-  /* quadro */
-  .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-5); align-items: start; }
-  @media (max-width: 1100px) { .board { grid-template-columns: 1fr; } }
-  .col-head .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
-  .col-pendente .dot { background: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
-  .col-andamento .dot { background: var(--info); box-shadow: 0 0 0 3px var(--info-soft); }
-  .col-pronto .dot { background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
-  .col-list { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 80px; }
-
-  .anc {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md);
-    padding: 12px 12px 10px; box-shadow: var(--shadow-xs);
-    transition: border-color var(--t-fast) ease, box-shadow var(--t-fast) ease;
+  /* ---------- quadro ---------- */
+  .kb {
+    display: flex; align-items: flex-start; gap: 12px;
+    overflow-x: auto; padding: 2px 2px 14px; margin: 0 -2px;
+    min-height: 220px;
   }
-  .anc:hover { border-color: var(--border-strong); }
-  .anc.is-new { animation: anc-in 600ms var(--ease-out); }
-  @keyframes anc-in { from { background: var(--brand-soft); } to { background: var(--surface); } }
-  .anc-top { display: flex; align-items: center; gap: 8px; }
-  .anc-sku { font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 500; color: var(--text); }
-  .anc-top .spacer { flex: 1; }
-  .anc-prod { font-size: var(--fs-base); font-weight: 600; margin-top: 4px; line-height: 1.35; overflow-wrap: anywhere; }
-  .anc-obs { font-size: var(--fs-xs); color: var(--text-2); margin-top: 4px; }
-  .anc-dup { font-size: var(--fs-xs); color: var(--warning-text); margin-top: 4px; display: flex; gap: 4px; align-items: center; }
-  .anc-dup svg { width: 12px; height: 12px; }
-  .anc-foot { display: flex; align-items: center; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
-  .resp-select {
-    height: 28px; padding: 0 26px 0 8px; font-size: var(--fs-xs); max-width: 170px;
-    background-position: right 6px center; background-size: 14px;
+  .kl {
+    flex: none; width: 272px; display: flex; flex-direction: column;
+    max-height: calc(100vh - 250px); min-height: 0;
+    background: var(--surface-3); border-radius: var(--r-lg);
+    transition: opacity var(--t-fast) ease;
   }
-  .resp-select.is-empty { color: var(--text-3); border-style: dashed; }
-  .anc-foot .spacer { flex: 1; }
-  .anc-meta { font-size: var(--fs-2xs); color: var(--text-3); margin-top: 8px; }
-  .anc .icon-btn { width: 28px; height: 28px; }
-  .anc .icon-btn svg { width: 14px; height: 14px; }
+  .kl.is-dragging { opacity: 0.45; }
+  .kl-head { display: flex; align-items: center; gap: 6px; padding: 10px 8px 6px 12px; cursor: grab; }
+  .kl-head:active { cursor: grabbing; }
+  .kl-name {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px;
+    font-size: var(--fs-base); font-weight: 600; color: var(--text);
+    background: none; border: 0; padding: 4px 6px; margin-left: -6px; border-radius: var(--r-sm);
+    text-align: left; cursor: pointer; font-family: inherit;
+  }
+  .kl-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kl-name:hover { background: rgba(17, 19, 21, 0.06); }
+  .kl-name svg { width: 14px; height: 14px; color: var(--success); flex: none; }
+  .kl-rename { flex: 1; height: 30px; font-weight: 600; }
+  .kl-head .count-pill { background: rgba(17, 19, 21, 0.07); }
+  .kl-head .icon-btn { width: 28px; height: 28px; }
+  .kl-head .icon-btn:hover, .kl-head .icon-btn[aria-expanded="true"] { background: rgba(17, 19, 21, 0.08); color: var(--text); }
+  .kl-cards {
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 2px 8px 2px; overflow-y: auto; min-height: 8px;
+  }
+  .kl-empty { font-size: var(--fs-sm); color: var(--text-3); padding: 6px 4px 8px; }
+  .kb.is-dragging .kl-empty { display: none; }
+  .kl-foot { padding: 6px 8px 8px; }
+  .kl-add {
+    width: 100%; display: flex; align-items: center; gap: 8px;
+    height: 34px; padding: 0 8px; border: 0; border-radius: var(--r-md);
+    background: transparent; color: var(--text-2); font: inherit; font-size: var(--fs-sm); font-weight: 500;
+    cursor: pointer; text-align: left;
+  }
+  .kl-add svg { width: 16px; height: 16px; }
+  .kl-add:hover { background: rgba(17, 19, 21, 0.07); color: var(--text); }
+  .kl-more { width: 100%; justify-content: center; margin-top: 2px; }
+
+  /* cartão */
+  .kc {
+    position: relative; background: var(--surface); border-radius: var(--r-md);
+    padding: 9px 10px 8px; cursor: pointer;
+    box-shadow: 0 1px 1px rgba(17, 19, 21, 0.10), 0 0 0 1px rgba(17, 19, 21, 0.04);
+    transition: box-shadow var(--t-fast) ease, background var(--t-fast) ease;
+  }
+  .kc:hover { box-shadow: 0 1px 1px rgba(17, 19, 21, 0.10), 0 0 0 1px var(--border-strong); }
+  .kc:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+  .kc.is-dragging { background: rgba(17, 19, 21, 0.05); box-shadow: none; }
+  .kc.is-dragging > * { visibility: hidden; }
+  .kc.is-new { animation: kc-in 700ms var(--ease-out); }
+  @keyframes kc-in { from { background: var(--brand-soft); } to { background: var(--surface); } }
+  .kc.is-done .kc-title { color: var(--text-2); }
+  .kc-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 5px; }
+  .prio {
+    display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px;
+    border-radius: var(--r-sm); font-size: var(--fs-2xs); font-weight: 600; white-space: nowrap;
+  }
+  .prio-urgente { background: var(--danger); color: #FFFFFF; }
+  .prio-alta { background: var(--warning-soft); color: var(--warning-text); box-shadow: inset 0 0 0 1px rgba(138, 90, 0, 0.18); }
+  .prio-normal { background: var(--surface-3); color: var(--text-2); }
+  .kc-title { font-size: var(--fs-base); font-weight: 500; line-height: 1.35; color: var(--text); overflow-wrap: anywhere; }
+  .kc-dup { display: flex; gap: 4px; align-items: center; margin-top: 6px; font-size: var(--fs-xs); color: var(--warning-text); }
+  .kc-dup svg { width: 12px; height: 12px; flex: none; }
+  .kc-foot { display: flex; align-items: center; gap: 10px; margin-top: 8px; min-height: 24px; }
+  .kc-foot:empty { display: none; }
+  .kc-sku { font-family: var(--font-mono); font-size: var(--fs-xs); font-weight: 500; color: var(--text-2); }
+  .kc-foot .spacer { flex: 1; }
+  .kc-badge { display: inline-flex; align-items: center; gap: 3px; font-size: var(--fs-xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .kc-badge svg { width: 14px; height: 14px; }
+  .kc-badge.done { color: var(--success); font-weight: 600; background: var(--success-soft); border-radius: var(--r-sm); padding: 1px 6px; }
 
   .marca { font-size: var(--fs-2xs); font-weight: 600; padding: 1px 7px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--text-2); white-space: nowrap; }
   .marca-lisfer { background: var(--brand-soft); color: var(--brand-text); }
   .marca-nacional { background: var(--info-soft); color: var(--info); }
   .marca-loxer { background: var(--ink); color: #FFFFFF; }
 
-  .anc.is-editing { background: var(--surface-2); }
-  .anc.is-editing .field { margin-bottom: 8px; }
-  .col-empty { padding: 18px 10px; text-align: center; font-size: var(--fs-sm); color: var(--text-3); }
-  .mais { width: 100%; }
+  .av {
+    display: inline-grid; place-items: center; flex: none;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--brand); color: var(--brand-ink);
+    font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.02em;
+  }
+  .av-lg { width: 32px; height: 32px; font-size: var(--fs-xs); }
+  .av-vazio { background: transparent; color: var(--text-3); box-shadow: inset 0 0 0 1.5px var(--border-strong); }
+
+  /* compositor de cartões e de listas */
+  .composer { display: flex; flex-direction: column; gap: 8px; }
+  .composer .textarea { min-height: 64px; resize: vertical; font-size: var(--fs-sm); box-shadow: 0 1px 1px rgba(17, 19, 21, 0.10); }
+  .composer-hint { font-size: var(--fs-xs); color: var(--text-3); line-height: 1.4; }
+  .composer-hint.ok { color: var(--success); }
+  .composer-hint.erro { color: var(--danger); }
+  .composer-actions { display: flex; align-items: center; gap: 6px; }
+  .kl-nova { background: rgba(17, 19, 21, 0.04); }
+  .kl-nova .kl-add { height: 44px; padding: 0 12px; }
+  .kl-nova .composer { padding: 8px; }
+
+  /* menu da lista */
+  .kmenu {
+    position: fixed; z-index: 60; width: 260px; padding: 6px;
+    background: var(--surface); border-radius: var(--r-md);
+    box-shadow: var(--shadow-lg);
+  }
+  .kmenu-title { font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); text-align: center; padding: 6px 0 8px; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+  .kmenu button.kmi {
+    width: 100%; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px;
+    border: 0; background: none; border-radius: var(--r-sm); font: inherit; font-size: var(--fs-sm); color: var(--text);
+    cursor: pointer; text-align: left;
+  }
+  .kmenu button.kmi:hover:not(:disabled) { background: var(--surface-3); }
+  .kmenu button.kmi:disabled { color: var(--text-3); cursor: not-allowed; }
+  .kmenu button.kmi.danger { color: var(--danger); }
+  .kmenu button.kmi.danger.is-confirming { background: var(--danger); color: #FFFFFF; }
+  .kmenu .kmi svg { width: 16px; height: 16px; flex: none; }
+  .kmenu .check { padding: 8px 10px; width: 100%; align-items: flex-start; }
+  .kmenu .check small { display: block; color: var(--text-3); font-size: var(--fs-xs); margin-top: 2px; }
+  .kmenu hr { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
+  .kmenu-note { font-size: var(--fs-xs); color: var(--text-3); padding: 0 10px 6px; }
+
+  /* ---------- detalhe do cartão ---------- */
+  .cd {
+    width: min(820px, calc(100vw - 32px)); max-height: calc(100vh - 64px);
+    padding: 0; border: 0; border-radius: var(--r-lg);
+    background: var(--surface-2); color: var(--text);
+    box-shadow: var(--shadow-lg);
+  }
+  .cd::backdrop { background: rgba(17, 19, 21, 0.55); }
+  .cd[open] { animation: cd-in 200ms var(--ease-out); }
+  @keyframes cd-in { from { opacity: 0; transform: translateY(8px) scale(0.99); } }
+  .cd-head { position: relative; padding: 20px 56px 14px 24px; }
+  .cd-close { position: absolute; top: 14px; right: 14px; }
+  .cd-tags { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .cd-tags .mono { font-size: var(--fs-sm); font-weight: 500; color: var(--text-2); }
+  .cd-title {
+    width: 100%; resize: none; overflow: hidden; border: 1px solid transparent; border-radius: var(--r-sm);
+    background: transparent; padding: 4px 6px; margin-left: -7px;
+    font-family: var(--font-sans); font-size: var(--fs-xl); font-weight: 600; line-height: 1.3; color: var(--text);
+  }
+  .cd-title:hover { background: var(--surface-3); }
+  .cd-title:focus { outline: none; background: var(--surface); border-color: var(--ink); box-shadow: 0 0 0 3px rgba(17, 19, 21, 0.12); }
+  .cd-where { font-size: var(--fs-sm); color: var(--text-3); margin-top: 2px; }
+  .cd-where strong { color: var(--text-2); font-weight: 600; }
+  .cd-body { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 24px; padding: 0 24px 24px; }
+  .cd-sec { margin-top: 20px; }
+  .cd-sec:first-child { margin-top: 0; }
+  .cd-sec-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .cd-sec-head h3 { font-size: var(--fs-md); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .cd-sec-head h3 svg { width: 18px; height: 18px; color: var(--text-3); }
+  .cd-sec-head .spacer { flex: 1; }
+  .cd-props { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .cd-props .field label { font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); }
+  .cd-props .input, .cd-props .select { height: 34px; }
+  .cd .segmented button { height: 28px; }
+  .cd-obs { min-height: 96px; resize: vertical; }
+  .cd-obs-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .cd-new { display: flex; gap: 10px; align-items: flex-start; }
+  .cd-new .stack-x { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .cd-new .textarea { min-height: 40px; resize: vertical; }
+  .cd-new .composer-actions[hidden] { display: none; }
+  .cd-feed { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+  .cd-ev { display: flex; gap: 10px; align-items: flex-start; }
+  .cd-ev-body { flex: 1; min-width: 0; }
+  .cd-ev-line { font-size: var(--fs-sm); color: var(--text-2); line-height: 1.45; }
+  .cd-ev-line strong { color: var(--text); font-weight: 600; }
+  .cd-ev-time { font-size: var(--fs-xs); color: var(--text-3); }
+  .cd-ev.is-hist .av { width: 24px; height: 24px; margin: 0 4px; }
+  .cd-bubble {
+    margin-top: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md);
+    padding: 8px 12px; font-size: var(--fs-sm); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .cd-ev-del { margin-top: 4px; font-size: var(--fs-xs); }
+  .cd-ev-del.is-confirming { color: var(--danger); text-decoration-color: var(--danger); font-weight: 600; }
+  .cd-feed-empty { font-size: var(--fs-sm); color: var(--text-3); }
+  .cd-side h4 { font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); margin-bottom: 8px; }
+  .cd-side .btn { width: 100%; justify-content: flex-start; }
+  .cd-side .btn + .btn { margin-top: 6px; }
+  .cd-meta { margin-top: 20px; font-size: var(--fs-xs); color: var(--text-3); line-height: 1.6; }
+  .cd-meta strong { color: var(--text-2); font-weight: 600; }
+  .cd-side .btn.is-confirming { background: var(--danger); border-color: var(--danger); color: #FFFFFF; }
+
+  @media (max-width: 760px) {
+    .cd-body { grid-template-columns: 1fr; }
+    .cd-props { grid-template-columns: 1fr; }
+    .kl { max-height: none; }
+  }
 </style>
 </head>
 <body>
@@ -79,111 +224,143 @@
   <aside class="app-sidebar" id="appSidebar" data-active="anuncios"></aside>
   <div class="app-scrim"></div>
   <div class="app-main">
-    <main class="page">
+    <main class="page page-board">
       <header class="page-header">
         <div class="page-header-text">
           <h1 class="page-title">Anúncios novos</h1>
-          <p class="page-desc">Produtos que ainda precisam de anúncio. Pegue um pendente, coloque seu nome e mova até "Pronto" quando publicar.</p>
+          <p class="page-desc">Produtos que ainda precisam de anúncio. Arraste os cartões entre as listas e abra um cartão para ver detalhes, comentários e histórico.</p>
         </div>
         <div class="page-actions">
-          <button type="button" class="btn btn-primary" id="openForm" aria-expanded="false" aria-controls="formPanel"><span id="icPlus"></span>Adicionar anúncios</button>
+          <button type="button" class="btn btn-primary" id="openForm"><span id="icPlus"></span>Adicionar anúncios</button>
         </div>
       </header>
 
       <div class="stack">
         <div class="alert alert-danger" id="connBanner" role="alert" hidden>
-          <span id="icErro"></span><span><strong>Não foi possível carregar os anúncios.</strong> Verifique a conexão e recarregue a página.</span>
+          <span id="icErro"></span><span id="connMsg"><strong>Não foi possível carregar os anúncios.</strong> Verifique a conexão e recarregue a página.</span>
         </div>
-
-        <section class="panel" id="formPanel" aria-labelledby="formTitle" hidden>
-          <div class="panel-head">
-            <h2 id="formTitle">Adicionar anúncios</h2>
-            <span class="spacer"></span>
-            <button type="button" class="icon-btn" id="closeForm" aria-label="Fechar"></button>
-          </div>
-          <div class="panel-body">
-            <div class="segmented add-tabs" role="group" aria-label="Como adicionar">
-              <button type="button" id="modoUm" aria-pressed="true">Um anúncio</button>
-              <button type="button" id="modoLista" aria-pressed="false">Colar uma lista</button>
-            </div>
-
-            <form id="formUm" class="form-grid" novalidate>
-              <div class="field f-sku">
-                <label for="skuInput">SKU<span class="req">*</span></label>
-                <input class="input mono" id="skuInput" autocomplete="off" placeholder="ex.: LF-0335" required>
-              </div>
-              <div class="field f-prod">
-                <label for="prodInput">Produto<span class="req">*</span></label>
-                <input class="input" id="prodInput" autocomplete="off" required>
-              </div>
-              <div class="field f-resp">
-                <label for="respInput">Quem vai fazer</label>
-                <select class="select" id="respInput"></select>
-              </div>
-            </form>
-
-            <form id="formLista" class="form-grid" novalidate hidden>
-              <div class="field f-lista">
-                <label for="listaInput">Um anúncio por linha: SKU e produto <span class="muted">— pode colar direto da planilha</span></label>
-                <textarea class="textarea" id="listaInput" placeholder="LF-0335	Chave Saca Filtros Filtro 80mm A 105mm - Lisfer&#10;LF-0337	Chave Saca Filtros Filtro 105mm A 145mm - Lisfer"></textarea>
-                <span class="hint" id="listaHint">Separe SKU e produto por tabulação (copiando da planilha), ponto e vírgula ou " - ". Linhas de título como "SKU Produto" são ignoradas.</span>
-              </div>
-            </form>
-          </div>
-          <div class="panel-foot">
-            <button type="button" class="btn btn-primary" id="addBtn">Adicionar aos pendentes</button>
-            <button type="button" class="btn btn-secondary" id="cancelForm">Cancelar</button>
-            <div class="form-error" id="formMsg" role="alert"></div>
-          </div>
-        </section>
 
         <div class="toolbar">
           <label class="search"><span id="icSearch"></span><span class="sr-only">Buscar</span>
             <input class="input" type="search" id="busca" placeholder="Buscar SKU ou produto" autocomplete="off"></label>
           <select class="select" id="filtroResp" aria-label="Filtrar por responsável"></select>
+          <select class="select" id="filtroPrio" aria-label="Filtrar por prioridade">
+            <option value="">Todas as prioridades</option>
+            <option value="urgente">Urgente</option>
+            <option value="alta">Alta</option>
+            <option value="normal">Normal</option>
+            <option value="__sem">Sem prioridade</option>
+          </select>
+          <span class="spacer"></span>
+          <span class="toolbar-meta" id="resumo" aria-live="polite"></span>
         </div>
 
-        <div class="board" id="board">
-          <section class="panel col-pendente" aria-labelledby="t-pendente">
-            <div class="panel-head col-head"><span class="dot" aria-hidden="true"></span><h2 id="t-pendente">Pendente</h2><span class="count-pill" id="n-pendente">–</span></div>
-            <div class="col-list" id="l-pendente"><span class="skeleton" style="height:78px"></span><span class="skeleton" style="height:78px"></span></div>
-          </section>
-          <section class="panel col-andamento" aria-labelledby="t-andamento">
-            <div class="panel-head col-head"><span class="dot" aria-hidden="true"></span><h2 id="t-andamento">Em andamento</h2><span class="count-pill" id="n-andamento">–</span></div>
-            <div class="col-list" id="l-andamento"><span class="skeleton" style="height:78px"></span></div>
-          </section>
-          <section class="panel col-pronto" aria-labelledby="t-pronto">
-            <div class="panel-head col-head"><span class="dot" aria-hidden="true"></span><h2 id="t-pronto">Pronto</h2><span class="count-pill" id="n-pronto">–</span></div>
-            <div class="col-list" id="l-pronto"><span class="skeleton" style="height:78px"></span></div>
-          </section>
+        <div class="kb" id="board" aria-label="Quadro de anúncios">
+          <section class="kl"><div class="kl-head"><span class="skeleton" style="height:18px;width:110px"></span></div><div class="kl-cards"><span class="skeleton" style="height:84px"></span><span class="skeleton" style="height:66px"></span></div><div class="kl-foot"></div></section>
+          <section class="kl"><div class="kl-head"><span class="skeleton" style="height:18px;width:130px"></span></div><div class="kl-cards"><span class="skeleton" style="height:84px"></span></div><div class="kl-foot"></div></section>
+          <section class="kl"><div class="kl-head"><span class="skeleton" style="height:18px;width:80px"></span></div><div class="kl-cards"><span class="skeleton" style="height:66px"></span></div><div class="kl-foot"></div></section>
         </div>
       </div>
     </main>
   </div>
 </div>
 
+<div class="kmenu" id="kmenu" role="menu" hidden></div>
+
+<dialog class="cd" id="cd" aria-labelledby="cdTitulo">
+  <div class="cd-head">
+    <div class="cd-tags"><span class="mono" id="cdSkuTag"></span><span id="cdMarca"></span><span id="cdPrioTag"></span></div>
+    <label for="cdTitulo" class="sr-only">Nome do produto</label>
+    <textarea class="cd-title" id="cdTitulo" rows="1" spellcheck="false"></textarea>
+    <p class="cd-where">na lista <strong id="cdLista"></strong></p>
+    <button type="button" class="icon-btn cd-close" id="cdFechar" aria-label="Fechar"></button>
+  </div>
+  <div class="cd-body">
+    <div class="cd-main">
+      <div class="cd-sec">
+        <div class="cd-props">
+          <div class="field"><label for="cdResp">Responsável</label><select class="select" id="cdResp"></select></div>
+          <div class="field"><label for="cdColuna">Lista</label><select class="select" id="cdColuna"></select></div>
+          <div class="field"><label for="cdSku">SKU</label><input class="input mono" id="cdSku" autocomplete="off"></div>
+        </div>
+      </div>
+      <div class="cd-sec">
+        <div class="cd-sec-head"><h3 id="cdPrioH"><span id="icFlag"></span>Prioridade</h3></div>
+        <div class="segmented" role="group" aria-labelledby="cdPrioH" id="cdPrio">
+          <button type="button" data-p="">Nenhuma</button>
+          <button type="button" data-p="normal">Normal</button>
+          <button type="button" data-p="alta">Alta</button>
+          <button type="button" data-p="urgente">Urgente</button>
+        </div>
+      </div>
+      <div class="cd-sec">
+        <div class="cd-sec-head"><h3><span id="icText"></span><label for="cdObs">Descrição</label></h3></div>
+        <textarea class="textarea cd-obs" id="cdObs" placeholder="Detalhes para quem for fazer o anúncio: fotos, medidas, link do fornecedor, o que falta…"></textarea>
+        <div class="cd-obs-actions" id="cdObsAcoes" hidden>
+          <button type="button" class="btn btn-primary btn-sm" id="cdObsSalvar">Salvar descrição</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="cdObsCancelar">Descartar</button>
+        </div>
+      </div>
+      <div class="cd-sec">
+        <div class="cd-sec-head">
+          <h3><span id="icMsg"></span>Atividade</h3><span class="spacer"></span>
+          <label class="check"><input type="checkbox" id="cdHist" checked> Mostrar histórico</label>
+        </div>
+        <div class="cd-new">
+          <span class="av av-lg" id="cdEu" aria-hidden="true"></span>
+          <div class="stack-x">
+            <label for="cdComentario" class="sr-only">Escreva um comentário</label>
+            <textarea class="textarea" id="cdComentario" rows="1" placeholder="Escreva um comentário…"></textarea>
+            <div class="composer-actions" id="cdComentAcoes" hidden>
+              <button type="button" class="btn btn-primary btn-sm" id="cdComentar">Comentar</button>
+              <span class="muted" style="font-size:var(--fs-xs)">Ctrl + Enter envia</span>
+            </div>
+          </div>
+        </div>
+        <ol class="cd-feed" id="cdFeed" aria-live="polite"></ol>
+      </div>
+    </div>
+    <aside class="cd-side">
+      <h4>Ações</h4>
+      <button type="button" class="btn btn-secondary btn-sm" id="cdAvancar"></button>
+      <button type="button" class="btn btn-secondary btn-sm" id="cdExcluir"></button>
+      <div class="cd-meta" id="cdMeta"></div>
+    </aside>
+  </div>
+</dialog>
+
 <script>
 (function () {
   const el = (id) => document.getElementById(id);
   const ic = HubIcons.svg;
   const esc = HubUI.escapeHtml;
-  const STATUS = ['pendente', 'andamento', 'pronto'];
-  const NOME_STATUS = { pendente: 'Pendente', andamento: 'Em andamento', pronto: 'Pronto' };
   const PRONTOS_VISIVEIS = 12;
+  const NOME_PRIO = { urgente: 'Urgente', alta: 'Alta', normal: 'Normal' };
+  const ORDEM_PRIO = { urgente: 0, alta: 1, normal: 2 };
 
-  let me = null;
-  let anuncios = [];
-  let editandoId = null;
-  let confirmandoId = null;
-  let confirmTimer = null;
-  let mostrarTodosProntos = false;
-  let novosIds = new Set();
-  let channel = null;
+  const st = {
+    me: null,
+    colunas: [],
+    cards: [],
+    nComent: {},
+    verTodos: {},        // coluna id -> mostrar todos os cartões (listas de concluídos)
+    compondo: null,      // coluna id com o compositor aberto
+    rascunho: {},        // coluna id -> texto do compositor
+    novaLista: false,
+    renomeando: null,
+    drag: null,
+    novos: new Set(),
+    detalhe: null,       // id do cartão aberto
+    pendente: false      // atualização em tempo real esperando o usuário sair do campo
+  };
 
   el('icPlus').outerHTML = ic('plus');
   el('icErro').outerHTML = ic('alertCircle');
   el('icSearch').outerHTML = ic('search');
-  el('closeForm').innerHTML = ic('x');
+  el('icFlag').outerHTML = ic('flag');
+  el('icText').outerHTML = ic('text');
+  el('icMsg').outerHTML = ic('message');
+  el('cdFechar').innerHTML = ic('x');
 
   // Regras de SKU da Lisfer: LF- é Lisfer importação, exceto LF-0100,
   // LF-0102, LF-0103 e LF-0104 (Lisfer nacional); LX- é Loxer (Lalfer).
@@ -198,35 +375,115 @@
     }
     return null;
   }
+  const marcaHtml = (sku) => { const m = marcaDoSku(sku); return m ? '<span class="marca ' + m.cls + '">' + m.txt + '</span>' : ''; };
 
-  function opcoesResp(sel, atual, rotuloVazio) {
-    sel.innerHTML = '<option value="">' + rotuloVazio + '</option>' +
-      HubAuth.profiles.map((p) => '<option value="' + p.id + '"' + (p.id === atual ? ' selected' : '') + '>' + esc(p.nome || p.id) + '</option>').join('');
+  function iniciais(nome) {
+    const p = String(nome || '').trim().split(/[\s@._-]+/).filter(Boolean);
+    if (!p.length) return '?';
+    return ((p[0][0] || '') + (p.length > 1 ? p[p.length - 1][0] : (p[0][1] || ''))).toUpperCase();
+  }
+  const avatar = (id, cls) => {
+    const nome = HubAuth.nomeDe(id);
+    return nome ? '<span class="av' + (cls ? ' ' + cls : '') + '" title="' + esc(nome) + '" aria-label="' + esc(nome) + '">' + esc(iniciais(nome)) + '</span>' : '';
+  };
+  const dataHora = (iso) => iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  const dia = (iso) => iso ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
+  function relativo(iso) {
+    const s = (Date.now() - new Date(iso).getTime()) / 1000;
+    if (s < 60) return 'agora';
+    if (s < 3600) return 'há ' + Math.floor(s / 60) + ' min';
+    if (s < 86400 && new Date(iso).toDateString() === new Date().toDateString()) return 'hoje às ' + new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return dataHora(iso);
   }
 
-  // ---------------- formulário ----------------
-  function setModo(lista) {
-    el('modoUm').setAttribute('aria-pressed', lista ? 'false' : 'true');
-    el('modoLista').setAttribute('aria-pressed', lista ? 'true' : 'false');
-    el('formUm').hidden = lista;
-    el('formLista').hidden = !lista;
-    el('addBtn').dataset.modo = lista ? 'lista' : 'um';
-    atualizarDica();
-  }
-  el('modoUm').addEventListener('click', () => setModo(false));
-  el('modoLista').addEventListener('click', () => { setModo(true); el('listaInput').focus(); });
+  // ---------------- dados ----------------
+  const colById = (id) => st.colunas.find((c) => c.id === id) || null;
+  const cardById = (id) => st.cards.find((a) => a.id === id) || null;
+  const primeira = () => st.colunas[0] || null;
+  // cartão sem lista (ou com lista apagada) aparece na primeira
+  const colunaDo = (a) => (colById(a.coluna_id) || primeira() || {}).id;
+  const pos = (a) => (typeof a.posicao === 'number' ? a.posicao : 0);
+  const concluido = (a) => !!(colById(colunaDo(a)) || {}).concluida;
 
-  function setFormOpen(open) {
-    el('formPanel').hidden = !open;
-    el('openForm').setAttribute('aria-expanded', open ? 'true' : 'false');
-    el('formMsg').textContent = '';
-    if (open) { (el('formLista').hidden ? el('skuInput') : el('listaInput')).focus(); }
-    else { el('formUm').reset(); el('listaInput').value = ''; atualizarDica(); }
+  async function carregar() {
+    const [c, a, n] = await Promise.all([
+      sb.from('anuncios_colunas').select('*').order('ordem', { ascending: true }),
+      sb.from('anuncios').select('*').order('posicao', { ascending: true }).limit(3000),
+      sb.from('anuncios_comentarios').select('anuncio_id').limit(20000)
+    ]);
+    const erro = c.error || a.error || n.error;
+    if (erro) {
+      console.error(erro);
+      const faltaScript = /anuncios_colunas|anuncios_comentarios|coluna_id|posicao|does not exist|schema cache/i.test(erro.message || '');
+      el('connMsg').innerHTML = faltaScript
+        ? '<strong>Falta atualizar o banco do quadro.</strong> Rode o arquivo <span class="mono">supabase/anuncios_trello.sql</span> no SQL Editor do Supabase e recarregue a página.'
+        : '<strong>Não foi possível carregar os anúncios.</strong> Verifique a conexão e recarregue a página.';
+      el('connBanner').hidden = false;
+      return;
+    }
+    el('connBanner').hidden = true;
+    st.colunas = c.data || [];
+    st.cards = a.data || [];
+    st.nComent = {};
+    (n.data || []).forEach((r) => { st.nComent[r.anuncio_id] = (st.nComent[r.anuncio_id] || 0) + 1; });
+    render();
+    if (st.detalhe) { if (cardById(st.detalhe)) renderDetalhe(false); else fecharDetalhe(); }
   }
-  el('openForm').addEventListener('click', () => setFormOpen(el('formPanel').hidden));
-  el('closeForm').addEventListener('click', () => setFormOpen(false));
-  el('cancelForm').addEventListener('click', () => setFormOpen(false));
 
+  // tempo real: espera a pessoa sair do campo antes de redesenhar
+  let tReload = null;
+  function agendarRecarga() {
+    clearTimeout(tReload);
+    tReload = setTimeout(() => { if (digitando()) st.pendente = true; else carregar(); }, 250);
+  }
+  function digitando() {
+    const a = document.activeElement;
+    return a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA') && (el('board').contains(a));
+  }
+  document.addEventListener('focusout', () => setTimeout(() => { if (st.pendente && !digitando()) { st.pendente = false; carregar(); } }, 0));
+
+  function assinar() {
+    const ch = sb.channel('anuncios-quadro');
+    ['anuncios', 'anuncios_colunas', 'anuncios_comentarios', 'anuncios_historico'].forEach((t) =>
+      ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, () => { if (!st.drag) agendarRecarga(); }));
+    ch.subscribe();
+  }
+
+  async function salvarCard(a, campos, msg) {
+    campos.atualizado_em = new Date().toISOString();
+    Object.assign(a, campos);
+    render();
+    const { error } = await sb.from('anuncios').update(campos).eq('id', a.id);
+    if (error) { console.error(error); HubUI.toast('Não foi possível salvar a alteração.', { error: true }); await carregar(); return false; }
+    if (msg) HubUI.toast(msg);
+    return true;
+  }
+
+  // posição entre dois vizinhos (ordem fracionária, sem renumerar a lista)
+  function entre(antes, depois) {
+    if (antes == null && depois == null) return 1000;
+    if (antes == null) return depois - 1000;
+    if (depois == null) return antes + 1000;
+    return (antes + depois) / 2;
+  }
+
+  function moverCard(a, colId, posicao) {
+    const destino = colById(colId);
+    const origem = colById(colunaDo(a));
+    const campos = { coluna_id: colId, posicao };
+    let msg = null;
+    if (!origem || origem.id !== colId) {
+      campos.concluido_em = destino.concluida ? (origem && origem.concluida ? a.concluido_em : new Date().toISOString()) : null;
+      // quem tira um cartão da primeira lista sem responsável fica com ele
+      const pegou = !destino.concluida && !a.responsavel_id && destino.id !== primeira().id;
+      if (pegou) campos.responsavel_id = st.me.id;
+      msg = a.sku + ' → ' + destino.nome + '.' + (pegou ? ' Você ficou como responsável.' : '');
+      st.novos.add(a.id);
+    }
+    return salvarCard(a, campos, msg);
+  }
+
+  // ---------------- leitura do texto colado ----------------
   function parseLista(texto) {
     const linhas = texto.split('\n').map((l) => l.trim()).filter(Boolean);
     const itens = [];
@@ -235,7 +492,7 @@
       let partes = l.split('\t');
       if (partes.length < 2) partes = l.split(';');
       if (partes.length < 2) {
-        const m = l.match(/^(\S+)\s+-\s+(.+)$/) || l.match(/^([A-Z]{2,}-[\w\-\/]+)\s+(.+)$/i);
+        const m = l.match(/^(\S+)\s+-\s+(.+)$/) || l.match(/^([A-Z]{2,}-[\w\-\/]+)\s+(.+)$/i) || l.match(/^(\S*\d\S*)\s+(.+)$/);
         partes = m ? [m[1], m[2]] : [l];
       }
       const sku = (partes[0] || '').trim();
@@ -244,222 +501,642 @@
       if (!sku || !produto || titulo) { ignoradas++; return; }
       itens.push({ sku: sku.toUpperCase(), produto });
     });
-    return { itens, linhas: linhas.length, ignoradas };
+    return { itens, ignoradas };
+  }
+  const abertosPorSku = () => new Set(st.cards.filter((a) => !concluido(a)).map((a) => a.sku.toUpperCase()));
+
+  function dicaCompositor(texto) {
+    if (!texto.trim()) return { cls: '', txt: 'SKU e nome do produto. Cole várias linhas da planilha para criar vários cartões.' };
+    const r = parseLista(texto);
+    if (!r.itens.length) return { cls: 'erro', txt: 'Escreva o SKU e depois o nome do produto (ex.: LF-0335 Chave saca filtro).' };
+    const abertos = abertosPorSku();
+    const rep = r.itens.filter((i) => abertos.has(i.sku)).length;
+    return { cls: 'ok', txt: r.itens.length + (r.itens.length === 1 ? ' cartão reconhecido' : ' cartões reconhecidos') +
+      (r.ignoradas ? ' · ' + r.ignoradas + ' linha(s) ignorada(s)' : '') + (rep ? ' · ' + (rep === 1 ? '1 já está no quadro e será ignorado' : rep + ' já estão no quadro e serão ignorados') : '') };
   }
 
-  function atualizarDica() {
-    const hint = el('listaHint');
-    const txt = el('listaInput').value;
-    if (!txt.trim()) {
-      hint.style.color = '';
-      hint.textContent = 'Separe SKU e produto por tabulação (copiando da planilha), ponto e vírgula ou " - ". Linhas de título como "SKU Produto" são ignoradas.';
-      el('addBtn').textContent = 'Adicionar aos pendentes';
-      return;
-    }
-    const r = parseLista(txt);
-    const jaExistem = r.itens.filter((i) => anuncios.some((a) => a.sku.toUpperCase() === i.sku && a.status !== 'pronto')).length;
-    hint.style.color = r.itens.length ? 'var(--success)' : 'var(--danger)';
-    hint.textContent = r.itens.length + (r.itens.length === 1 ? ' anúncio reconhecido' : ' anúncios reconhecidos') +
-      (r.ignoradas ? ' · ' + r.ignoradas + ' linha(s) ignorada(s)' : '') +
-      (jaExistem ? ' · ' + jaExistem + (jaExistem === 1 ? ' já está no quadro e não será repetido' : ' já estão no quadro e não serão repetidos') : '');
-    el('addBtn').textContent = r.itens.length ? 'Adicionar ' + (r.itens.length - jaExistem) + ' aos pendentes' : 'Adicionar aos pendentes';
-  }
-  el('listaInput').addEventListener('input', atualizarDica);
-
-  el('addBtn').addEventListener('click', async () => {
-    el('formMsg').textContent = '';
-    let novos = [];
-    if (el('addBtn').dataset.modo === 'lista') {
-      novos = parseLista(el('listaInput').value).itens;
-      if (!novos.length) { el('formMsg').textContent = 'Nenhuma linha reconhecida. Use SKU e produto em cada linha.'; return; }
-    } else {
-      const sku = el('skuInput').value.trim().toUpperCase();
-      const produto = el('prodInput').value.trim();
-      if (!sku || !produto) {
-        el('formMsg').textContent = 'Preencha o SKU e o nome do produto.';
-        (sku ? el('prodInput') : el('skuInput')).focus();
-        return;
-      }
-      novos = [{ sku, produto, responsavel_id: el('respInput').value || null }];
-    }
-    // não repete o que já está no quadro (pendente ou em andamento)
-    const abertos = new Set(anuncios.filter((a) => a.status !== 'pronto').map((a) => a.sku.toUpperCase()));
+  async function adicionarCards(colId, texto, botao) {
+    const r = parseLista(texto);
+    if (!r.itens.length) { HubUI.toast('Nenhuma linha reconhecida. Use SKU e produto.', { error: true }); return false; }
+    const abertos = abertosPorSku();
     const vistos = new Set();
-    const inserir = novos.filter((n) => { const k = n.sku; if (abertos.has(k) || vistos.has(k)) return false; vistos.add(k); return true; });
-    const repetidos = novos.length - inserir.length;
-    if (!inserir.length) { el('formMsg').textContent = 'Esse(s) SKU(s) já está(ão) no quadro.'; return; }
-
-    const done = HubUI.busy(el('addBtn'), 'Adicionando…');
+    const inserir = r.itens.filter((n) => { if (abertos.has(n.sku) || vistos.has(n.sku)) return false; vistos.add(n.sku); return true; });
+    const repetidos = r.itens.length - inserir.length;
+    if (!inserir.length) { HubUI.toast('Esse(s) SKU(s) já está(ão) no quadro.', { error: true }); return false; }
+    const col = colById(colId);
+    const naLista = st.cards.filter((a) => colunaDo(a) === colId);
+    let base = naLista.length ? Math.max.apply(null, naLista.map(pos)) : 0;
+    const done = botao ? HubUI.busy(botao, 'Adicionando…') : () => {};
     const { data, error } = await sb.from('anuncios').insert(inserir.map((n) => ({
-      sku: n.sku, produto: n.produto, responsavel_id: n.responsavel_id || null, status: 'pendente'
+      sku: n.sku, produto: n.produto, coluna_id: colId, posicao: (base += 1000),
+      concluido_em: col.concluida ? new Date().toISOString() : null
     }))).select();
     done();
-    if (error) { console.error(error); el('formMsg').textContent = 'Não foi possível salvar. Tente de novo.'; return; }
-    (data || []).forEach((d) => novosIds.add(d.id));
-    HubUI.toast(inserir.length + (inserir.length === 1 ? ' anúncio adicionado' : ' anúncios adicionados') + (repetidos ? ' (' + repetidos + (repetidos === 1 ? ' já estava' : ' já estavam') + ' no quadro)' : '') + '.');
-    setFormOpen(false);
+    if (error) { console.error(error); HubUI.toast('Não foi possível salvar. Tente de novo.', { error: true }); return false; }
+    (data || []).forEach((d) => st.novos.add(d.id));
+    HubUI.toast(inserir.length + (inserir.length === 1 ? ' cartão adicionado' : ' cartões adicionados') + ' em ' + col.nome +
+      (repetidos ? ' (' + repetidos + (repetidos === 1 ? ' já estava' : ' já estavam') + ' no quadro)' : '') + '.');
     await carregar();
-  });
-
-  // ---------------- dados ----------------
-  async function carregar() {
-    const { data, error } = await sb.from('anuncios').select('*').order('criado_em', { ascending: true }).limit(1000);
-    if (error) { console.error(error); el('connBanner').hidden = false; return; }
-    el('connBanner').hidden = true;
-    anuncios = data || [];
-    render();
-  }
-
-  function assinar() {
-    if (channel) sb.removeChannel(channel);
-    channel = sb.channel('anuncios-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'anuncios' }, () => carregar())
-      .subscribe();
-  }
-
-  async function atualizar(id, campos, msg) {
-    campos.atualizado_em = new Date().toISOString();
-    const { error } = await sb.from('anuncios').update(campos).eq('id', id);
-    if (error) { console.error(error); HubUI.toast('Não foi possível salvar a alteração.', { error: true }); }
-    else if (msg) HubUI.toast(msg);
-    await carregar();
-  }
-
-  function mover(a, para) {
-    const campos = { status: para, concluido_em: para === 'pronto' ? new Date().toISOString() : null };
-    // quem começa um anúncio sem responsável vira a responsável
-    if (para === 'andamento' && !a.responsavel_id) campos.responsavel_id = me.id;
-    novosIds.add(a.id);
-    atualizar(a.id, campos, a.sku + ' → ' + NOME_STATUS[para] + '.');
-  }
-
-  async function excluir(a) {
-    if (confirmandoId !== a.id) {
-      confirmandoId = a.id;
-      clearTimeout(confirmTimer);
-      confirmTimer = setTimeout(() => { confirmandoId = null; render(); }, 3000);
-      render();
-      return;
-    }
-    clearTimeout(confirmTimer);
-    confirmandoId = null;
-    const { error } = await sb.from('anuncios').delete().eq('id', a.id);
-    if (error) { console.error(error); HubUI.toast('Não foi possível excluir.', { error: true }); }
-    else HubUI.toast(a.sku + ' excluído do quadro.');
-    await carregar();
+    return true;
   }
 
   // ---------------- quadro ----------------
-  function quando(iso) {
-    if (!iso) return '';
-    return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  function filtros() {
+    const termo = el('busca').value.trim().toLowerCase();
+    const resp = el('filtroResp').value;
+    const prio = el('filtroPrio').value;
+    return {
+      ativo: !!(termo || resp || prio),
+      ok: (a) => (!termo || a.sku.toLowerCase().includes(termo) || a.produto.toLowerCase().includes(termo)) &&
+        (!resp || (resp === '__sem' ? !a.responsavel_id : a.responsavel_id === resp)) &&
+        (!prio || (prio === '__sem' ? !a.prioridade : a.prioridade === prio))
+    };
   }
 
-  function cardEditor(a) {
-    const div = document.createElement('div');
-    div.className = 'anc is-editing';
-    div.innerHTML =
-      '<div class="field"><label>SKU</label><input class="input mono" data-f="sku" value="' + esc(a.sku) + '"></div>' +
-      '<div class="field"><label>Produto</label><input class="input" data-f="produto" value="' + esc(a.produto) + '"></div>' +
-      '<div class="field"><label>Observação</label><input class="input" data-f="obs" value="' + esc(a.obs || '') + '" placeholder="opcional"></div>' +
-      '<div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-a="salvar">Salvar</button>' +
-      '<button type="button" class="btn btn-secondary btn-sm" data-a="cancelar">Cancelar</button></div>';
-    div.querySelector('[data-a="salvar"]').addEventListener('click', () => {
-      const v = (f) => div.querySelector('[data-f="' + f + '"]').value.trim();
-      if (!v('sku') || !v('produto')) { HubUI.toast('SKU e produto não podem ficar vazios.', { error: true }); return; }
-      editandoId = null;
-      atualizar(a.id, { sku: v('sku').toUpperCase(), produto: v('produto'), obs: v('obs') || null }, 'Anúncio ' + v('sku').toUpperCase() + ' atualizado.');
-    });
-    div.querySelector('[data-a="cancelar"]').addEventListener('click', () => { editandoId = null; render(); });
-    setTimeout(() => div.querySelector('[data-f="produto"]').focus(), 0);
-    return div;
+  function cardEl(a, duplicado) {
+    const d = document.createElement('article');
+    const feito = concluido(a);
+    d.className = 'kc' + (feito ? ' is-done' : '') + (st.novos.has(a.id) ? ' is-new' : '');
+    d.tabIndex = 0;
+    d.draggable = true;
+    d.dataset.id = a.id;
+    d.setAttribute('role', 'button');
+    d.setAttribute('aria-label', a.sku + ', ' + a.produto + (a.prioridade ? ', prioridade ' + NOME_PRIO[a.prioridade] : '') + '. Abrir cartão');
+    const n = st.nComent[a.id] || 0;
+    const badges =
+      (feito && a.concluido_em ? '<span class="kc-badge done" title="Pronto em ' + dataHora(a.concluido_em) + '">' + ic('check') + dia(a.concluido_em) + '</span>' : '') +
+      (a.obs ? '<span class="kc-badge" title="Tem descrição">' + ic('text') + '</span>' : '') +
+      (n ? '<span class="kc-badge" title="' + n + (n === 1 ? ' comentário' : ' comentários') + '">' + ic('message') + n + '</span>' : '');
+    const av = avatar(a.responsavel_id);
+    d.innerHTML =
+      '<div class="kc-top">' + (a.prioridade ? '<span class="prio prio-' + a.prioridade + '">' + NOME_PRIO[a.prioridade] + '</span>' : '') +
+        '<span class="kc-sku">' + esc(a.sku) + '</span>' + marcaHtml(a.sku) + '</div>' +
+      '<div class="kc-title">' + esc(a.produto) + '</div>' +
+      (duplicado ? '<div class="kc-dup">' + ic('alert') + 'Mesmo nome de outro SKU no quadro — confira</div>' : '') +
+      (badges || av ? '<div class="kc-foot">' + badges + '<span class="spacer"></span>' + av + '</div>' : '');
+    return d;
   }
 
-  function card(a, duplicado) {
-    if (editandoId === a.id) return cardEditor(a);
-    const m = marcaDoSku(a.sku);
-    const div = document.createElement('div');
-    div.className = 'anc' + (novosIds.has(a.id) ? ' is-new' : '');
-    const i = STATUS.indexOf(a.status);
-    const quem = HubAuth.nomeDe(a.responsavel_id);
-    div.innerHTML =
-      '<div class="anc-top"><span class="anc-sku">' + esc(a.sku) + '</span>' + (m ? '<span class="marca ' + m.cls + '">' + m.txt + '</span>' : '') +
-        '<span class="spacer"></span>' +
-        '<button type="button" class="icon-btn" data-a="editar" aria-label="Editar ' + esc(a.sku) + '" title="Editar">' + ic('pencil') + '</button>' +
-        '<button type="button" class="icon-btn danger' + (confirmandoId === a.id ? ' is-confirming' : '') + '" data-a="excluir" aria-label="' + (confirmandoId === a.id ? 'Confirmar exclusão' : 'Excluir ' + esc(a.sku)) + '" title="' + (confirmandoId === a.id ? 'Clique de novo para excluir' : 'Excluir') + '">' + ic('trash') + (confirmandoId === a.id ? '<span>Confirmar</span>' : '') + '</button></div>' +
-      '<div class="anc-prod">' + esc(a.produto) + '</div>' +
-      (a.obs ? '<div class="anc-obs">' + esc(a.obs) + '</div>' : '') +
-      (duplicado ? '<div class="anc-dup">' + ic('alert') + 'Mesmo nome de outro SKU no quadro — confira</div>' : '') +
-      '<div class="anc-foot"><select class="select resp-select' + (a.responsavel_id ? '' : ' is-empty') + '" data-a="resp" aria-label="Quem está fazendo ' + esc(a.sku) + '"></select>' +
-        '<span class="spacer"></span>' +
-        (i > 0 ? '<button type="button" class="btn btn-ghost btn-sm" data-a="voltar" title="Voltar para ' + NOME_STATUS[STATUS[i - 1]] + '">' + ic('chevronLeft') + '</button>' : '') +
-        (i < 2 ? '<button type="button" class="btn btn-secondary btn-sm" data-a="avancar">' + (i === 0 ? 'Começar' : 'Concluir') + ic('chevronRight') + '</button>' : '') +
-      '</div>' +
-      (a.status === 'pronto' && a.concluido_em ? '<div class="anc-meta">Pronto em ' + quando(a.concluido_em) + (quem ? ' · ' + esc(quem) : '') + '</div>' : '');
-
-    const sel = div.querySelector('[data-a="resp"]');
-    opcoesResp(sel, a.responsavel_id, 'Sem responsável');
-    sel.addEventListener('change', () => {
-      const nome = HubAuth.nomeDe(sel.value);
-      atualizar(a.id, { responsavel_id: sel.value || null }, sel.value ? a.sku + ' com ' + nome + '.' : a.sku + ' sem responsável.');
+  function compositorEl(colId) {
+    const box = document.createElement('div');
+    box.className = 'composer';
+    box.innerHTML =
+      '<label class="sr-only" for="cp-' + colId + '">Novo cartão</label>' +
+      '<textarea class="textarea" id="cp-' + colId + '" placeholder="LF-0335 Chave Saca Filtros 80mm A 105mm - Lisfer"></textarea>' +
+      '<div class="composer-hint" aria-live="polite"></div>' +
+      '<div class="composer-actions"><button type="button" class="btn btn-primary btn-sm" data-a="add">Adicionar cartão</button>' +
+      '<button type="button" class="icon-btn" data-a="fechar" aria-label="Cancelar">' + ic('x') + '</button></div>';
+    const ta = box.querySelector('textarea');
+    const hint = box.querySelector('.composer-hint');
+    const btn = box.querySelector('[data-a="add"]');
+    const atualizar = () => {
+      st.rascunho[colId] = ta.value;
+      const h = dicaCompositor(ta.value);
+      hint.className = 'composer-hint ' + h.cls; hint.textContent = h.txt;
+      const n = parseLista(ta.value).itens.length;
+      btn.textContent = n > 1 ? 'Adicionar ' + n + ' cartões' : 'Adicionar cartão';
+    };
+    ta.value = st.rascunho[colId] || '';
+    atualizar();
+    ta.addEventListener('input', atualizar);
+    const enviar = async () => {
+      if (await adicionarCards(colId, ta.value, btn)) { st.rascunho[colId] = ''; const novo = document.getElementById('cp-' + colId); if (novo) novo.focus(); }
+    };
+    ta.addEventListener('keydown', (e) => {
+      // Enter cria; Shift+Enter quebra a linha (colar várias linhas também funciona)
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); }
+      if (e.key === 'Escape') { e.preventDefault(); st.compondo = null; render(); }
     });
-    div.querySelector('[data-a="editar"]').addEventListener('click', () => { editandoId = a.id; confirmandoId = null; render(); });
-    div.querySelector('[data-a="excluir"]').addEventListener('click', () => excluir(a));
-    const av = div.querySelector('[data-a="avancar"]');
-    if (av) av.addEventListener('click', () => mover(a, STATUS[i + 1]));
-    const vo = div.querySelector('[data-a="voltar"]');
-    if (vo) vo.addEventListener('click', () => mover(a, STATUS[i - 1]));
-    return div;
+    btn.addEventListener('click', enviar);
+    box.querySelector('[data-a="fechar"]').addEventListener('click', () => { st.compondo = null; render(); });
+    setTimeout(() => { if (st.compondo === colId && document.activeElement !== ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } }, 0);
+    return box;
+  }
+
+  function listaEl(col, f, porNome) {
+    const sec = document.createElement('section');
+    sec.className = 'kl';
+    sec.dataset.id = col.id;
+    sec.setAttribute('aria-label', col.nome);
+    const todos = st.cards.filter((a) => colunaDo(a) === col.id);
+    let lista = todos.filter(f.ok).sort((x, y) => pos(x) - pos(y));
+
+    const head = document.createElement('div');
+    head.className = 'kl-head';
+    head.draggable = st.renomeando !== col.id;
+    if (st.renomeando === col.id) {
+      head.innerHTML = '<label class="sr-only" for="rn-' + col.id + '">Nome da lista</label><input class="input kl-rename" id="rn-' + col.id + '" maxlength="60" value="' + esc(col.nome) + '">';
+      const inp = head.querySelector('input');
+      const salvar = async (ok) => {
+        if (st.renomeando !== col.id) return;
+        st.renomeando = null;
+        const nome = inp.value.trim();
+        if (!ok || !nome || nome === col.nome) { render(); return; }
+        const antigo = col.nome; col.nome = nome; render();
+        const { error } = await sb.from('anuncios_colunas').update({ nome }).eq('id', col.id);
+        if (error) { console.error(error); col.nome = antigo; render(); HubUI.toast('Não foi possível renomear a lista.', { error: true }); }
+        else HubUI.toast('Lista renomeada para ' + nome + '.');
+      };
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); salvar(true); } if (e.key === 'Escape') { e.preventDefault(); salvar(false); } });
+      inp.addEventListener('blur', () => salvar(true));
+      setTimeout(() => { inp.focus(); inp.select(); }, 0);
+    } else {
+      head.innerHTML =
+        '<button type="button" class="kl-name" data-a="renomear" title="Clique para renomear">' + (col.concluida ? ic('checkCircle') : '') + '<span>' + esc(col.nome) + '</span></button>' +
+        '<span class="count-pill">' + (f.ativo ? lista.length + '/' + todos.length : todos.length) + '</span>' +
+        '<button type="button" class="icon-btn" data-a="menu" aria-haspopup="menu" aria-expanded="false" aria-label="Ações da lista ' + esc(col.nome) + '">' + ic('more') + '</button>';
+      head.querySelector('[data-a="renomear"]').addEventListener('click', () => { st.renomeando = col.id; render(); });
+      head.querySelector('[data-a="menu"]').addEventListener('click', (e) => abrirMenu(col, e.currentTarget));
+    }
+    sec.appendChild(head);
+
+    const box = document.createElement('div');
+    box.className = 'kl-cards';
+    const limite = col.concluida && !st.verTodos[col.id] && !f.ativo ? PRONTOS_VISIVEIS : Infinity;
+    lista.slice(0, limite).forEach((a) => box.appendChild(cardEl(a, !concluido(a) && porNome[a.produto.trim().toLowerCase()] > 1)));
+    if (!lista.length && st.compondo !== col.id) {
+      const v = document.createElement('div');
+      v.className = 'kl-empty';
+      v.textContent = f.ativo && todos.length ? 'Nada com esse filtro.' : 'Arraste cartões para cá.';
+      box.appendChild(v);
+    }
+    if (lista.length > limite) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn btn-ghost btn-sm kl-more';
+      b.textContent = 'Mostrar mais ' + (lista.length - limite);
+      b.addEventListener('click', () => { st.verTodos[col.id] = true; render(); });
+      box.appendChild(b);
+    }
+    sec.appendChild(box);
+
+    const foot = document.createElement('div');
+    foot.className = 'kl-foot';
+    if (st.compondo === col.id) foot.appendChild(compositorEl(col.id));
+    else {
+      const add = document.createElement('button');
+      add.type = 'button'; add.className = 'kl-add';
+      add.innerHTML = ic('plus') + 'Adicionar um cartão';
+      add.addEventListener('click', () => { st.compondo = col.id; render(); });
+      foot.appendChild(add);
+    }
+    sec.appendChild(foot);
+    return sec;
+  }
+
+  function novaListaEl() {
+    const sec = document.createElement('section');
+    sec.className = 'kl kl-nova';
+    sec.dataset.nova = '1';
+    if (!st.novaLista) {
+      sec.innerHTML = '<button type="button" class="kl-add">' + ic('plus') + 'Adicionar outra lista</button>';
+      sec.querySelector('button').addEventListener('click', () => { st.novaLista = true; render(); });
+      return sec;
+    }
+    sec.innerHTML = '<div class="composer"><label class="sr-only" for="novaListaNome">Nome da lista</label>' +
+      '<input class="input" id="novaListaNome" maxlength="60" placeholder="Nome da lista (ex.: Revisão)">' +
+      '<div class="composer-actions"><button type="button" class="btn btn-primary btn-sm" data-a="ok">Adicionar lista</button>' +
+      '<button type="button" class="icon-btn" data-a="x" aria-label="Cancelar">' + ic('x') + '</button></div></div>';
+    const inp = sec.querySelector('input');
+    const btn = sec.querySelector('[data-a="ok"]');
+    const criar = async () => {
+      const nome = inp.value.trim();
+      if (!nome) { inp.focus(); return; }
+      const ordem = st.colunas.length ? Math.max.apply(null, st.colunas.map((c) => c.ordem)) + 1000 : 1000;
+      const done = HubUI.busy(btn, 'Criando…');
+      const { error } = await sb.from('anuncios_colunas').insert({ nome, ordem });
+      done();
+      if (error) { console.error(error); HubUI.toast('Não foi possível criar a lista.', { error: true }); return; }
+      HubUI.toast('Lista ' + nome + ' criada.');
+      await carregar();
+      const again = el('novaListaNome'); if (again) again.focus();
+    };
+    inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); criar(); } if (e.key === 'Escape') { st.novaLista = false; render(); } });
+    btn.addEventListener('click', criar);
+    sec.querySelector('[data-a="x"]').addEventListener('click', () => { st.novaLista = false; render(); });
+    setTimeout(() => inp.focus(), 0);
+    return sec;
   }
 
   function render() {
-    const termo = el('busca').value.trim().toLowerCase();
-    const resp = el('filtroResp').value;
-    const filtrados = anuncios.filter((a) =>
-      (!termo || a.sku.toLowerCase().includes(termo) || a.produto.toLowerCase().includes(termo)) &&
-      (!resp || (resp === '__sem' ? !a.responsavel_id : a.responsavel_id === resp)));
+    const board = el('board');
+    const scroll = board.scrollLeft;
+    const rolagens = {};
+    board.querySelectorAll('.kl[data-id]').forEach((s) => { rolagens[s.dataset.id] = s.querySelector('.kl-cards').scrollTop; });
 
-    // nomes iguais em SKUs diferentes (ainda não prontos) pedem conferência
+    const f = filtros();
     const porNome = {};
-    anuncios.filter((a) => a.status !== 'pronto').forEach((a) => {
-      const k = a.produto.trim().toLowerCase();
-      porNome[k] = (porNome[k] || 0) + 1;
-    });
+    st.cards.filter((a) => !concluido(a)).forEach((a) => { const k = a.produto.trim().toLowerCase(); porNome[k] = (porNome[k] || 0) + 1; });
 
-    STATUS.forEach((st) => {
-      let lista = filtrados.filter((a) => a.status === st);
-      if (st === 'pronto') lista = lista.slice().sort((x, y) => String(y.concluido_em).localeCompare(String(x.concluido_em)));
-      el('n-' + st).textContent = anuncios.filter((a) => a.status === st).length;
-      const box = el('l-' + st);
-      box.innerHTML = '';
-      if (!lista.length) {
-        box.innerHTML = '<div class="col-empty">' + (termo || resp ? 'Nada com esse filtro.' :
-          st === 'pendente' ? 'Nenhum anúncio esperando. Use "Adicionar anúncios".' :
-          st === 'andamento' ? 'Ninguém fazendo agora. Clique em "Começar" num pendente.' : 'Os anúncios publicados aparecem aqui.') + '</div>';
-        return;
-      }
-      const limite = st === 'pronto' && !mostrarTodosProntos ? PRONTOS_VISIVEIS : Infinity;
-      lista.slice(0, limite).forEach((a) => box.appendChild(card(a, a.status !== 'pronto' && porNome[a.produto.trim().toLowerCase()] > 1)));
-      if (lista.length > limite) {
-        const b = document.createElement('button');
-        b.type = 'button'; b.className = 'btn btn-ghost btn-sm mais';
-        b.textContent = 'Mostrar mais ' + (lista.length - limite) + ' prontos';
-        b.addEventListener('click', () => { mostrarTodosProntos = true; render(); });
-        box.appendChild(b);
-      }
+    board.innerHTML = '';
+    st.colunas.forEach((col) => board.appendChild(listaEl(col, f, porNome)));
+    board.appendChild(novaListaEl());
+    board.scrollLeft = scroll;
+    board.querySelectorAll('.kl[data-id]').forEach((s) => { if (rolagens[s.dataset.id]) s.querySelector('.kl-cards').scrollTop = rolagens[s.dataset.id]; });
+
+    const abertos = st.cards.filter((a) => !concluido(a));
+    const semResp = abertos.filter((a) => !a.responsavel_id).length;
+    const urg = abertos.filter((a) => a.prioridade === 'urgente').length;
+    el('resumo').textContent = abertos.length + (abertos.length === 1 ? ' anúncio em aberto' : ' anúncios em aberto') +
+      (urg ? ' · ' + urg + (urg === 1 ? ' urgente' : ' urgentes') : '') + (semResp ? ' · ' + semResp + ' sem responsável' : '');
+    st.novos = new Set();
+  }
+  const renderJa = render;
+
+  // ---------------- arrastar e soltar ----------------
+  const board = el('board');
+  function depoisDe(container, sel, coord, eixo) {
+    let melhor = null, dist = -Infinity;
+    container.querySelectorAll(sel).forEach((n) => {
+      const r = n.getBoundingClientRect();
+      const o = eixo === 'x' ? coord - r.left - r.width / 2 : coord - r.top - r.height / 2;
+      if (o < 0 && o > dist) { dist = o; melhor = n; }
     });
-    novosIds = new Set();
+    return melhor;
+  }
+  board.addEventListener('dragstart', (e) => {
+    const card = e.target.closest('.kc');
+    const head = !card && e.target.closest('.kl-head');
+    if (!card && !head) return;
+    fecharMenu();
+    const node = card || head.closest('.kl');
+    st.drag = { tipo: card ? 'card' : 'coluna', id: node.dataset.id, node, pai: node.parentNode, antes: node.previousElementSibling };
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', node.dataset.id);
+    requestAnimationFrame(() => { node.classList.add('is-dragging'); board.classList.add('is-dragging'); });
+  });
+  board.addEventListener('dragover', (e) => {
+    const d = st.drag;
+    if (!d) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (d.tipo === 'card') {
+      const lista = e.target.closest('.kl[data-id]');
+      if (!lista) return;
+      const box = lista.querySelector('.kl-cards');
+      const ref = depoisDe(box, '.kc:not(.is-dragging)', e.clientY, 'y') || box.querySelector('.kl-more');
+      if (ref) { if (ref !== d.node.nextSibling) box.insertBefore(d.node, ref); }
+      else if (box.lastElementChild !== d.node) box.appendChild(d.node);
+    } else {
+      const ref = depoisDe(board, '.kl[data-id]:not(.is-dragging)', e.clientX, 'x') || board.querySelector('.kl-nova');
+      if (ref !== d.node.nextSibling) board.insertBefore(d.node, ref);
+    }
+  });
+  board.addEventListener('drop', (e) => {
+    const d = st.drag;
+    if (!d) return;
+    e.preventDefault();
+    // voltou para o mesmo lugar: nada a gravar
+    if (d.node.parentNode === d.pai && d.node.previousElementSibling === d.antes) return;
+    if (d.tipo === 'card') {
+      const a = cardById(d.id);
+      const lista = d.node.closest('.kl[data-id]');
+      if (!a || !lista) return;
+      const irmaos = Array.from(lista.querySelectorAll('.kc'));
+      const i = irmaos.indexOf(d.node);
+      const ant = irmaos[i - 1] ? cardById(irmaos[i - 1].dataset.id) : null;
+      const prox = irmaos[i + 1] ? cardById(irmaos[i + 1].dataset.id) : null;
+      moverCard(a, lista.dataset.id, entre(ant ? pos(ant) : null, prox ? pos(prox) : null));
+    } else {
+      const listas = Array.from(board.querySelectorAll('.kl[data-id]'));
+      const i = listas.indexOf(d.node);
+      const col = colById(d.id);
+      const ant = listas[i - 1] ? colById(listas[i - 1].dataset.id) : null;
+      const prox = listas[i + 1] ? colById(listas[i + 1].dataset.id) : null;
+      moverColuna(col, entre(ant ? ant.ordem : null, prox ? prox.ordem : null));
+    }
+  });
+  board.addEventListener('dragend', () => {
+    const d = st.drag;
+    st.drag = null;
+    board.classList.remove('is-dragging');
+    if (d) d.node.classList.remove('is-dragging');
+    renderJa();
+  });
+
+  async function moverColuna(col, ordem) {
+    col.ordem = ordem;
+    st.colunas.sort((x, y) => x.ordem - y.ordem);
+    renderJa();
+    const { error } = await sb.from('anuncios_colunas').update({ ordem }).eq('id', col.id);
+    if (error) { console.error(error); HubUI.toast('Não foi possível mover a lista.', { error: true }); await carregar(); }
   }
 
-  el('busca').addEventListener('input', render);
-  el('filtroResp').addEventListener('change', render);
+  // abrir cartão: clique ou Enter/Espaço
+  board.addEventListener('click', (e) => {
+    const card = e.target.closest('.kc');
+    if (card) abrirDetalhe(card.dataset.id);
+  });
+  board.addEventListener('keydown', (e) => {
+    const card = e.target.closest('.kc');
+    if (card && e.target === card && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); abrirDetalhe(card.dataset.id); }
+  });
+
+  // ---------------- menu da lista ----------------
+  const menu = el('kmenu');
+  let menuDe = null;
+  let confirmarExclusaoLista = false;
+  function fecharMenu() {
+    if (menu.hidden) return;
+    menu.hidden = true;
+    if (menuDe) { menuDe.setAttribute('aria-expanded', 'false'); }
+    menuDe = null;
+  }
+  function abrirMenu(col, botao) {
+    if (menuDe === botao) { fecharMenu(); return; }
+    fecharMenu();
+    menuDe = botao;
+    confirmarExclusaoLista = false;
+    botao.setAttribute('aria-expanded', 'true');
+    desenharMenu(col);
+    menu.hidden = false;
+    const r = botao.getBoundingClientRect();
+    menu.style.top = Math.min(r.bottom + 6, window.innerHeight - menu.offsetHeight - 8) + 'px';
+    menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
+    const primeiroItem = menu.querySelector('button:not(:disabled), input');
+    if (primeiroItem) primeiroItem.focus();
+  }
+  function desenharMenu(col) {
+    const i = st.colunas.indexOf(col);
+    const qtd = st.cards.filter((a) => colunaDo(a) === col.id).length;
+    // os cartões sem lista válida caem na primeira: ela só sai quando houver outra
+    const podeExcluir = qtd === 0 && st.colunas.length > 1;
+    menu.innerHTML =
+      '<div class="kmenu-title">' + esc(col.nome) + '</div>' +
+      '<button type="button" class="kmi" role="menuitem" data-a="add">' + ic('plus') + 'Adicionar cartão</button>' +
+      '<button type="button" class="kmi" role="menuitem" data-a="renomear">' + ic('pencil') + 'Renomear lista</button>' +
+      '<button type="button" class="kmi" role="menuitem" data-a="esq"' + (i <= 0 ? ' disabled' : '') + '>' + ic('chevronLeft') + 'Mover para a esquerda</button>' +
+      '<button type="button" class="kmi" role="menuitem" data-a="dir"' + (i >= st.colunas.length - 1 ? ' disabled' : '') + '>' + ic('chevronRight') + 'Mover para a direita</button>' +
+      '<hr>' +
+      '<label class="check"><input type="checkbox" data-a="concluida"' + (col.concluida ? ' checked' : '') + '><span>Lista de prontos<small>Cartões que entram aqui ganham a data de conclusão e saem da contagem de abertos.</small></span></label>' +
+      '<hr>' +
+      '<button type="button" class="kmi danger' + (confirmarExclusaoLista ? ' is-confirming' : '') + '" role="menuitem" data-a="excluir"' + (podeExcluir ? '' : ' disabled') + '>' + ic('trash') + (confirmarExclusaoLista ? 'Clique de novo para excluir' : 'Excluir lista') + '</button>' +
+      (podeExcluir ? '' : '<div class="kmenu-note">' + (qtd ? (qtd === 1 ? 'Mova o cartão' : 'Mova os ' + qtd + ' cartões') + ' para outra lista antes de excluir.' : 'O quadro precisa de pelo menos uma lista.') + '</div>');
+    menu.querySelector('[data-a="add"]').addEventListener('click', () => { fecharMenu(); st.compondo = col.id; renderJa(); });
+    menu.querySelector('[data-a="renomear"]').addEventListener('click', () => { fecharMenu(); st.renomeando = col.id; renderJa(); });
+    const lado = (d) => {
+      fecharMenu();
+      const j = i + d;
+      const vizinho = st.colunas[j];
+      const alem = st.colunas[j + d];
+      moverColuna(col, d < 0 ? entre(alem ? alem.ordem : null, vizinho.ordem) : entre(vizinho.ordem, alem ? alem.ordem : null));
+    };
+    menu.querySelector('[data-a="esq"]').addEventListener('click', () => lado(-1));
+    menu.querySelector('[data-a="dir"]').addEventListener('click', () => lado(1));
+    menu.querySelector('[data-a="concluida"]').addEventListener('change', async (e) => {
+      const v = e.target.checked;
+      col.concluida = v;
+      renderJa();
+      const { error } = await sb.from('anuncios_colunas').update({ concluida: v }).eq('id', col.id);
+      if (error) { console.error(error); col.concluida = !v; renderJa(); HubUI.toast('Não foi possível alterar a lista.', { error: true }); }
+      else HubUI.toast(v ? col.nome + ' agora é uma lista de prontos.' : col.nome + ' deixou de ser lista de prontos.');
+      fecharMenu();
+    });
+    menu.querySelector('[data-a="excluir"]').addEventListener('click', async () => {
+      if (!confirmarExclusaoLista) { confirmarExclusaoLista = true; desenharMenu(col); menu.querySelector('[data-a="excluir"]').focus(); return; }
+      fecharMenu();
+      const { error } = await sb.from('anuncios_colunas').delete().eq('id', col.id);
+      if (error) { console.error(error); HubUI.toast('Não foi possível excluir a lista. Ela ainda tem cartões?', { error: true }); }
+      else HubUI.toast('Lista ' + col.nome + ' excluída.');
+      await carregar();
+    });
+  }
+  document.addEventListener('mousedown', (e) => { if (!menu.hidden && !menu.contains(e.target) && e.target.closest('[data-a="menu"]') !== menuDe) fecharMenu(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !menu.hidden) { const b = menuDe; fecharMenu(); if (b) b.focus(); } });
+  window.addEventListener('resize', fecharMenu);
+  board.addEventListener('scroll', fecharMenu);
+
+  // ---------------- detalhe do cartão ----------------
+  const dlg = el('cd');
+  let atividade = { coment: [], hist: [], carregando: false, erro: false };
+  let confirmarExclusao = false;
+  let confirmarComent = null;
+  let origemFoco = null;
+
+  function ajustarTitulo() { const t = el('cdTitulo'); t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
+
+  async function abrirDetalhe(id) {
+    const a = cardById(id);
+    if (!a) return;
+    origemFoco = document.activeElement;
+    st.detalhe = id;
+    confirmarExclusao = false;
+    confirmarComent = null;
+    el('cdComentario').value = '';
+    el('cdComentAcoes').hidden = true;
+    renderDetalhe(true);
+    if (!dlg.open) dlg.showModal();
+    ajustarTitulo();
+    el('cdTitulo').blur();
+    el('cdFechar').focus();
+    await carregarAtividade();
+  }
+  function fecharDetalhe() { if (dlg.open) dlg.close(); }
+  dlg.addEventListener('close', () => {
+    st.detalhe = null;
+    const voltar = origemFoco && document.contains(origemFoco) ? origemFoco : (origemFoco && origemFoco.dataset && board.querySelector('.kc[data-id="' + origemFoco.dataset.id + '"]'));
+    if (voltar && voltar.focus) voltar.focus();
+  });
+  el('cdFechar').addEventListener('click', fecharDetalhe);
+  dlg.addEventListener('click', (e) => { if (e.target === dlg) fecharDetalhe(); });
+
+  async function carregarAtividade() {
+    const id = st.detalhe;
+    if (!id) return;
+    atividade.carregando = true;
+    desenharFeed();
+    const [c, h] = await Promise.all([
+      sb.from('anuncios_comentarios').select('*').eq('anuncio_id', id).order('criado_em', { ascending: false }).limit(300),
+      sb.from('anuncios_historico').select('*').eq('anuncio_id', id).order('criado_em', { ascending: false }).limit(300)
+    ]);
+    if (st.detalhe !== id) return;
+    atividade = { coment: c.data || [], hist: h.data || [], carregando: false, erro: !!(c.error || h.error) };
+    if (c.error || h.error) console.error(c.error || h.error);
+    desenharFeed();
+  }
+
+  // campos que a pessoa está editando não são trocados por uma atualização de outra pessoa
+  function setSeLivre(id, v) { const n = el(id); if (document.activeElement !== n) n.value = v; }
+
+  function renderDetalhe(inicial) {
+    const a = cardById(st.detalhe);
+    if (!a) return;
+    const col = colById(colunaDo(a));
+    el('cdSkuTag').textContent = a.sku;
+    el('cdMarca').innerHTML = marcaHtml(a.sku);
+    el('cdPrioTag').innerHTML = a.prioridade ? '<span class="prio prio-' + a.prioridade + '">' + NOME_PRIO[a.prioridade] + '</span>' : '';
+    setSeLivre('cdTitulo', a.produto);
+    el('cdLista').textContent = col ? col.nome : '—';
+    el('cdResp').innerHTML = '<option value="">Sem responsável</option>' +
+      HubAuth.profiles.map((p) => '<option value="' + p.id + '"' + (p.id === a.responsavel_id ? ' selected' : '') + '>' + esc(p.nome || p.id) + '</option>').join('');
+    el('cdColuna').innerHTML = st.colunas.map((c) => '<option value="' + c.id + '"' + (col && c.id === col.id ? ' selected' : '') + '>' + esc(c.nome) + '</option>').join('');
+    setSeLivre('cdSku', a.sku);
+    el('cdPrio').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', (b.dataset.p || null) === (a.prioridade || null) ? 'true' : 'false'));
+    if (inicial || (document.activeElement !== el('cdObs') && el('cdObsAcoes').hidden)) { el('cdObs').value = a.obs || ''; el('cdObsAcoes').hidden = true; }
+    el('cdEu').textContent = iniciais(HubAuth.nomeDe(st.me.id) || st.me.email);
+
+    const i = st.colunas.indexOf(col);
+    const prox = st.colunas[i + 1];
+    const avancar = el('cdAvancar');
+    avancar.hidden = !prox;
+    if (prox) avancar.innerHTML = ic('chevronRight') + 'Mover para ' + esc(prox.nome);
+    el('cdExcluir').className = 'btn btn-secondary btn-sm' + (confirmarExclusao ? ' is-confirming' : '');
+    el('cdExcluir').innerHTML = ic('trash') + (confirmarExclusao ? 'Clique de novo para excluir' : 'Excluir cartão');
+
+    const criador = HubAuth.nomeDe(a.criado_por);
+    el('cdMeta').innerHTML =
+      'Criado em <strong>' + dataHora(a.criado_em) + '</strong>' + (criador ? ' por <strong>' + esc(criador) + '</strong>' : '') +
+      (a.concluido_em ? '<br>Pronto em <strong>' + dataHora(a.concluido_em) + '</strong>' : '') +
+      (a.atualizado_em ? '<br>Última alteração ' + relativo(a.atualizado_em) : '');
+    if (!inicial) carregarAtividade();
+  }
+
+  function desenharFeed() {
+    const ol = el('cdFeed');
+    if (atividade.carregando && !atividade.coment.length && !atividade.hist.length) {
+      ol.innerHTML = '<li><span class="skeleton" style="height:16px;width:60%"></span></li><li><span class="skeleton" style="height:44px"></span></li>';
+      return;
+    }
+    if (atividade.erro) { ol.innerHTML = '<li class="cd-feed-empty">Não foi possível carregar a atividade. Feche e abra o cartão de novo.</li>'; return; }
+    const verHist = el('cdHist').checked;
+    const itens = atividade.coment.map((c) => ({ tipo: 'c', em: c.criado_em, r: c }))
+      .concat(verHist ? atividade.hist.map((h) => ({ tipo: 'h', em: h.criado_em, r: h })) : [])
+      .sort((x, y) => String(y.em).localeCompare(String(x.em)));
+    if (!itens.length) { ol.innerHTML = '<li class="cd-feed-empty">' + (verHist ? 'Nenhuma atividade ainda.' : 'Nenhum comentário ainda. Use o campo acima para avisar a equipe.') + '</li>'; return; }
+    ol.innerHTML = itens.map((it) => {
+      const quem = HubAuth.nomeDe(it.r.autor_id) || 'Alguém';
+      const av = avatar(it.r.autor_id, it.tipo === 'c' ? 'av-lg' : '') || '<span class="av av-vazio' + (it.tipo === 'c' ? ' av-lg' : '') + '">?</span>';
+      if (it.tipo === 'h') {
+        return '<li class="cd-ev is-hist">' + av + '<div class="cd-ev-body"><div class="cd-ev-line"><strong>' + esc(quem) + '</strong> ' + esc(it.r.acao) + '</div><div class="cd-ev-time">' + relativo(it.em) + '</div></div></li>';
+      }
+      const meu = it.r.autor_id === st.me.id;
+      return '<li class="cd-ev">' + av + '<div class="cd-ev-body"><div class="cd-ev-line"><strong>' + esc(quem) + '</strong> <span class="cd-ev-time">' + relativo(it.em) + '</span></div>' +
+        '<div class="cd-bubble">' + esc(it.r.texto) + '</div>' +
+        (meu ? '<button type="button" class="link-btn cd-ev-del' + (confirmarComent === it.r.id ? ' is-confirming' : '') + '" data-del="' + esc(it.r.id) + '">' + (confirmarComent === it.r.id ? 'Clique de novo para apagar' : 'Apagar') + '</button>' : '') +
+        '</div></li>';
+    }).join('');
+  }
+  el('cdHist').addEventListener('change', desenharFeed);
+  el('cdFeed').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-del]');
+    if (!b) return;
+    const id = b.dataset.del;
+    if (confirmarComent !== id) { confirmarComent = id; desenharFeed(); const n = el('cdFeed').querySelector('[data-del="' + id + '"]'); if (n) n.focus(); return; }
+    confirmarComent = null;
+    const { error } = await sb.from('anuncios_comentarios').delete().eq('id', id);
+    if (error) { console.error(error); HubUI.toast('Não foi possível apagar o comentário.', { error: true }); return; }
+    atividade.coment = atividade.coment.filter((c) => c.id !== id);
+    st.nComent[st.detalhe] = Math.max(0, (st.nComent[st.detalhe] || 1) - 1);
+    desenharFeed(); renderJa();
+    HubUI.toast('Comentário apagado.');
+  });
+
+  // edição dentro do cartão
+  const atual = () => cardById(st.detalhe);
+  el('cdTitulo').addEventListener('input', ajustarTitulo);
+  el('cdTitulo').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); e.target.value = atual().produto; e.target.blur(); } });
+  el('cdTitulo').addEventListener('blur', async () => {
+    const a = atual(); if (!a) return;
+    const v = el('cdTitulo').value.replace(/\s+/g, ' ').trim();
+    if (!v) { el('cdTitulo').value = a.produto; ajustarTitulo(); HubUI.toast('O nome do produto não pode ficar vazio.', { error: true }); return; }
+    if (v !== a.produto && await salvarCard(a, { produto: v }, 'Nome do produto atualizado.')) renderDetalhe(false);
+  });
+  el('cdSku').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } });
+  el('cdSku').addEventListener('blur', async () => {
+    const a = atual(); if (!a) return;
+    const v = el('cdSku').value.trim().toUpperCase();
+    if (!v) { el('cdSku').value = a.sku; HubUI.toast('O SKU não pode ficar vazio.', { error: true }); return; }
+    if (v === a.sku) { el('cdSku').value = a.sku; return; }
+    if (!concluido(a) && st.cards.some((x) => x.id !== a.id && !concluido(x) && x.sku.toUpperCase() === v)) {
+      el('cdSku').value = a.sku; HubUI.toast(v + ' já tem um cartão aberto no quadro.', { error: true }); return;
+    }
+    if (await salvarCard(a, { sku: v }, 'SKU trocado para ' + v + '.')) renderDetalhe(false);
+  });
+  el('cdResp').addEventListener('change', async () => {
+    const a = atual(); const v = el('cdResp').value || null;
+    if (await salvarCard(a, { responsavel_id: v }, v ? a.sku + ' com ' + HubAuth.nomeDe(v) + '.' : a.sku + ' sem responsável.')) renderDetalhe(false);
+  });
+  el('cdColuna').addEventListener('change', async () => {
+    const a = atual(); const destino = el('cdColuna').value;
+    if (destino === colunaDo(a)) return;
+    const naLista = st.cards.filter((x) => x.id !== a.id && colunaDo(x) === destino).map(pos);
+    // em lista de prontos o cartão entra no topo; nas outras, no fim
+    const p = colById(destino).concluida ? entre(null, naLista.length ? Math.min.apply(null, naLista) : null) : entre(naLista.length ? Math.max.apply(null, naLista) : null, null);
+    if (await moverCard(a, destino, p)) renderDetalhe(false);
+  });
+  el('cdAvancar').addEventListener('click', () => {
+    const col = colById(colunaDo(atual()));
+    const prox = st.colunas[st.colunas.indexOf(col) + 1];
+    if (!prox) return;
+    el('cdColuna').value = prox.id;
+    el('cdColuna').dispatchEvent(new Event('change'));
+  });
+  el('cdPrio').addEventListener('click', async (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    const a = atual(); const v = b.dataset.p || null;
+    if (v === (a.prioridade || null)) return;
+    if (await salvarCard(a, { prioridade: v }, v ? a.sku + ': prioridade ' + NOME_PRIO[v] + '.' : a.sku + ' sem prioridade.')) renderDetalhe(false);
+  });
+  el('cdObs').addEventListener('input', () => { el('cdObsAcoes').hidden = el('cdObs').value === (atual().obs || ''); });
+  el('cdObsCancelar').addEventListener('click', () => { el('cdObs').value = atual().obs || ''; el('cdObsAcoes').hidden = true; });
+  el('cdObsSalvar').addEventListener('click', async () => {
+    const a = atual(); const v = el('cdObs').value.trim() || null;
+    const done = HubUI.busy(el('cdObsSalvar'), 'Salvando…');
+    const ok = await salvarCard(a, { obs: v }, 'Descrição salva.');
+    done();
+    if (ok) { el('cdObsAcoes').hidden = true; renderDetalhe(false); }
+  });
+  el('cdExcluir').addEventListener('click', async () => {
+    const a = atual();
+    if (!confirmarExclusao) { confirmarExclusao = true; renderDetalhe(true); setTimeout(() => { confirmarExclusao = false; if (st.detalhe === a.id) renderDetalhe(true); }, 3500); return; }
+    const done = HubUI.busy(el('cdExcluir'), 'Excluindo…');
+    const { error } = await sb.from('anuncios').delete().eq('id', a.id);
+    done();
+    if (error) { console.error(error); HubUI.toast('Não foi possível excluir.', { error: true }); return; }
+    st.cards = st.cards.filter((x) => x.id !== a.id);
+    origemFoco = null;
+    fecharDetalhe();
+    renderJa();
+    HubUI.toast(a.sku + ' excluído do quadro.');
+  });
+
+  // comentários
+  const ta = el('cdComentario');
+  ta.addEventListener('focus', () => { el('cdComentAcoes').hidden = false; });
+  ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 240) + 'px'; });
+  ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); comentar(); } });
+  ta.addEventListener('blur', () => setTimeout(() => { if (!ta.value.trim() && document.activeElement !== el('cdComentar')) el('cdComentAcoes').hidden = true; }, 120));
+  el('cdComentar').addEventListener('click', comentar);
+  async function comentar() {
+    const texto = ta.value.trim();
+    if (!texto) { ta.focus(); return; }
+    const id = st.detalhe;
+    const done = HubUI.busy(el('cdComentar'), 'Enviando…');
+    const { data, error } = await sb.from('anuncios_comentarios').insert({ anuncio_id: id, autor_id: st.me.id, texto }).select();
+    done();
+    if (error) { console.error(error); HubUI.toast('Não foi possível enviar o comentário.', { error: true }); return; }
+    ta.value = ''; ta.style.height = '';
+    el('cdComentAcoes').hidden = true;
+    if (data && data[0]) atividade.coment.unshift(data[0]);
+    st.nComent[id] = (st.nComent[id] || 0) + 1;
+    desenharFeed(); renderJa();
+    HubUI.toast('Comentário enviado.');
+  }
+
+  // ---------------- filtros e ações da página ----------------
+  el('busca').addEventListener('input', renderJa);
+  el('filtroResp').addEventListener('change', renderJa);
+  el('filtroPrio').addEventListener('change', renderJa);
+  el('openForm').addEventListener('click', () => {
+    if (!st.colunas.length) { st.novaLista = true; renderJa(); return; }
+    st.compondo = primeira().id; renderJa();
+    const lista = board.querySelector('.kl[data-id="' + primeira().id + '"]');
+    if (lista) lista.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  });
 
   HubAuth.requireAuth((user) => {
-    me = user;
-    opcoesResp(el('respInput'), '', 'Ninguém ainda');
+    st.me = user;
     el('filtroResp').innerHTML = '<option value="">Todas as pessoas</option><option value="__sem">Sem responsável</option>' +
       HubAuth.profiles.map((p) => '<option value="' + p.id + '">' + esc(p.nome || p.id) + '</option>').join('');
-    setModo(false);
     el('appScreen').hidden = false;
     carregar();
     assinar();
