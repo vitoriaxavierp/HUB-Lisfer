@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anúncios novos — Hub Lisfer</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="hub.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<style>
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .search { position: relative; width: 280px; max-width: 100%; }
+  .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-3); pointer-events: none; }
+  .search .input { padding-left: 34px; }
+  .toolbar .select { width: auto; min-width: 200px; }
+
+  /* formulário */
+  .add-tabs { margin-bottom: 16px; }
+  .f-sku { grid-column: span 3; } .f-prod { grid-column: span 6; } .f-resp { grid-column: span 3; }
+  .f-lista { grid-column: 1 / -1; }
+  .f-lista .textarea { font-family: var(--font-mono); font-size: var(--fs-sm); min-height: 150px; }
+  .f-lista .textarea::placeholder { font-family: var(--font-sans); }
+  @media (max-width: 900px) { .f-sku, .f-resp { grid-column: span 6; } .f-prod { grid-column: 1 / -1; } }
+
+  /* quadro */
+  .board { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s-5); align-items: start; }
+  @media (max-width: 1100px) { .board { grid-template-columns: 1fr; } }
+  .col-head .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .col-pendente .dot { background: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+  .col-andamento .dot { background: var(--info); box-shadow: 0 0 0 3px var(--info-soft); }
+  .col-pronto .dot { background: var(--success); box-shadow: 0 0 0 3px var(--success-soft); }
+  .col-list { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 80px; }
+
+  .anc {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md);
+    padding: 12px 12px 10px; box-shadow: var(--shadow-xs);
+    transition: border-color var(--t-fast) ease, box-shadow var(--t-fast) ease;
+  }
+  .anc:hover { border-color: var(--border-strong); }
+  .anc.is-new { animation: anc-in 600ms var(--ease-out); }
+  @keyframes anc-in { from { background: var(--brand-soft); } to { background: var(--surface); } }
+  .anc-top { display: flex; align-items: center; gap: 8px; }
+  .anc-sku { font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 500; color: var(--text); }
+  .anc-top .spacer { flex: 1; }
+  .anc-prod { font-size: var(--fs-base); font-weight: 600; margin-top: 4px; line-height: 1.35; overflow-wrap: anywhere; }
+  .anc-obs { font-size: var(--fs-xs); color: var(--text-2); margin-top: 4px; }
+  .anc-dup { font-size: var(--fs-xs); color: var(--warning-text); margin-top: 4px; display: flex; gap: 4px; align-items: center; }
+  .anc-dup svg { width: 12px; height: 12px; }
+  .anc-foot { display: flex; align-items: center; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+  .resp-select {
+    height: 28px; padding: 0 26px 0 8px; font-size: var(--fs-xs); max-width: 170px;
+    background-position: right 6px center; background-size: 14px;
+  }
+  .resp-select.is-empty { color: var(--text-3); border-style: dashed; }
+  .anc-foot .spacer { flex: 1; }
+  .anc-meta { font-size: var(--fs-2xs); color: var(--text-3); margin-top: 8px; }
+  .anc .icon-btn { width: 28px; height: 28px; }
+  .anc .icon-btn svg { width: 14px; height: 14px; }
+
+  .marca { font-size: var(--fs-2xs); font-weight: 600; padding: 1px 7px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--text-2); white-space: nowrap; }
+  .marca-lisfer { background: var(--brand-soft); color: var(--brand-text); }
+  .marca-nacional { background: var(--info-soft); color: var(--info); }
+  .marca-loxer { background: var(--ink); color: #FFFFFF; }
+
+  .anc.is-editing { background: var(--surface-2); }
+  .anc.is-editing .field { margin-bottom: 8px; }
+  .col-empty { padding: 18px 10px; text-align: center; font-size: var(--fs-sm); color: var(--text-3); }
+  .mais { width: 100%; }
+</style>
+</head>
+<body>
+
+<div class="app" id="appScreen" hidden>
+  <aside class="app-sidebar" id="appSidebar" data-active="anuncios"></aside>
+  <div class="app-scrim"></div>
+  <div class="app-main">
+    <main class="page">
+      <header class="page-header">
+        <div class="page-header-text">
+          <h1 class="page-title">Anúncios novos</h1>
+          <p class="page-desc">Produtos que ainda precisam de anúncio. Pegue um pendente, coloque seu nome e mova até "Pronto" quando publicar.</p>
+        </div>
+        <div class="page-actions">
+          <button type="button" class="btn btn-primary" id="openForm" aria-expanded="false" aria-controls="formPanel"><span id="icPlus"></span>Adicionar anúncios</button>
+        </div>
+      </header>
+
+      <div class="stack">
+        <div class="alert alert-danger" id="connBanner" role="alert" hidden>
+          <span id="icErro"></span><span><strong>Não foi possível carregar os anúncios.</strong> Verifique a conexão e recarregue a página.</span>
+        </div>
+
+        <section class="panel" id="formPanel" aria-labelledby="formTitle" hidden>
+          <div class="panel-head">
+            <h2 id="formTitle">Adicionar anúncios</h2>
+            <span class="spacer"></span>
+            <button type="button" class="icon-btn" id="closeForm" aria-label="Fechar"></button>
+          </div>
+          <div class="panel-body">
+            <div class="segmented add-tabs" role="group" aria-label="Como adicionar">
+              <button type="button" id="modoUm" aria-pressed="true">Um anúncio</button>
+              <button type="button" id="modoLista" aria-pressed="false">Colar uma lista</button>
+            </div>
+
+            <form id="formUm" class="form-grid" novalidate>
+              <div class="field f-sku">
+                <label for="skuInput">SKU<span class="req">*</span></label>
+                <input class="input mono" id="skuInput" autocomplete="off" placeholder="ex.: LF-0335" required>
+              </div>
+              <div class="field f-prod">
+                <label for="prodInput">Produto<span class="req">*</span></label>
+                <input class="input" id="prodInput" autocomplete="off" required>
+              </div>
+              <div class="field f-resp">
+                <label for="respInput">Quem vai fazer</label>
+                <select class="select" id="respInput"></select>
+              </div>
+            </form>
+
+            <form id="formLista" class="form-grid" novalidate hidden>
+              <div class="field f-lista">
+                <label for="listaInput">Um anúncio por linha: SKU e produto <span class="muted">— pode colar direto da planilha</span></label>
+                <textarea class="textarea" id="listaInput" placeholder="LF-0335	Chave Saca Filtros Filtro 80mm A 105mm - Lisfer&#10;LF-0337	Chave Saca Filtros Filtro 105mm A 145mm - Lisfer"></textarea>
+                <span class="hint" id="listaHint">Separe SKU e produto por tabulação (copiando da planilha), ponto e vírgula ou " - ". Linhas de título como "SKU Produto" são ignoradas.</span>
+              </div>
+            </form>
+          </div>
+          <div class="panel-foot">
+            <button type="button" class="btn btn-primary" id="addBtn">Adicionar aos pendentes</button>
+            <button type="button" class="btn btn-secondary" id="cancelForm">Cancelar</button>
+            <div class="form-error" id="formMsg" role="alert"></div>
+          </div>
+        </section>
+
+        <div class="toolbar">
+          <label class="search"><span id="icSearch"></span><span class="sr-only">Buscar</span>
+            <input class="input" type="search" id="busca" placeholder="Buscar SKU ou produto" autocomplete="off"></label>
+          <select class="select" id="filtroResp" aria-label="Filtrar por responsável"></select>
+        </div>
+
+        <div class="board" id="board">
+          <section class="panel col-pendente" aria-labelledby="t-pendente">
+            <div class="panel-head col-head"><span class="dot" aria-hidden="true"></span><h2 id="t-pendente">Pendente</h2><span class="count-pill" id="n-pendente">–</span></div>
+            <div class="col-list" id="l-pendente"><span class="skeleton" style="height:78px"></span><span class="skeleton" style="height:78px"></span></div>
+          </section>
+          <section class="panel col-andamento" aria-labelledby="t-andamento">
+            <div class="panel-head col-head"><span class="dot" aria-hidden="true"></span><h2 id="t-andamento">Em andamento</h2><span class="count-pill" id="n-andamento">–</span></div>
+            <div class="col-list" id="l-andamento"><span class="skeleton" style="height:78px"></span></div>
+          </section>
+          <section class="panel col-pronto" aria-labelledby="t-pronto">
+            <div class="panel-head col-head"><span class="dot" aria-hidden="true"></span><h2 id="t-pronto">Pronto</h2><span class="count-pill" id="n-pronto">–</span></div>
+            <div class="col-list" id="l-pronto"><span class="skeleton" style="height:78px"></span></div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+(function () {
+  const el = (id) => document.getElementById(id);
+  const ic = HubIcons.svg;
+  const esc = HubUI.escapeHtml;
+  const STATUS = ['pendente', 'andamento', 'pronto'];
+  const NOME_STATUS = { pendente: 'Pendente', andamento: 'Em andamento', pronto: 'Pronto' };
+  const PRONTOS_VISIVEIS = 12;
+
+  let me = null;
+  let anuncios = [];
+  let editandoId = null;
+  let confirmandoId = null;
+  let confirmTimer = null;
+  let mostrarTodosProntos = false;
+  let novosIds = new Set();
+  let channel = null;
+
+  el('icPlus').outerHTML = ic('plus');
+  el('icErro').outerHTML = ic('alertCircle');
+  el('icSearch').outerHTML = ic('search');
+  el('closeForm').innerHTML = ic('x');
+
+  // Regras de SKU da Lisfer: LF- é Lisfer importação, exceto LF-0100,
+  // LF-0102, LF-0103 e LF-0104 (Lisfer nacional); LX- é Loxer (Lalfer).
+  const NACIONAIS = ['LF-0100', 'LF-0102', 'LF-0103', 'LF-0104'];
+  function marcaDoSku(sku) {
+    const s = String(sku || '').trim().toUpperCase();
+    if (s.startsWith('LX-')) return { cls: 'marca-loxer', txt: 'Loxer' };
+    if (s.startsWith('LF-')) {
+      const cod = s.match(/^LF-\d{4}/);
+      if (cod && NACIONAIS.indexOf(cod[0]) !== -1) return { cls: 'marca-nacional', txt: 'Lisfer nacional' };
+      return { cls: 'marca-lisfer', txt: 'Lisfer importação' };
+    }
+    return null;
+  }
+
+  function opcoesResp(sel, atual, rotuloVazio) {
+    sel.innerHTML = '<option value="">' + rotuloVazio + '</option>' +
+      HubAuth.profiles.map((p) => '<option value="' + p.id + '"' + (p.id === atual ? ' selected' : '') + '>' + esc(p.nome || p.id) + '</option>').join('');
+  }
+
+  // ---------------- formulário ----------------
+  function setModo(lista) {
+    el('modoUm').setAttribute('aria-pressed', lista ? 'false' : 'true');
+    el('modoLista').setAttribute('aria-pressed', lista ? 'true' : 'false');
+    el('formUm').hidden = lista;
+    el('formLista').hidden = !lista;
+    el('addBtn').dataset.modo = lista ? 'lista' : 'um';
+    atualizarDica();
+  }
+  el('modoUm').addEventListener('click', () => setModo(false));
+  el('modoLista').addEventListener('click', () => { setModo(true); el('listaInput').focus(); });
+
+  function setFormOpen(open) {
+    el('formPanel').hidden = !open;
+    el('openForm').setAttribute('aria-expanded', open ? 'true' : 'false');
+    el('formMsg').textContent = '';
+    if (open) { (el('formLista').hidden ? el('skuInput') : el('listaInput')).focus(); }
+    else { el('formUm').reset(); el('listaInput').value = ''; atualizarDica(); }
+  }
+  el('openForm').addEventListener('click', () => setFormOpen(el('formPanel').hidden));
+  el('closeForm').addEventListener('click', () => setFormOpen(false));
+  el('cancelForm').addEventListener('click', () => setFormOpen(false));
+
+  function parseLista(texto) {
+    const linhas = texto.split('\n').map((l) => l.trim()).filter(Boolean);
+    const itens = [];
+    let ignoradas = 0;
+    linhas.forEach((l) => {
+      let partes = l.split('\t');
+      if (partes.length < 2) partes = l.split(';');
+      if (partes.length < 2) {
+        const m = l.match(/^(\S+)\s+-\s+(.+)$/) || l.match(/^([A-Z]{2,}-[\w\-\/]+)\s+(.+)$/i);
+        partes = m ? [m[1], m[2]] : [l];
+      }
+      const sku = (partes[0] || '').trim();
+      const produto = partes.slice(1).join(' ').trim();
+      const titulo = /^(sku|c[oó]digo)$/i.test(sku) || /^sem an[uú]ncio$/i.test(l);
+      if (!sku || !produto || titulo) { ignoradas++; return; }
+      itens.push({ sku: sku.toUpperCase(), produto });
+    });
+    return { itens, linhas: linhas.length, ignoradas };
+  }
+
+  function atualizarDica() {
+    const hint = el('listaHint');
+    const txt = el('listaInput').value;
+    if (!txt.trim()) {
+      hint.style.color = '';
+      hint.textContent = 'Separe SKU e produto por tabulação (copiando da planilha), ponto e vírgula ou " - ". Linhas de título como "SKU Produto" são ignoradas.';
+      el('addBtn').textContent = 'Adicionar aos pendentes';
+      return;
+    }
+    const r = parseLista(txt);
+    const jaExistem = r.itens.filter((i) => anuncios.some((a) => a.sku.toUpperCase() === i.sku && a.status !== 'pronto')).length;
+    hint.style.color = r.itens.length ? 'var(--success)' : 'var(--danger)';
+    hint.textContent = r.itens.length + (r.itens.length === 1 ? ' anúncio reconhecido' : ' anúncios reconhecidos') +
+      (r.ignoradas ? ' · ' + r.ignoradas + ' linha(s) ignorada(s)' : '') +
+      (jaExistem ? ' · ' + jaExistem + (jaExistem === 1 ? ' já está no quadro e não será repetido' : ' já estão no quadro e não serão repetidos') : '');
+    el('addBtn').textContent = r.itens.length ? 'Adicionar ' + (r.itens.length - jaExistem) + ' aos pendentes' : 'Adicionar aos pendentes';
+  }
+  el('listaInput').addEventListener('input', atualizarDica);
+
+  el('addBtn').addEventListener('click', async () => {
+    el('formMsg').textContent = '';
+    let novos = [];
+    if (el('addBtn').dataset.modo === 'lista') {
+      novos = parseLista(el('listaInput').value).itens;
+      if (!novos.length) { el('formMsg').textContent = 'Nenhuma linha reconhecida. Use SKU e produto em cada linha.'; return; }
+    } else {
+      const sku = el('skuInput').value.trim().toUpperCase();
+      const produto = el('prodInput').value.trim();
+      if (!sku || !produto) {
+        el('formMsg').textContent = 'Preencha o SKU e o nome do produto.';
+        (sku ? el('prodInput') : el('skuInput')).focus();
+        return;
+      }
+      novos = [{ sku, produto, responsavel_id: el('respInput').value || null }];
+    }
+    // não repete o que já está no quadro (pendente ou em andamento)
+    const abertos = new Set(anuncios.filter((a) => a.status !== 'pronto').map((a) => a.sku.toUpperCase()));
+    const vistos = new Set();
+    const inserir = novos.filter((n) => { const k = n.sku; if (abertos.has(k) || vistos.has(k)) return false; vistos.add(k); return true; });
+    const repetidos = novos.length - inserir.length;
+    if (!inserir.length) { el('formMsg').textContent = 'Esse(s) SKU(s) já está(ão) no quadro.'; return; }
+
+    const done = HubUI.busy(el('addBtn'), 'Adicionando…');
+    const { data, error } = await sb.from('anuncios').insert(inserir.map((n) => ({
+      sku: n.sku, produto: n.produto, responsavel_id: n.responsavel_id || null, status: 'pendente'
+    }))).select();
+    done();
+    if (error) { console.error(error); el('formMsg').textContent = 'Não foi possível salvar. Tente de novo.'; return; }
+    (data || []).forEach((d) => novosIds.add(d.id));
+    HubUI.toast(inserir.length + (inserir.length === 1 ? ' anúncio adicionado' : ' anúncios adicionados') + (repetidos ? ' (' + repetidos + (repetidos === 1 ? ' já estava' : ' já estavam') + ' no quadro)' : '') + '.');
+    setFormOpen(false);
+    await carregar();
+  });
+
+  // ---------------- dados ----------------
+  async function carregar() {
+    const { data, error } = await sb.from('anuncios').select('*').order('criado_em', { ascending: true }).limit(1000);
+    if (error) { console.error(error); el('connBanner').hidden = false; return; }
+    el('connBanner').hidden = true;
+    anuncios = data || [];
+    render();
+  }
+
+  function assinar() {
+    if (channel) sb.removeChannel(channel);
+    channel = sb.channel('anuncios-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'anuncios' }, () => carregar())
+      .subscribe();
+  }
+
+  async function atualizar(id, campos, msg) {
+    campos.atualizado_em = new Date().toISOString();
+    const { error } = await sb.from('anuncios').update(campos).eq('id', id);
+    if (error) { console.error(error); HubUI.toast('Não foi possível salvar a alteração.', { error: true }); }
+    else if (msg) HubUI.toast(msg);
+    await carregar();
+  }
+
+  function mover(a, para) {
+    const campos = { status: para, concluido_em: para === 'pronto' ? new Date().toISOString() : null };
+    // quem começa um anúncio sem responsável vira a responsável
+    if (para === 'andamento' && !a.responsavel_id) campos.responsavel_id = me.id;
+    novosIds.add(a.id);
+    atualizar(a.id, campos, a.sku + ' → ' + NOME_STATUS[para] + '.');
+  }
+
+  async function excluir(a) {
+    if (confirmandoId !== a.id) {
+      confirmandoId = a.id;
+      clearTimeout(confirmTimer);
+      confirmTimer = setTimeout(() => { confirmandoId = null; render(); }, 3000);
+      render();
+      return;
+    }
+    clearTimeout(confirmTimer);
+    confirmandoId = null;
+    const { error } = await sb.from('anuncios').delete().eq('id', a.id);
+    if (error) { console.error(error); HubUI.toast('Não foi possível excluir.', { error: true }); }
+    else HubUI.toast(a.sku + ' excluído do quadro.');
+    await carregar();
+  }
+
+  // ---------------- quadro ----------------
+  function quando(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  }
+
+  function cardEditor(a) {
+    const div = document.createElement('div');
+    div.className = 'anc is-editing';
+    div.innerHTML =
+      '<div class="field"><label>SKU</label><input class="input mono" data-f="sku" value="' + esc(a.sku) + '"></div>' +
+      '<div class="field"><label>Produto</label><input class="input" data-f="produto" value="' + esc(a.produto) + '"></div>' +
+      '<div class="field"><label>Observação</label><input class="input" data-f="obs" value="' + esc(a.obs || '') + '" placeholder="opcional"></div>' +
+      '<div class="form-actions"><button type="button" class="btn btn-primary btn-sm" data-a="salvar">Salvar</button>' +
+      '<button type="button" class="btn btn-secondary btn-sm" data-a="cancelar">Cancelar</button></div>';
+    div.querySelector('[data-a="salvar"]').addEventListener('click', () => {
+      const v = (f) => div.querySelector('[data-f="' + f + '"]').value.trim();
+      if (!v('sku') || !v('produto')) { HubUI.toast('SKU e produto não podem ficar vazios.', { error: true }); return; }
+      editandoId = null;
+      atualizar(a.id, { sku: v('sku').toUpperCase(), produto: v('produto'), obs: v('obs') || null }, 'Anúncio ' + v('sku').toUpperCase() + ' atualizado.');
+    });
+    div.querySelector('[data-a="cancelar"]').addEventListener('click', () => { editandoId = null; render(); });
+    setTimeout(() => div.querySelector('[data-f="produto"]').focus(), 0);
+    return div;
+  }
+
+  function card(a, duplicado) {
+    if (editandoId === a.id) return cardEditor(a);
+    const m = marcaDoSku(a.sku);
+    const div = document.createElement('div');
+    div.className = 'anc' + (novosIds.has(a.id) ? ' is-new' : '');
+    const i = STATUS.indexOf(a.status);
+    const quem = HubAuth.nomeDe(a.responsavel_id);
+    div.innerHTML =
+      '<div class="anc-top"><span class="anc-sku">' + esc(a.sku) + '</span>' + (m ? '<span class="marca ' + m.cls + '">' + m.txt + '</span>' : '') +
+        '<span class="spacer"></span>' +
+        '<button type="button" class="icon-btn" data-a="editar" aria-label="Editar ' + esc(a.sku) + '" title="Editar">' + ic('pencil') + '</button>' +
+        '<button type="button" class="icon-btn danger' + (confirmandoId === a.id ? ' is-confirming' : '') + '" data-a="excluir" aria-label="' + (confirmandoId === a.id ? 'Confirmar exclusão' : 'Excluir ' + esc(a.sku)) + '" title="' + (confirmandoId === a.id ? 'Clique de novo para excluir' : 'Excluir') + '">' + ic('trash') + (confirmandoId === a.id ? '<span>Confirmar</span>' : '') + '</button></div>' +
+      '<div class="anc-prod">' + esc(a.produto) + '</div>' +
+      (a.obs ? '<div class="anc-obs">' + esc(a.obs) + '</div>' : '') +
+      (duplicado ? '<div class="anc-dup">' + ic('alert') + 'Mesmo nome de outro SKU no quadro — confira</div>' : '') +
+      '<div class="anc-foot"><select class="select resp-select' + (a.responsavel_id ? '' : ' is-empty') + '" data-a="resp" aria-label="Quem está fazendo ' + esc(a.sku) + '"></select>' +
+        '<span class="spacer"></span>' +
+        (i > 0 ? '<button type="button" class="btn btn-ghost btn-sm" data-a="voltar" title="Voltar para ' + NOME_STATUS[STATUS[i - 1]] + '">' + ic('chevronLeft') + '</button>' : '') +
+        (i < 2 ? '<button type="button" class="btn btn-secondary btn-sm" data-a="avancar">' + (i === 0 ? 'Começar' : 'Concluir') + ic('chevronRight') + '</button>' : '') +
+      '</div>' +
+      (a.status === 'pronto' && a.concluido_em ? '<div class="anc-meta">Pronto em ' + quando(a.concluido_em) + (quem ? ' · ' + esc(quem) : '') + '</div>' : '');
+
+    const sel = div.querySelector('[data-a="resp"]');
+    opcoesResp(sel, a.responsavel_id, 'Sem responsável');
+    sel.addEventListener('change', () => {
+      const nome = HubAuth.nomeDe(sel.value);
+      atualizar(a.id, { responsavel_id: sel.value || null }, sel.value ? a.sku + ' com ' + nome + '.' : a.sku + ' sem responsável.');
+    });
+    div.querySelector('[data-a="editar"]').addEventListener('click', () => { editandoId = a.id; confirmandoId = null; render(); });
+    div.querySelector('[data-a="excluir"]').addEventListener('click', () => excluir(a));
+    const av = div.querySelector('[data-a="avancar"]');
+    if (av) av.addEventListener('click', () => mover(a, STATUS[i + 1]));
+    const vo = div.querySelector('[data-a="voltar"]');
+    if (vo) vo.addEventListener('click', () => mover(a, STATUS[i - 1]));
+    return div;
+  }
+
+  function render() {
+    const termo = el('busca').value.trim().toLowerCase();
+    const resp = el('filtroResp').value;
+    const filtrados = anuncios.filter((a) =>
+      (!termo || a.sku.toLowerCase().includes(termo) || a.produto.toLowerCase().includes(termo)) &&
+      (!resp || (resp === '__sem' ? !a.responsavel_id : a.responsavel_id === resp)));
+
+    // nomes iguais em SKUs diferentes (ainda não prontos) pedem conferência
+    const porNome = {};
+    anuncios.filter((a) => a.status !== 'pronto').forEach((a) => {
+      const k = a.produto.trim().toLowerCase();
+      porNome[k] = (porNome[k] || 0) + 1;
+    });
+
+    STATUS.forEach((st) => {
+      let lista = filtrados.filter((a) => a.status === st);
+      if (st === 'pronto') lista = lista.slice().sort((x, y) => String(y.concluido_em).localeCompare(String(x.concluido_em)));
+      el('n-' + st).textContent = anuncios.filter((a) => a.status === st).length;
+      const box = el('l-' + st);
+      box.innerHTML = '';
+      if (!lista.length) {
+        box.innerHTML = '<div class="col-empty">' + (termo || resp ? 'Nada com esse filtro.' :
+          st === 'pendente' ? 'Nenhum anúncio esperando. Use "Adicionar anúncios".' :
+          st === 'andamento' ? 'Ninguém fazendo agora. Clique em "Começar" num pendente.' : 'Os anúncios publicados aparecem aqui.') + '</div>';
+        return;
+      }
+      const limite = st === 'pronto' && !mostrarTodosProntos ? PRONTOS_VISIVEIS : Infinity;
+      lista.slice(0, limite).forEach((a) => box.appendChild(card(a, a.status !== 'pronto' && porNome[a.produto.trim().toLowerCase()] > 1)));
+      if (lista.length > limite) {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'btn btn-ghost btn-sm mais';
+        b.textContent = 'Mostrar mais ' + (lista.length - limite) + ' prontos';
+        b.addEventListener('click', () => { mostrarTodosProntos = true; render(); });
+        box.appendChild(b);
+      }
+    });
+    novosIds = new Set();
+  }
+
+  el('busca').addEventListener('input', render);
+  el('filtroResp').addEventListener('change', render);
+
+  HubAuth.requireAuth((user) => {
+    me = user;
+    opcoesResp(el('respInput'), '', 'Ninguém ainda');
+    el('filtroResp').innerHTML = '<option value="">Todas as pessoas</option><option value="__sem">Sem responsável</option>' +
+      HubAuth.profiles.map((p) => '<option value="' + p.id + '">' + esc(p.nome || p.id) + '</option>').join('');
+    setModo(false);
+    el('appScreen').hidden = false;
+    carregar();
+    assinar();
+  }, 'anuncios');
+})();
+</script>
+</body>
+</html>

@@ -128,7 +128,8 @@ const HubModulos = [
   { key: 'importacao', label: 'Importação', grupo: 'Operação' },
   { key: 'calc_precos', label: 'Calculadora de Preços', grupo: 'Vendas' },
   { key: 'calc_lucro', label: 'Calculadora de Lucratividade', grupo: 'Vendas' },
-  { key: 'reputacao', label: 'Reputação das contas', grupo: 'Vendas' }
+  { key: 'reputacao', label: 'Reputação das contas', grupo: 'Vendas' },
+  { key: 'anuncios', label: 'Anúncios novos', grupo: 'Vendas' }
 ];
 
 // ------------------------------------------------------------------
@@ -152,11 +153,11 @@ const HubShell = (function () {
         { key: 'calc-precos', label: 'Preços', href: 'calculadora-precos.html', modulo: 'calc_precos' },
         { key: 'calc-lucro', label: 'Lucratividade', href: 'calculadora-lucratividade.html', modulo: 'calc_lucro' }
       ] },
-      { key: 'reputacao', label: 'Reputação das contas', href: 'reputacao.html', icon: 'reputacao', modulo: 'reputacao' }
+      { key: 'reputacao', label: 'Reputação das contas', href: 'reputacao.html', icon: 'reputacao', modulo: 'reputacao' },
+      { key: 'anuncios', label: 'Anúncios novos', href: 'anuncios.html', icon: 'anuncios', modulo: 'anuncios' }
     ] },
     { title: 'Em breve', items: [
-      { key: 'pontos', label: 'Pontos do mês', icon: 'pontos', soon: true },
-      { key: 'anuncios', label: 'Anúncios pendentes', icon: 'anuncios', soon: true }
+      { key: 'pontos', label: 'Pontos do mês', icon: 'pontos', soon: true }
     ] },
     { title: 'Administração', master: true, items: [
       { key: 'usuarios', label: 'Usuários e acessos', href: 'usuarios.html', icon: 'users' }
