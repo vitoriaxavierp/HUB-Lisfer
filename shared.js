@@ -133,7 +133,8 @@ const HubModulos = [
   { key: 'calc_precos', label: 'Calculadora de Preços', grupo: 'Vendas' },
   { key: 'calc_lucro', label: 'Calculadora de Lucratividade', grupo: 'Vendas' },
   { key: 'reputacao', label: 'Reputação das contas', grupo: 'Vendas' },
-  { key: 'anuncios', label: 'Anúncios novos', grupo: 'Vendas' }
+  { key: 'anuncios', label: 'Anúncios novos', grupo: 'Vendas' },
+  { key: 'tarefas', label: 'Agendar tarefas', grupo: 'Equipe' }
 ];
 
 // ------------------------------------------------------------------

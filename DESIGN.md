@@ -375,6 +375,12 @@ Firmes e discretos; o peso vem da cor, não do tamanho.
 - **Cores de apoio (só no quadro):** cada lista tem uma cor escolhida no menu `…` (cinza, amarelo, azul, roxo, turquesa, laranja, rosa, verde), mostrada numa faixa de 4px no topo, no ponto antes do nome e no contador. Padrão: Pendente amarelo, Em andamento azul, Revisão roxo, lista de prontos verde; lista nova recebe a próxima cor livre. Cada pessoa tem uma cor fixa no avatar (escolhida pelas masters em Usuários e acessos, clicando no avatar; sem escolha, calculada pelo id). A paleta `.k-*` e o avatar `.av-k` ficam no `hub.css`, para achar os cartões de alguém de relance. A cor organiza; ela nunca substitui texto (nome da lista, prioridade e responsável continuam escritos).
 - **Detalhe (`dialog.cd`):** abre ao clicar no cartão. Título editável, responsável, lista, SKU, prioridade em segmentado, descrição, e Atividade (comentários em balão + histórico gravado pelo banco, com opção de esconder o histórico). Lateral com "Mover para…" e exclusão em dois cliques.
 
+### Tarefas (Início)
+- Painel `.tk-panel` no topo do Início, para todas as pessoas: aparece para quem tem o módulo "Agendar tarefas" ou tem alguma tarefa.
+- **Para você:** cada tarefa tem o mesmo círculo de "feito" das Coletas (anel amarelo → check verde com pop). Prazo em pílula: neutro, amarelo ("vence hoje/amanhã") ou vermelho ("atrasada"). Tarefa feita fica riscada por 1 dia e depois some.
+- **Você pediu:** avatar de quem recebeu, selo "Aberta" ou linha verde "Fulana concluiu…" com o botão "Ok, visto" (arquiva). Tarefa aberta pode ser excluída em dois cliques.
+- Chegada de tarefa nova e conclusão do que você pediu viram toast em tempo real. "Nova tarefa" é botão secundário no cabeçalho do painel (o preto continua sendo "Nova coleta").
+
 ### Inputs / Fields
 - **Estrutura:** `.field` em coluna com gap de 6px; rótulo acima (13px 500 `--text-2`), `*` obrigatório em `--danger`, dica `.hint` 12px.
 - **Campo (`.input`, `.select`, `.textarea`):** 38px, branco, borda `--border-strong`, raio 8px, 14px. Placeholder `#8C949C`, sempre em sans.

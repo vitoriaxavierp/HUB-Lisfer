@@ -100,6 +100,70 @@
   .tool-list .chev svg { width: 16px; height: 16px; }
 
   @media (max-width: 1000px) { .home-grid { grid-template-columns: 1fr; } }
+  /* ---------- tarefas ---------- */
+  .tk-panel { margin-bottom: var(--s-6); }
+  .tk-cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+  .tk-cols.so-uma { grid-template-columns: minmax(0, 1fr); }
+  .tk-col + .tk-col { border-left: 1px solid var(--border); }
+  .tk-col-head { display: flex; align-items: center; gap: 8px; padding: 12px 20px 8px; font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); }
+  .tk-list { list-style: none; margin: 0; padding: 0 0 6px; }
+  .tk {
+    display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 12px; align-items: start;
+    padding: 10px 20px; border-top: 1px solid var(--border);
+  }
+  .tk:first-child { border-top: 0; }
+  .tk-titulo { font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+  .tk-det { font-size: var(--fs-sm); color: var(--text-2); margin-top: 2px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .tk-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 6px; font-size: var(--fs-xs); color: var(--text-3); }
+  .tk-prazo { display: inline-flex; align-items: center; gap: 4px; font-weight: 600; padding: 1px 7px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--text-2); }
+  .tk-prazo svg { width: 12px; height: 12px; }
+  .tk-prazo.hoje { background: var(--warning-soft); color: var(--warning-text); }
+  .tk-prazo.atrasada { background: var(--danger-soft); color: var(--danger); }
+  .tk.is-feita .tk-titulo { color: var(--text-3); text-decoration: line-through; text-decoration-color: var(--border-strong); }
+  .tk.is-feita .tk-det { color: var(--text-3); }
+  .tk.is-nova { animation: tk-in 900ms var(--ease-out); }
+  @keyframes tk-in { from { background: var(--brand-soft); } to { background: transparent; } }
+  .tk-acoes { display: flex; align-items: center; gap: 4px; }
+  .tk-acoes .icon-btn { width: 28px; height: 28px; }
+  .tk-acoes .icon-btn svg { width: 14px; height: 14px; }
+
+  /* círculo de "feito" (mesmo gesto das Coletas) */
+  .tk-check {
+    width: 32px; height: 32px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+    display: grid; place-items: center; background: var(--brand-soft); position: relative;
+    transition: background var(--t-fast) ease;
+  }
+  .tk-check::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--brand); transition: box-shadow var(--t-fast) ease; }
+  .tk-check svg { width: 16px; height: 16px; color: var(--success); opacity: 0; transition: opacity var(--t-fast) ease; }
+  .tk-check:hover::before { box-shadow: inset 0 0 0 2px var(--success); }
+  .tk-check:hover svg { opacity: 0.6; }
+  .tk-check.is-done { background: var(--success); }
+  .tk-check.is-done::before { box-shadow: none; }
+  .tk-check.is-done svg { color: #FFFFFF; opacity: 1; }
+  .tk-check.pop { animation: tk-pop 260ms var(--ease-out); }
+  @keyframes tk-pop { from { transform: scale(0.7); } to { transform: scale(1); } }
+  .tk-check:disabled { cursor: progress; }
+
+  /* tarefas que você pediu */
+  .tk-quem { padding-top: 4px; }
+  .tk-pedida.is-feita { background: var(--success-soft); }
+  .tk-pedida.is-feita .tk-titulo { text-decoration: none; color: var(--text); }
+  .tk-ok { display: inline-flex; align-items: center; gap: 4px; color: var(--success); font-weight: 600; }
+  .tk-ok svg { width: 13px; height: 13px; }
+
+  .tk-form { padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
+  .tk-form .form-grid { margin-bottom: 12px; }
+  .tk-form .f-para { grid-column: span 3; } .tk-form .f-tit { grid-column: span 6; } .tk-form .f-prazo { grid-column: span 3; }
+  .tk-form .f-det { grid-column: 1 / -1; }
+  .tk-form .textarea { min-height: 64px; }
+  .tk-form-acoes { display: flex; align-items: center; gap: 8px; }
+  .tk-vazio { padding: 18px 20px 20px; font-size: var(--fs-sm); color: var(--text-3); }
+  @media (max-width: 1000px) {
+    .tk-cols { grid-template-columns: 1fr; }
+    .tk-col + .tk-col { border-left: 0; border-top: 1px solid var(--border); }
+    .tk-form .f-para, .tk-form .f-prazo { grid-column: span 6; } .tk-form .f-tit { grid-column: 1 / -1; }
+  }
+
 </style>
 </head>
 <body>
@@ -156,6 +220,41 @@
           <a class="btn btn-primary" href="coletas.html" id="novaColetaBtn"><span id="ic-plus"></span>Nova coleta</a>
         </div>
       </header>
+
+      <section class="panel tk-panel" aria-labelledby="tkTitle" id="tkPanel" hidden>
+        <div class="panel-head">
+          <h2 id="tkTitle">Tarefas</h2>
+          <span class="count-pill" id="tkCount" title="Tarefas abertas para você">0</span>
+          <span class="spacer"></span>
+          <button type="button" class="btn btn-secondary btn-sm" id="tkNova" aria-expanded="false" aria-controls="tkForm" hidden><span id="icTkPlus"></span>Nova tarefa</button>
+        </div>
+        <form class="tk-form" id="tkForm" hidden novalidate>
+          <div class="form-grid">
+            <div class="field f-para"><label for="tkPara">Para quem<span class="req">*</span></label><select class="select" id="tkPara" required></select></div>
+            <div class="field f-tit"><label for="tkTitulo">O que precisa ser feito<span class="req">*</span></label><input class="input" id="tkTitulo" maxlength="200" autocomplete="off" placeholder="Ex.: Arrumar a foto principal do anúncio LF-0335" required></div>
+            <div class="field f-prazo"><label for="tkPrazo">Prazo</label><input class="input" type="date" id="tkPrazo"></div>
+            <div class="field f-det"><label for="tkDetalhes">Detalhes <span class="muted">(opcional)</span></label><textarea class="textarea" id="tkDetalhes" maxlength="4000" placeholder="Link do anúncio, o que está errado, onde estão as fotos…"></textarea></div>
+          </div>
+          <div class="tk-form-acoes">
+            <button type="submit" class="btn btn-primary btn-sm" id="tkEnviar">Enviar tarefa</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="tkCancelar">Cancelar</button>
+            <div class="form-error" id="tkErro" role="alert"></div>
+          </div>
+        </form>
+        <div class="tk-cols" id="tkCols">
+          <div class="tk-col">
+            <div class="tk-col-head">Para você</div>
+            <ul class="tk-list" id="tkMinhas" aria-live="polite">
+              <li class="skeleton-row"><span class="skeleton" style="width:32px;height:32px;border-radius:50%"></span><span class="skeleton" style="height:12px;width:50%"></span></li>
+              <li class="skeleton-row"><span class="skeleton" style="width:32px;height:32px;border-radius:50%"></span><span class="skeleton" style="height:12px;width:36%"></span></li>
+            </ul>
+          </div>
+          <div class="tk-col" id="tkPedidasCol" hidden>
+            <div class="tk-col-head">Você pediu</div>
+            <ul class="tk-list" id="tkPedidas" aria-live="polite"></ul>
+          </div>
+        </div>
+      </section>
 
       <section class="panel" id="semModulos" hidden>
         <div class="empty" style="padding:48px 28px">
@@ -352,6 +451,231 @@
       '<div class="arrival-meta">Previsão ' + d + '/' + m + '/' + y + '</div>';
   }
 
+
+  // ---------------- tarefas ----------------
+  const tk = { me: null, minhas: [], pedidas: [], carregado: false, antes: null, abrindo: false, confirmar: null, novas: new Set(), canal: null };
+  el('icTkPlus').outerHTML = ic('plus');
+  const UM_DIA = 24 * 3600 * 1000;
+  const iniciais = (nome) => {
+    const p = String(nome || '').trim().split(/[\s@._-]+/).filter(Boolean);
+    if (!p.length) return '?';
+    return ((p[0][0] || '') + (p.length > 1 ? p[p.length - 1][0] : (p[0][1] || ''))).toUpperCase();
+  };
+  const avatar = (id) => {
+    const nome = HubAuth.nomeDe(id) || 'Alguém';
+    return '<span class="av-k k-' + HubAuth.corDe(id) + '" title="' + esc(nome) + '" aria-hidden="true">' + esc(iniciais(nome)) + '</span>';
+  };
+  function relativo(iso) {
+    const d = new Date(iso);
+    const s = (Date.now() - d.getTime()) / 1000;
+    if (s < 60) return 'agora';
+    if (s < 3600) return 'há ' + Math.floor(s / 60) + ' min';
+    const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    if (d.toDateString() === new Date().toDateString()) return 'hoje às ' + hora;
+    const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
+    if (d.toDateString() === ontem.toDateString()) return 'ontem às ' + hora;
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' às ' + hora;
+  }
+  function prazoHtml(t) {
+    if (!t.prazo) return '';
+    const dias = diasAte(t.prazo);
+    const [, m, d] = t.prazo.split('-');
+    const feita = !!t.feita_em;
+    const cls = feita ? '' : dias < 0 ? ' atrasada' : dias <= 1 ? ' hoje' : '';
+    const txt = feita ? 'prazo ' + d + '/' + m : dias < 0 ? 'atrasada · era ' + d + '/' + m : dias === 0 ? 'vence hoje' : dias === 1 ? 'vence amanhã' : 'até ' + d + '/' + m;
+    return '<span class="tk-prazo' + cls + '">' + ic('calendar') + txt + '</span>';
+  }
+
+  async function carregarTarefas() {
+    const desde = new Date(Date.now() - UM_DIA).toISOString();
+    const [abertas, feitas, pedidas] = await Promise.all([
+      sb.from('tarefas').select('*').eq('para_id', tk.me.id).is('feita_em', null).order('criado_em', { ascending: true }).limit(300),
+      sb.from('tarefas').select('*').eq('para_id', tk.me.id).gte('feita_em', desde).order('feita_em', { ascending: false }).limit(100),
+      sb.from('tarefas').select('*').eq('de_id', tk.me.id).is('ciente_em', null).order('criado_em', { ascending: false }).limit(300)
+    ]);
+    const erro = abertas.error || feitas.error || pedidas.error;
+    if (erro) {
+      console.error(erro);
+      const faltaTabela = /tarefas|does not exist|schema cache/i.test(erro.message || '');
+      el('tkMinhas').innerHTML = '<li class="tk-vazio">' + (faltaTabela && HubAuth.acesso && HubAuth.acesso.is_master
+        ? 'Falta criar as tarefas no banco: rode o arquivo supabase/tarefas.sql no SQL Editor do Supabase.'
+        : 'Não foi possível carregar as tarefas. Recarregue a página.') + '</li>';
+      el('tkPanel').hidden = !(HubAuth.acesso && HubAuth.acesso.is_master);
+      return;
+    }
+    const minhas = (abertas.data || []).concat(feitas.data || []);
+    const pedidasLista = (pedidas.data || []).filter((t) => t.para_id !== tk.me.id);
+    avisarMudancas(minhas, pedidasLista);
+    tk.minhas = minhas;
+    tk.pedidas = pedidasLista;
+    tk.carregado = true;
+    renderTarefas();
+  }
+
+  // avisa quando chega tarefa nova ou quando alguém conclui o que você pediu
+  function avisarMudancas(minhas, pedidas) {
+    if (!tk.antes) { tk.antes = { minhas: new Set(minhas.map((t) => t.id)), feitas: new Set(pedidas.filter((t) => t.feita_em).map((t) => t.id)) }; return; }
+    minhas.forEach((t) => {
+      if (!tk.antes.minhas.has(t.id) && !t.feita_em) {
+        tk.novas.add(t.id);
+        HubUI.toast('Nova tarefa de ' + (HubAuth.nomeDe(t.de_id) || 'alguém') + ': ' + t.titulo);
+      }
+    });
+    pedidas.forEach((t) => {
+      if (t.feita_em && !tk.antes.feitas.has(t.id)) {
+        tk.novas.add(t.id);
+        HubUI.toast((HubAuth.nomeDe(t.feita_por || t.para_id) || 'Alguém') + ' concluiu: ' + t.titulo);
+      }
+    });
+    tk.antes = { minhas: new Set(minhas.map((t) => t.id)), feitas: new Set(pedidas.filter((t) => t.feita_em).map((t) => t.id)) };
+  }
+
+  function ordemMinhas(a, b) {
+    if (!!a.feita_em !== !!b.feita_em) return a.feita_em ? 1 : -1;
+    if (a.feita_em) return String(b.feita_em).localeCompare(String(a.feita_em));
+    if ((a.prazo || '9') !== (b.prazo || '9')) return (a.prazo || '9999').localeCompare(b.prazo || '9999');
+    return String(a.criado_em).localeCompare(String(b.criado_em));
+  }
+
+  function renderTarefas() {
+    const pode = HubAuth.pode('tarefas');
+    const abertas = tk.minhas.filter((t) => !t.feita_em).length;
+    el('tkCount').textContent = abertas;
+    el('tkNova').hidden = !pode;
+    // o painel aparece para quem pode pedir tarefas ou tem alguma tarefa
+    el('tkPanel').hidden = !(pode || tk.minhas.length || tk.pedidas.length);
+    el('tkPedidasCol').hidden = !tk.pedidas.length;
+    el('tkCols').classList.toggle('so-uma', !tk.pedidas.length);
+
+    const minhas = tk.minhas.slice().sort(ordemMinhas);
+    el('tkMinhas').innerHTML = minhas.length ? minhas.map((t) => {
+      const feita = !!t.feita_em;
+      const de = HubAuth.nomeDe(t.de_id) || 'Alguém';
+      return '<li class="tk' + (feita ? ' is-feita' : '') + (tk.novas.has(t.id) ? ' is-nova' : '') + '">' +
+        '<button type="button" class="tk-check' + (feita ? ' is-done' : '') + '" data-check="' + t.id + '" aria-pressed="' + feita + '" aria-label="' +
+          (feita ? 'Desmarcar ' : 'Marcar como feita: ') + esc(t.titulo) + '" title="' + (feita ? 'Desfazer' : 'Marcar como feita') + '">' + ic('check') + '</button>' +
+        '<div><div class="tk-titulo">' + esc(t.titulo) + '</div>' +
+          (t.detalhes ? '<div class="tk-det">' + esc(t.detalhes) + '</div>' : '') +
+          '<div class="tk-meta">' + avatar(t.de_id) + '<span>' + (t.de_id === tk.me.id ? 'você mesma criou' : 'pedida por ' + esc(de)) + ' · ' + relativo(t.criado_em) + '</span>' + prazoHtml(t) +
+            (feita ? '<span class="tk-ok">' + ic('check') + 'feita ' + relativo(t.feita_em) + ' · some da lista em 1 dia</span>' : '') + '</div></div>' +
+        '<span></span></li>';
+    }).join('') : '<li class="tk-vazio">' + (pode ? 'Nenhuma tarefa para você agora. Use "Nova tarefa" para pedir algo a alguém da equipe.' : 'Nenhuma tarefa para você agora.') + '</li>';
+
+    const pedidas = tk.pedidas.slice().sort((a, b) => (!!b.feita_em - !!a.feita_em) || String(b.feita_em || b.criado_em).localeCompare(String(a.feita_em || a.criado_em)));
+    el('tkPedidas').innerHTML = pedidas.map((t) => {
+      const feita = !!t.feita_em;
+      const para = HubAuth.nomeDe(t.para_id) || 'Alguém';
+      const quemFez = HubAuth.nomeDe(t.feita_por || t.para_id) || para;
+      const conf = tk.confirmar === t.id;
+      return '<li class="tk tk-pedida' + (feita ? ' is-feita' : '') + (tk.novas.has(t.id) ? ' is-nova' : '') + '">' +
+        '<span class="tk-quem">' + avatar(t.para_id) + '</span>' +
+        '<div><div class="tk-titulo">' + esc(t.titulo) + '</div>' +
+          '<div class="tk-meta">' + (feita
+            ? '<span class="tk-ok">' + ic('checkCircle') + esc(quemFez) + ' concluiu ' + relativo(t.feita_em) + '</span>'
+            : '<span class="badge badge-pending"><span class="dot"></span>Aberta</span><span>com ' + esc(para) + ' · ' + relativo(t.criado_em) + '</span>' + prazoHtml(t)) +
+          '</div></div>' +
+        '<div class="tk-acoes">' + (feita
+          ? '<button type="button" class="btn btn-secondary btn-sm" data-ciente="' + t.id + '">Ok, visto</button>'
+          : '<button type="button" class="icon-btn danger' + (conf ? ' is-confirming' : '') + '" data-excluir="' + t.id + '" aria-label="' + (conf ? 'Confirmar exclusão' : 'Excluir tarefa ' + esc(t.titulo)) + '" title="' + (conf ? 'Clique de novo para excluir' : 'Excluir tarefa') + '">' + ic('trash') + (conf ? '<span>Confirmar</span>' : '') + '</button>') +
+        '</div></li>';
+    }).join('');
+    tk.novas = new Set();
+  }
+
+  el('tkMinhas').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-check]');
+    if (!b || b.disabled) return;
+    const t = tk.minhas.find((x) => x.id === b.dataset.check);
+    if (!t) return;
+    const fazer = !t.feita_em;
+    b.disabled = true;
+    // mostra na hora; o banco grava a hora oficial
+    t.feita_em = fazer ? new Date().toISOString() : null;
+    renderTarefas();
+    const novo = el('tkMinhas').querySelector('[data-check="' + t.id + '"]');
+    if (novo && fazer) { novo.classList.add('pop'); novo.focus(); }
+    const { error } = await sb.from('tarefas').update({ feita_em: fazer ? new Date().toISOString() : null }).eq('id', t.id);
+    if (error) { console.error(error); t.feita_em = fazer ? null : t.feita_em; HubUI.toast('Não foi possível salvar. Tente de novo.', { error: true }); await carregarTarefas(); return; }
+    HubUI.toast(fazer ? 'Tarefa feita. ' + (HubAuth.nomeDe(t.de_id) && t.de_id !== tk.me.id ? HubAuth.nomeDe(t.de_id) + ' vai ver que você concluiu.' : '') : 'Tarefa reaberta.');
+  });
+
+  el('tkPedidas').addEventListener('click', async (e) => {
+    const ciente = e.target.closest('[data-ciente]');
+    const excluir = e.target.closest('[data-excluir]');
+    if (ciente) {
+      const id = ciente.dataset.ciente;
+      const done = HubUI.busy(ciente, 'Salvando…');
+      const { error } = await sb.from('tarefas').update({ ciente_em: new Date().toISOString() }).eq('id', id);
+      done();
+      if (error) { console.error(error); HubUI.toast('Não foi possível salvar.', { error: true }); return; }
+      tk.pedidas = tk.pedidas.filter((t) => t.id !== id);
+      renderTarefas();
+      HubUI.toast('Tarefa arquivada.');
+    }
+    if (excluir) {
+      const id = excluir.dataset.excluir;
+      if (tk.confirmar !== id) {
+        tk.confirmar = id; renderTarefas();
+        const n = el('tkPedidas').querySelector('[data-excluir="' + id + '"]'); if (n) n.focus();
+        setTimeout(() => { if (tk.confirmar === id) { tk.confirmar = null; renderTarefas(); } }, 3000);
+        return;
+      }
+      tk.confirmar = null;
+      const { error } = await sb.from('tarefas').delete().eq('id', id);
+      if (error) { console.error(error); HubUI.toast('Não foi possível excluir.', { error: true }); return; }
+      tk.pedidas = tk.pedidas.filter((t) => t.id !== id);
+      renderTarefas();
+      HubUI.toast('Tarefa excluída.');
+    }
+  });
+
+  // nova tarefa
+  function abrirForm(abrir) {
+    el('tkForm').hidden = !abrir;
+    el('tkNova').setAttribute('aria-expanded', String(abrir));
+    el('tkErro').textContent = '';
+    if (abrir) {
+      el('tkPara').innerHTML = '<option value="">Escolha a pessoa</option>' + HubAuth.profiles.map((p) =>
+        '<option value="' + p.id + '">' + esc(p.nome || p.id) + (p.id === tk.me.id ? ' (você)' : '') + '</option>').join('');
+      el('tkPara').focus();
+    } else { el('tkForm').reset(); el('tkNova').focus(); }
+  }
+  el('tkNova').addEventListener('click', () => abrirForm(el('tkForm').hidden));
+  el('tkCancelar').addEventListener('click', () => abrirForm(false));
+  el('tkForm').addEventListener('keydown', (e) => { if (e.key === 'Escape') abrirForm(false); });
+  el('tkForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const para = el('tkPara').value;
+    const titulo = el('tkTitulo').value.replace(/\s+/g, ' ').trim();
+    el('tkPara').removeAttribute('aria-invalid'); el('tkTitulo').removeAttribute('aria-invalid');
+    if (!para || !titulo) {
+      el('tkErro').textContent = !para ? 'Escolha para quem é a tarefa.' : 'Escreva o que precisa ser feito.';
+      const campo = !para ? el('tkPara') : el('tkTitulo');
+      campo.setAttribute('aria-invalid', 'true'); campo.focus();
+      return;
+    }
+    const done = HubUI.busy(el('tkEnviar'), 'Enviando…');
+    const { error } = await sb.from('tarefas').insert({
+      titulo, para_id: para, de_id: tk.me.id,
+      detalhes: el('tkDetalhes').value.trim() || null, prazo: el('tkPrazo').value || null
+    });
+    done();
+    if (error) { console.error(error); el('tkErro').textContent = 'Não foi possível enviar a tarefa. Tente de novo.'; return; }
+    HubUI.toast('Tarefa enviada para ' + (para === tk.me.id ? 'você' : HubAuth.nomeDe(para)) + '.');
+    abrirForm(false);
+    await carregarTarefas();
+  });
+
+  function assinarTarefas() {
+    if (tk.canal) sb.removeChannel(tk.canal);
+    let t = null;
+    tk.canal = sb.channel('tarefas-inicio')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tarefas' }, () => { clearTimeout(t); t = setTimeout(carregarTarefas, 250); })
+      .subscribe();
+  }
+  // a tarefa feita some depois de 1 dia, e os "há X min" ficam em dia
+  setInterval(() => { if (tk.carregado && !el('hubScreen').hidden) carregarTarefas(); }, 5 * 60 * 1000);
+
   async function onLoggedIn(user) {
     await HubAuth.loadProfiles();
     const nome = HubAuth.nomeDe(user.id) || '';
@@ -375,6 +699,12 @@
     renderTools();
     if (podeColetas) loadToday();
     if (podeImp) loadArrival();
+    tk.me = user;
+    tk.antes = null;
+    carregarTarefas();
+    assinarTarefas();
+    // quem não tem módulo nenhum mas recebeu tarefa não vê o aviso de "nenhum módulo" sozinho
+    el('semModulos').hidden = el('semModulos').hidden || HubAuth.pode('tarefas');
   }
 
   sb.auth.getSession().then(({ data }) => {
