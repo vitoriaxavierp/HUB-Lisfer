@@ -9,6 +9,11 @@
  *   3) reclamações e cancelamentos já lidos pelo módulo de Devoluções.
  * Grava tudo nas tabelas ml_* do Supabase. Não altera nada no Mercado Livre.
  *
+ * Também lê as etiquetas do Melhor Envio (a cada ~20 min, numa execução só
+ * dele): status, rastreio, prazo e NF; liga cada etiqueta à coleta pela NF e,
+ * quando um envio atrasa ou tem problema, cria uma tarefa para a vendedora.
+ * Grava em me_envios / me_eventos. Não altera nada no Melhor Envio.
+ *
  * O acesso às contas do ML é do serviço "lisfer-ia-mercadolivre", usado aqui
  * por um Service Binding (ML) — este serviço nunca vê os tokens do ML.
  * Nenhum dado pessoal de comprador é gravado: só pedido, anúncio, SKU,
@@ -22,6 +27,9 @@
  *   - (opcional)       ORCAMENTO           -> chamadas ao ML por execução (padrão 24;
  *                                             no plano pago da Cloudflare pode subir para 60)
  *   - Trigger cron     every 2 minutes
+ *   - (Melhor Envio)   Secret ME_TOKEN    -> token criado em Melhor Envio > Gerenciar > Tokens
+ *                      Variável ME_CONTATO -> e-mail de contato técnico (o Melhor Envio exige no User-Agent)
+ *                      (opcional) ME_URL  -> https://melhorenvio.com.br (padrão) ou o sandbox
  */
 
 const CONTAS = { "1": 580034079, "2": 454443360, "3": 1498686683, "4": 387545070 };
@@ -121,6 +129,23 @@ async function rodar(env) {
   const estado = {};
   linhasEstado.forEach((l) => { estado[l.chave] = l.valor || {}; });
   const alterado = new Set();
+
+  // Melhor Envio: a cada ~20 min usa uma execução inteira (o limite de
+  // chamadas por execução é compartilhado, então não divide com o ML)
+  const me = estado["melhorenvio"] || {};
+  // enquanto a primeira carga não termina, roda a cada execução
+  if (env.ME_TOKEN && (!me.lido || !me.carga_completa || Date.now() - me.lido > ME_INTERVALO)) {
+    let resultado;
+    try { resultado = await sincronizarME(env, me); }
+    catch (e) { resultado = { erro: String((e && e.message) || e).slice(0, 300) }; }
+    estado["melhorenvio"] = { ...me, ...resultado, lido: Date.now() };
+    ctx.log.push("melhor envio: " + (resultado.erro ? "erro: " + resultado.erro : resultado.resumo));
+    estado["execucao"] = { em: Date.now(), ms: Date.now() - inicio, log: ctx.log, parou_por_limite: false };
+    await sb(env, "POST", "ml_sync?on_conflict=chave",
+      ["melhorenvio", "execucao"].map((chave) => ({ chave, valor: estado[chave], atualizado_em: new Date().toISOString() })),
+      "resolution=merge-duplicates");
+    return { ok: !resultado.erro, log: ctx.log, ms: Date.now() - inicio };
+  }
 
   // 1) vendas — reserva parte do orçamento para os envios
   const temEnviosPendentes = Object.keys(estado).some((k) => k.startsWith("vendas:") && Object.keys(estado[k].dias || {}).length > 0);
@@ -344,4 +369,237 @@ async function status(env) {
     }
   });
   return out;
+}
+
+// ---------------------------------------------------------------- Melhor Envio
+
+const ME_INTERVALO = 20 * 60e3;
+const ME_PAGINAS = 8;              // páginas da listagem por execução
+const ME_JANELA_DIAS = 60;         // primeira carga: etiquetas dos últimos 60 dias
+const ME_FINAIS = ["delivered", "canceled", "expired"];
+const ME_PROBLEMA = { undelivered: "nao_entregue", paused: "interrompido", suspended: "suspenso" };
+const MOTIVO = {
+  atrasado: "Envio atrasado",
+  nao_entregue: "Envio não entregue",
+  interrompido: "Entrega interrompida",
+  suspenso: "Envio suspenso",
+  sem_postar: "Etiqueta paga e ainda não postada"
+};
+
+async function meApi(env, metodo, caminho, corpo) {
+  const base = String(env.ME_URL || "https://melhorenvio.com.br").replace(/\/$/, "");
+  const r = await fetch(base + caminho, {
+    method: metodo,
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + String(env.ME_TOKEN).trim(),
+      "User-Agent": "Hub Lisfer (" + String(env.ME_CONTATO || "contato não informado").trim() + ")"
+    },
+    body: corpo === undefined ? undefined : JSON.stringify(corpo)
+  });
+  if (r.status === 401) throw new Error("o Melhor Envio recusou o token (401). Gere um token novo em Gerenciar > Tokens.");
+  if (!r.ok) throw new Error("Melhor Envio " + caminho.split("?")[0] + ": HTTP " + r.status);
+  return r.json();
+}
+
+function dataISO(v) {
+  if (!v) return null;
+  const t = Date.parse(String(v).replace(" ", "T"));
+  return Number.isFinite(t) ? new Date(t).toISOString() : null;
+}
+function soDigitos(v) {
+  return String(v || "").replace(/\D/g, "").replace(/^0+/, "");
+}
+// soma dias úteis (seg a sex; feriados não entram na conta)
+function somarDiasUteis(iso, n) {
+  const d = new Date(Date.parse(iso) - 3 * HORA);
+  let falta = n;
+  while (falta > 0) {
+    d.setUTCDate(d.getUTCDate() + 1);
+    const dia = d.getUTCDay();
+    if (dia !== 0 && dia !== 6) falta--;
+  }
+  return d.toISOString().slice(0, 10);
+}
+function diasUteisEntre(de, ate) {
+  let n = 0;
+  const d = new Date(de + "T12:00:00Z");
+  const fim = new Date(ate + "T12:00:00Z");
+  while (d < fim) { d.setUTCDate(d.getUTCDate() + 1); const w = d.getUTCDay(); if (w !== 0 && w !== 6) n++; }
+  return n;
+}
+
+// etiqueta do Melhor Envio -> linha de me_envios (só o necessário)
+function linhaME(o) {
+  const servico = o.service || {};
+  const empresa = servico.company || {};
+  const para = o.to || {};
+  const nf = o.invoice || {};
+  const linha = {
+    id: String(o.id),
+    protocolo: o.protocol || null,
+    status: o.status || null,
+    rastreio: o.tracking || null,
+    rastreio_me: o.self_tracking || o.melhorenvio_tracking || null,
+    servico: servico.name || null,
+    transportadora: empresa.name || null,
+    destinatario: para.name || null,
+    cidade: para.city || null,
+    uf: para.state_abbr || para.state || null,
+    nf_numero: nf.number ? String(nf.number) : null,
+    nf_chave: nf.key ? String(nf.key) : null,
+    prazo_min: Number.isFinite(Number(o.delivery_min)) && o.delivery_min != null ? Number(o.delivery_min) : null,
+    prazo_max: Number.isFinite(Number(o.delivery_max)) && o.delivery_max != null ? Number(o.delivery_max) : null,
+    preco: o.price != null && Number.isFinite(Number(o.price)) ? Number(o.price) : null,
+    criado_me: dataISO(o.created_at),
+    pago_em: dataISO(o.paid_at),
+    gerado_em: dataISO(o.generated_at),
+    postado_em: dataISO(o.posted_at),
+    entregue_em: dataISO(o.delivered_at),
+    cancelado_em: dataISO(o.canceled_at),
+    expirado_em: dataISO(o.expired_at)
+  };
+  return linha;
+}
+
+// prazo e alerta calculados pelo Hub
+function avaliar(l, hoje) {
+  l.prazo_entrega = l.postado_em && l.prazo_max != null ? somarDiasUteis(l.postado_em, l.prazo_max) : null;
+  let alerta = ME_PROBLEMA[l.status] || null;
+  if (!alerta && l.status === "posted" && l.prazo_entrega && hoje > l.prazo_entrega) alerta = "atrasado";
+  if (!alerta && (l.status === "released" || l.status === "generated") && l.pago_em &&
+      diasUteisEntre(diaBRT(Date.parse(l.pago_em)), hoje) >= 2) alerta = "sem_postar";
+  l.alerta = alerta;
+  return l;
+}
+
+async function sincronizarME(env, estado) {
+  const hoje = diaBRT(Date.now());
+  const vistos = new Map();
+  const primeiraCarga = !estado.carga_completa;
+  const limite = Date.now() - ME_JANELA_DIAS * 24 * HORA;
+
+  // 1) listagem, das etiquetas mais novas para as mais antigas
+  let pagina = estado.pagina_carga && primeiraCarga ? estado.pagina_carga : 1;
+  let chegouNoFim = false;
+  for (let i = 0; i < ME_PAGINAS; i++) {
+    const j = await meApi(env, "GET", "/api/v2/me/orders?page=" + pagina);
+    const lista = Array.isArray(j && j.data) ? j.data : [];
+    let antigas = 0;
+    lista.forEach((o) => {
+      if (!o || !o.id || o.status === "pending") return;   // carrinho: ainda não é envio
+      const criado = Date.parse(String(o.created_at || "").replace(" ", "T"));
+      if (Number.isFinite(criado) && criado < limite) { antigas++; return; }
+      vistos.set(String(o.id), linhaME(o));
+    });
+    const ultima = Number(j && j.last_page) || pagina;
+    if (!lista.length || pagina >= ultima || antigas === lista.length) { chegouNoFim = true; break; }
+    pagina++;
+    // depois da primeira carga, só as páginas mais novas (o resto vem pelo rastreio)
+    if (!primeiraCarga && i >= 1) break;
+  }
+
+  // 2) etiquetas ainda em andamento que não vieram na listagem: status atual pelo rastreio
+  const ativos = (await sb(env, "GET", "me_envios?select=id&status=not.in.(" + ME_FINAIS.join(",") + ")&limit=1000")) || [];
+  const faltam = ativos.map((a) => a.id).filter((id) => !vistos.has(id) && id.length >= 36);
+  for (let i = 0; i < faltam.length && i < 300; i += 50) {
+    const r = await meApi(env, "POST", "/api/v2/me/shipment/tracking", { orders: faltam.slice(i, i + 50) });
+    const itens = Array.isArray(r) ? r : Object.values(r || {});
+    itens.forEach((t) => {
+      if (!t || !t.id) return;
+      vistos.set(String(t.id), {
+        id: String(t.id), status: t.status || null, rastreio: t.tracking || null,
+        rastreio_me: t.melhorenvio_tracking || null,
+        pago_em: dataISO(t.paid_at), gerado_em: dataISO(t.generated_at), postado_em: dataISO(t.posted_at),
+        entregue_em: dataISO(t.delivered_at), cancelado_em: dataISO(t.canceled_at), expirado_em: dataISO(t.expired_at),
+        _parcial: true
+      });
+    });
+  }
+  if (!vistos.size) return { resumo: "nenhuma etiqueta nova", carga_completa: primeiraCarga ? chegouNoFim : true, pagina_carga: pagina };
+
+  // 3) estado anterior (para detectar mudanças) e coletas para ligar pela NF
+  const ids = [...vistos.keys()];
+  const antes = {};
+  for (let i = 0; i < ids.length; i += 80) {
+    const parte = ids.slice(i, i + 80).map((x) => '"' + x + '"').join(",");
+    ((await sb(env, "GET", "me_envios?select=*&id=in.(" + parte + ")")) || [])
+      .forEach((r) => { antes[r.id] = r; });
+  }
+  const desde = somarDias(hoje, -120);
+  const coletas = (await sb(env, "GET", "pedidos?select=id,nf,cliente,vendedora_id,tipo_coleta,data_coleta&data_coleta=gte." + desde + "&limit=5000")) || [];
+  const porNf = {};
+  coletas.forEach((c) => {
+    const k = soDigitos(c.nf);
+    if (!k) return;
+    // se houver mais de uma coleta com a mesma NF, prefere a do tipo Melhor Envio e a mais recente
+    const atual = porNf[k];
+    const melhor = !atual || (c.tipo_coleta === "melhor_envio" && atual.tipo_coleta !== "melhor_envio") ||
+      (c.tipo_coleta === atual.tipo_coleta && c.data_coleta > atual.data_coleta);
+    if (melhor) porNf[k] = c;
+  });
+  const coletaPorId = {};
+  coletas.forEach((c) => { coletaPorId[c.id] = c; });
+
+  // 4) monta as linhas, eventos e tarefas
+  const agora = new Date().toISOString();
+  const completas = [], parciais = [], eventos = [], tarefas = [];
+  for (const [id, novo] of vistos) {
+    const ant = antes[id];
+    const l = { ...(ant || {}), ...Object.fromEntries(Object.entries(novo).filter(([, v]) => v !== null && v !== undefined)) };
+    delete l._parcial;
+    l.id = id;
+    if (!l.coleta_manual) {
+      const c = porNf[soDigitos(l.nf_numero)];
+      if (c) l.coleta_id = c.id;
+    }
+    avaliar(l, hoje);
+    if (!ant || ant.status !== l.status) eventos.push({ envio_id: id, status_de: ant ? ant.status : null, status_para: l.status || "desconhecido", em: agora });
+    const jaFeitas = { ...((ant && ant.tarefas) || {}) };
+    // na primeira carga, atraso antigo (mais de 5 dias úteis) não vira tarefa: só aparece no painel
+    if (primeiraCarga && l.alerta && !jaFeitas[l.alerta] &&
+        (l.alerta === "atrasado" ? diasUteisEntre(l.prazo_entrega, hoje) > 5 : l.criado_me && Date.now() - Date.parse(l.criado_me) > 15 * 24 * HORA)) {
+      jaFeitas[l.alerta] = "carga_inicial";
+    }
+    const coleta = l.coleta_id ? coletaPorId[l.coleta_id] : null;
+    if (l.alerta && !jaFeitas[l.alerta] && coleta && coleta.vendedora_id) {
+      jaFeitas[l.alerta] = agora;
+      tarefas.push({
+        titulo: (MOTIVO[l.alerta] + ": NF " + (l.nf_numero || coleta.nf || "?") + " · " + (coleta.cliente || l.destinatario || "")).slice(0, 200),
+        detalhes: [
+          l.transportadora || l.servico ? "Envio: " + [l.transportadora, l.servico].filter(Boolean).join(" · ") : null,
+          l.rastreio ? "Rastreio: " + l.rastreio : null,
+          l.prazo_entrega ? "Prazo de entrega: " + l.prazo_entrega.split("-").reverse().join("/") : null,
+          "Veja em Coletas › Rastreio Melhor Envio. Tarefa criada automaticamente pelo Hub."
+        ].filter(Boolean).join("\n"),
+        para_id: coleta.vendedora_id,
+        prazo: hoje
+      });
+    }
+    l.tarefas = jaFeitas;
+    l.lido_em = agora;
+    l.atualizado_em = agora;
+    (ant || !novo._parcial ? completas : parciais).push(l);
+  }
+
+  // sempre as mesmas chaves em cada lote (o Supabase exige)
+  const CAMPOS = ["id", "protocolo", "status", "rastreio", "rastreio_me", "servico", "transportadora", "destinatario", "cidade", "uf",
+    "nf_numero", "nf_chave", "prazo_min", "prazo_max", "preco", "criado_me", "pago_em", "gerado_em", "postado_em", "entregue_em",
+    "cancelado_em", "expirado_em", "prazo_entrega", "alerta", "coleta_id", "coleta_manual", "tarefas", "lido_em", "atualizado_em"];
+  const normalizar = (l) => { const o = {}; CAMPOS.forEach((k) => { o[k] = l[k] === undefined ? (k === "tarefas" ? {} : k === "coleta_manual" ? false : null) : l[k]; }); return o; };
+  const todas = completas.concat(parciais).map(normalizar);
+  for (let i = 0; i < todas.length; i += 200) {
+    await sb(env, "POST", "me_envios?on_conflict=id", todas.slice(i, i + 200), "resolution=merge-duplicates");
+  }
+  if (eventos.length) await sb(env, "POST", "me_eventos", eventos);
+  if (tarefas.length) await sb(env, "POST", "tarefas", tarefas);
+
+  const alertas = todas.filter((l) => l.alerta).length;
+  return {
+    resumo: todas.length + " etiqueta(s) atualizada(s), " + eventos.length + " mudança(s) de status, " + alertas + " com alerta, " + tarefas.length + " tarefa(s) criada(s)",
+    carga_completa: primeiraCarga ? chegouNoFim : true,
+    pagina_carga: pagina,
+    erro: null
+  };
 }

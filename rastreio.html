@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rastreio Melhor Envio — Hub Lisfer</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="hub.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<style>
+  .page.page-rastreio { max-width: 1400px; }
+  .sync { font-size: var(--fs-sm); color: var(--text-3); display: flex; align-items: center; gap: 6px; }
+  .sync svg { width: 14px; height: 14px; }
+  .sync.velho { color: var(--warning-text); }
+
+  .resumo { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .rs { padding: 14px 20px; border-left: 1px solid var(--border); text-align: left; background: none; border-top: 0; border-right: 0; border-bottom: 0; font: inherit; cursor: pointer; }
+  .rs:first-child { border-left: 0; border-radius: var(--r-lg) 0 0 var(--r-lg); }
+  .rs:last-child { border-radius: 0 var(--r-lg) var(--r-lg) 0; }
+  .rs:hover { background: var(--surface-2); }
+  .rs[aria-pressed="true"] { background: var(--surface-3); }
+  .rs-k { font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); }
+  .rs-v { font-family: var(--font-display); font-size: 26px; font-weight: 800; line-height: 1.2; margin-top: 2px; font-variant-numeric: tabular-nums; color: var(--text); }
+  .rs-s { font-size: var(--fs-xs); color: var(--text-3); }
+  .rs.alerta .rs-v { color: var(--danger); }
+  .rs.bom .rs-v { color: var(--success); }
+  @media (max-width: 1000px) { .resumo { grid-template-columns: repeat(2, minmax(0, 1fr)); } .rs { border-left: 0; border-top: 1px solid var(--border); } }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .search { position: relative; width: 300px; max-width: 100%; }
+  .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-3); pointer-events: none; }
+  .search .input { padding-left: 34px; }
+  .toolbar .spacer { flex: 1; }
+
+  .rt td { vertical-align: top; }
+  .rt tr.linha { cursor: pointer; }
+  .rt tr.linha.is-aberta td { background: var(--surface-2); border-bottom-color: transparent; }
+  .rt .dest { font-weight: 600; }
+  .rt .sub { font-size: var(--fs-xs); color: var(--text-3); margin-top: 2px; }
+  .rt .cod { display: inline-flex; align-items: center; gap: 4px; font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--text); white-space: nowrap; }
+  .rt .cod .icon-btn { width: 24px; height: 24px; }
+  .rt .cod .icon-btn svg { width: 13px; height: 13px; }
+  .rt .quando { white-space: nowrap; color: var(--text-2); }
+  .rt .quando small { display: block; font-size: var(--fs-xs); color: var(--text-3); }
+  .rt .atraso { color: var(--danger); font-weight: 700; }
+  .rt .atraso small { color: var(--danger); font-weight: 600; }
+  .coleta { display: flex; align-items: center; gap: 8px; }
+  .coleta .sub { margin-top: 0; }
+  .vinc .select { height: 30px; font-size: var(--fs-xs); max-width: 220px; }
+
+  .st { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 600; white-space: nowrap; background: var(--surface-3); color: var(--text-2); }
+  .st .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .st-posted, .st-received { background: var(--info-soft); color: var(--info); }
+  .st-released, .st-generated { background: var(--warning-soft); color: var(--warning-text); }
+  .st-delivered { background: var(--success-soft); color: var(--success); }
+  .st-problema { background: var(--danger-soft); color: var(--danger); }
+  .st-canceled, .st-expired { background: var(--surface-3); color: var(--text-3); }
+  .alerta-txt { display: block; margin-top: 4px; font-size: var(--fs-xs); font-weight: 600; color: var(--danger); }
+
+  .det td { background: var(--surface-2); padding-top: 0; }
+  .det-box { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding: 4px 0 8px; }
+  .linha-tempo { list-style: none; margin: 0; padding: 0; position: relative; }
+  .linha-tempo li { position: relative; padding: 0 0 12px 22px; font-size: var(--fs-sm); color: var(--text-2); }
+  .linha-tempo li::before { content: ""; position: absolute; left: 5px; top: 6px; width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); }
+  .linha-tempo li::after { content: ""; position: absolute; left: 8.5px; top: 16px; bottom: 0; width: 1px; background: var(--border); }
+  .linha-tempo li:last-child::after { display: none; }
+  .linha-tempo li.feito::before { background: var(--success); }
+  .linha-tempo li.ruim::before { background: var(--danger); }
+  .linha-tempo strong { color: var(--text); font-weight: 600; }
+  .linha-tempo small { display: block; color: var(--text-3); font-size: var(--fs-xs); }
+  .det-h { font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); margin-bottom: 8px; }
+  .det-dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: var(--fs-sm); }
+  .det-dl dt { color: var(--text-3); }
+  .det-dl dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+  .rodape { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--border); font-size: var(--fs-sm); color: var(--text-3); }
+  .rodape .spacer { flex: 1; }
+  @media (max-width: 900px) { .det-box { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="app" id="appScreen" hidden>
+  <aside class="app-sidebar" id="appSidebar" data-active="rastreio"></aside>
+  <div class="app-scrim"></div>
+  <div class="app-main">
+    <main class="page page-rastreio">
+      <header class="page-header">
+        <div class="page-header-text">
+          <nav class="breadcrumb" aria-label="Você está em"><a href="coletas.html">Coletas</a><span id="icBc"></span><span>Rastreio Melhor Envio</span></nav>
+          <h1 class="page-title">Rastreio Melhor Envio</h1>
+          <p class="page-desc">Todas as etiquetas do Melhor Envio, com status, prazo e a coleta de cada uma. Atraso e problema na entrega viram tarefa para a vendedora.</p>
+        </div>
+        <div class="page-actions"><span class="sync" id="sync"></span></div>
+      </header>
+
+      <div class="stack">
+        <div class="alert alert-danger" id="erroBox" role="alert" hidden><span id="icErro"></span><span id="erroMsg"></span></div>
+
+        <section class="panel" aria-label="Resumo"><div class="resumo" id="resumo"></div></section>
+
+        <section class="panel" aria-labelledby="listaTit">
+          <div class="panel-head">
+            <h2 id="listaTit">Etiquetas</h2><span class="count-pill" id="nLista">0</span>
+            <span class="spacer"></span>
+            <a class="btn btn-ghost btn-sm" href="https://app.melhorrastreio.com.br/" target="_blank" rel="noopener noreferrer"><span id="icExt"></span>Abrir o Melhor Rastreio</a>
+          </div>
+          <div class="panel-body" style="padding-bottom:12px">
+            <div class="toolbar">
+              <label class="search"><span id="icSearch"></span><span class="sr-only">Buscar</span>
+                <input class="input" type="search" id="busca" placeholder="NF, rastreio, destinatário ou cliente" autocomplete="off"></label>
+              <select class="select" id="fVinculo" aria-label="Vínculo com a coleta" style="width:auto">
+                <option value="">Com e sem coleta</option>
+                <option value="sem">Sem coleta vinculada</option>
+                <option value="com">Com coleta vinculada</option>
+              </select>
+              <select class="select" id="fVend" aria-label="Vendedora" style="width:auto"></select>
+              <span class="spacer"></span>
+              <button type="button" class="btn btn-ghost btn-sm" id="limpar" hidden>Limpar filtros</button>
+            </div>
+          </div>
+          <div class="table-wrap" id="listaWrap">
+            <div class="skeleton-row"><span class="skeleton" style="height:12px;width:30%"></span><span class="skeleton" style="height:12px;width:12%;margin-left:auto"></span></div>
+            <div class="skeleton-row"><span class="skeleton" style="height:12px;width:40%"></span><span class="skeleton" style="height:12px;width:14%;margin-left:auto"></span></div>
+          </div>
+          <div class="rodape" id="rodape" hidden></div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+(function () {
+  const el = (id) => document.getElementById(id);
+  const ic = HubIcons.svg;
+  const esc = HubUI.escapeHtml;
+  const POR_PAGINA = 100;
+
+  el('icErro').outerHTML = ic('alertCircle');
+  el('icSearch').outerHTML = ic('search');
+  el('icExt').outerHTML = ic('external');
+  el('icBc').outerHTML = ic('chevronRight');
+
+  const STATUS = {
+    pending: 'No carrinho', released: 'Paga, aguardando postagem', generated: 'Etiqueta gerada', received: 'Recebida no ponto',
+    posted: 'Em trânsito', delivered: 'Entregue', undelivered: 'Não entregue', paused: 'Entrega interrompida',
+    suspended: 'Suspensa', canceled: 'Cancelada', expired: 'Expirada'
+  };
+  const ALERTA = {
+    atrasado: 'Passou do prazo de entrega', nao_entregue: 'Não entregue', interrompido: 'Entrega interrompida',
+    suspenso: 'Envio suspenso', sem_postar: 'Paga há 2+ dias úteis e ainda não postada'
+  };
+  const PROBLEMAS = ['undelivered', 'paused', 'suspended'];
+  const ABAS = {
+    atencao: { nome: 'Precisam de atenção', f: (e) => !!e.alerta },
+    transito: { nome: 'Em trânsito', f: (e) => e.status === 'posted' || e.status === 'received' },
+    postagem: { nome: 'Aguardando postagem', f: (e) => e.status === 'released' || e.status === 'generated' },
+    entregues: { nome: 'Entregues', f: (e) => e.status === 'delivered' },
+    todos: { nome: 'Todas', f: () => true }
+  };
+
+  const st = { envios: [], coletas: {}, eventos: {}, aba: 'atencao', aberto: null, limite: POR_PAGINA };
+
+  // ---------------- utilidades ----------------
+  const hojeISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const dataHora = (iso) => iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  const dataCurta = (s) => { if (!s) return ''; const [, m, d] = s.slice(0, 10).split('-'); return d + '/' + m; };
+  function diasUteisEntre(de, ate) {
+    let n = 0; const d = new Date(de + 'T12:00:00'); const fim = new Date(ate + 'T12:00:00');
+    while (d < fim) { d.setDate(d.getDate() + 1); const w = d.getDay(); if (w !== 0 && w !== 6) n++; }
+    return n;
+  }
+  function iniciais(n) {
+    const p = String(n || '').trim().split(/[\s@._-]+/).filter(Boolean);
+    if (!p.length) return '?';
+    return ((p[0][0] || '') + (p.length > 1 ? p[p.length - 1][0] : (p[0][1] || ''))).toUpperCase();
+  }
+  const av = (id) => id ? '<span class="av-k k-' + HubAuth.corDe(id) + '" title="' + esc(HubAuth.nomeDe(id) || '') + '">' + esc(iniciais(HubAuth.nomeDe(id))) + '</span>' : '';
+  function stHtml(e) {
+    const cls = PROBLEMAS.indexOf(e.status) !== -1 ? 'st-problema' : 'st-' + e.status;
+    return '<span class="st ' + cls + '"><span class="dot"></span>' + esc(STATUS[e.status] || e.status || '—') + '</span>' +
+      (e.alerta && e.alerta !== 'nao_entregue' && e.alerta !== 'interrompido' && e.alerta !== 'suspenso' ? '<span class="alerta-txt">' + ALERTA[e.alerta] + '</span>' : '');
+  }
+
+  // ---------------- dados ----------------
+  async function carregar() {
+    const desde = new Date(Date.now() - 120 * 86400000);
+    const desdeIso = desde.getFullYear() + '-' + String(desde.getMonth() + 1).padStart(2, '0') + '-' + String(desde.getDate()).padStart(2, '0');
+    const [e, c] = await Promise.all([
+      sb.from('me_envios').select('*').order('criado_me', { ascending: false }).limit(5000),
+      sb.from('pedidos').select('id, cliente, nf, vendedora_id, data_coleta, tipo_coleta').gte('data_coleta', desdeIso).order('data_coleta', { ascending: false }).limit(3000)
+    ]);
+    const erro = e.error || c.error;
+    if (erro) {
+      console.error(erro);
+      el('erroMsg').textContent = /me_envios|does not exist|schema cache/i.test(erro.message || '')
+        ? 'O rastreio ainda não foi criado no banco. Rode o arquivo supabase/melhor_envio.sql no SQL Editor do Supabase.'
+        : 'Não foi possível carregar o rastreio. Recarregue a página.';
+      el('erroBox').hidden = false;
+      el('listaWrap').innerHTML = '';
+      return;
+    }
+    el('erroBox').hidden = true;
+    st.envios = e.data || [];
+    st.coletas = {};
+    (c.data || []).forEach((x) => { st.coletas[x.id] = x; });
+    renderSync();
+    render();
+  }
+  async function carregarEventos(id) {
+    const { data, error } = await sb.from('me_eventos').select('*').eq('envio_id', id).order('em', { ascending: true }).limit(100);
+    if (error) { console.error(error); return; }
+    st.eventos[id] = data || [];
+    if (st.aberto === id) renderLista();
+  }
+  let tRec = null;
+  function assinar() {
+    sb.channel('me-rastreio').on('postgres_changes', { event: '*', schema: 'public', table: 'me_envios' }, () => { clearTimeout(tRec); tRec = setTimeout(carregar, 500); }).subscribe();
+  }
+
+  function renderSync() {
+    const ult = st.envios.map((e) => e.lido_em).filter(Boolean).sort().pop();
+    const s = el('sync');
+    if (!ult) { s.innerHTML = ic('clock') + 'Aguardando a primeira leitura do Melhor Envio'; s.className = 'sync velho'; return; }
+    const min = Math.round((Date.now() - new Date(ult)) / 60000);
+    s.className = 'sync' + (min > 90 ? ' velho' : '');
+    s.innerHTML = ic('refresh') + 'Atualizado ' + (min < 1 ? 'agora' : min < 60 ? 'há ' + min + ' min' : 'em ' + dataHora(ult)) + (min > 90 ? ' · a leitura automática parece parada' : '');
+  }
+
+  // ---------------- resumo ----------------
+  function renderResumo() {
+    const hoje = hojeISO();
+    const n = (k) => st.envios.filter(ABAS[k].f).length;
+    const atrasados = st.envios.filter((e) => e.alerta === 'atrasado').length;
+    const ent7 = st.envios.filter((e) => e.entregue_em && Date.now() - new Date(e.entregue_em) < 7 * 86400000).length;
+    const b = (k, v, sub, cls) => '<button type="button" class="rs' + (cls ? ' ' + cls : '') + '" data-aba="' + k + '" aria-pressed="' + (st.aba === k) + '"><div class="rs-k">' + ABAS[k].nome + '</div><div class="rs-v">' + v + '</div><div class="rs-s">' + sub + '</div></button>';
+    const at = n('atencao');
+    el('resumo').innerHTML =
+      b('atencao', at, at ? atrasados + ' atrasado(s) · ' + (at - atrasados) + ' com outro problema' : 'nenhum problema agora', at ? 'alerta' : '') +
+      b('transito', n('transito'), 'postados, a caminho') +
+      b('postagem', n('postagem'), 'pagos, falta postar') +
+      b('entregues', n('entregues'), ent7 + ' nos últimos 7 dias', ent7 ? 'bom' : '') +
+      b('todos', st.envios.length, 'etiquetas dos últimos 60 dias');
+    void hoje;
+  }
+
+  // ---------------- lista ----------------
+  function filtradas() {
+    const termo = el('busca').value.trim().toLowerCase();
+    const vinc = el('fVinculo').value, vend = el('fVend').value;
+    return st.envios.filter((e) => {
+      if (!ABAS[st.aba].f(e)) return false;
+      const c = e.coleta_id ? st.coletas[e.coleta_id] : null;
+      if (vinc === 'sem' && e.coleta_id) return false;
+      if (vinc === 'com' && !e.coleta_id) return false;
+      if (vend && (!c || c.vendedora_id !== vend)) return false;
+      if (termo) {
+        const txt = [e.nf_numero, e.rastreio, e.rastreio_me, e.protocolo, e.destinatario, e.cidade, c && c.cliente, c && c.nf].join(' ').toLowerCase();
+        if (!txt.includes(termo)) return false;
+      }
+      return true;
+    }).sort((a, b) => {
+      if (st.aba === 'atencao') {
+        const pa = a.prazo_entrega || '9', pb = b.prazo_entrega || '9';
+        return pa.localeCompare(pb);
+      }
+      return String(b.criado_me || '').localeCompare(String(a.criado_me || ''));
+    });
+  }
+
+  function prazoHtml(e) {
+    if (e.status === 'delivered') {
+      const tarde = e.prazo_entrega && e.entregue_em && e.entregue_em.slice(0, 10) > e.prazo_entrega;
+      return '<span class="quando">' + dataCurta(e.entregue_em) + '<small>' + (tarde ? 'entregue com atraso' : 'entregue') + '</small></span>';
+    }
+    if (!e.prazo_entrega) return '<span class="quando muted">' + (e.postado_em ? 'sem prazo informado' : '—') + '</span>';
+    const hoje = hojeISO();
+    if (hoje > e.prazo_entrega && PROBLEMAS.concat(['posted', 'received']).indexOf(e.status) !== -1) {
+      const n = diasUteisEntre(e.prazo_entrega, hoje);
+      return '<span class="quando atraso">' + dataCurta(e.prazo_entrega) + '<small>' + n + (n === 1 ? ' dia útil' : ' dias úteis') + ' de atraso</small></span>';
+    }
+    return '<span class="quando">' + dataCurta(e.prazo_entrega) + '<small>até ' + (e.prazo_max != null ? e.prazo_max + ' dias úteis' : '') + '</small></span>';
+  }
+
+  function coletaHtml(e) {
+    const c = e.coleta_id ? st.coletas[e.coleta_id] : null;
+    if (c) return '<div class="coleta">' + av(c.vendedora_id) + '<div><div>' + esc(c.cliente) + '</div><div class="sub">NF ' + esc(c.nf) + ' · coleta ' + dataCurta(c.data_coleta) + (e.coleta_manual ? ' · vinculada à mão' : '') + '</div></div></div>';
+    if (e.coleta_id) return '<span class="sub">coleta antiga (mais de 120 dias)</span>';
+    const opcoes = Object.values(st.coletas).filter((x) => x.tipo_coleta === 'melhor_envio' && !st.envios.some((y) => y.coleta_id === x.id))
+      .slice(0, 200).map((x) => '<option value="' + x.id + '">' + esc(x.cliente) + ' · NF ' + esc(x.nf) + ' · ' + dataCurta(x.data_coleta) + '</option>').join('');
+    return '<div class="vinc"><label class="sr-only" for="v-' + e.id + '">Vincular à coleta</label><select class="select" id="v-' + e.id + '" data-vincular="' + esc(e.id) + '"><option value="">Vincular a uma coleta…</option>' + opcoes + '</select></div>';
+  }
+
+  function detalheHtml(e) {
+    const ev = st.eventos[e.id];
+    const linhas = [];
+    if (e.criado_me) linhas.push({ t: 'Etiqueta criada no Melhor Envio', em: e.criado_me, c: 'feito' });
+    if (e.pago_em) linhas.push({ t: 'Paga', em: e.pago_em, c: 'feito' });
+    if (e.gerado_em) linhas.push({ t: 'Etiqueta gerada', em: e.gerado_em, c: 'feito' });
+    if (e.postado_em) linhas.push({ t: 'Postada' + (e.transportadora ? ' (' + e.transportadora + ')' : ''), em: e.postado_em, c: 'feito' });
+    if (e.entregue_em) linhas.push({ t: 'Entregue', em: e.entregue_em, c: 'feito' });
+    if (e.cancelado_em) linhas.push({ t: 'Cancelada', em: e.cancelado_em, c: 'ruim' });
+    (ev || []).filter((x) => x.status_de && PROBLEMAS.indexOf(x.status_para) !== -1).forEach((x) => linhas.push({ t: STATUS[x.status_para], em: x.em, c: 'ruim', hub: true }));
+    linhas.sort((a, b) => String(a.em).localeCompare(String(b.em)));
+    const tempo = linhas.length ? linhas.map((l) => '<li class="' + l.c + '"><strong>' + esc(l.t) + '</strong><small>' + dataHora(l.em) + (l.hub ? ' · percebido pelo Hub' : '') + '</small></li>').join('') : '<li>Sem datas ainda.</li>';
+    const dl = [
+      ['Status', STATUS[e.status] || e.status],
+      ['Envio', [e.transportadora, e.servico].filter(Boolean).join(' · ')],
+      ['Rastreio', e.rastreio],
+      ['Rastreio Melhor Envio', e.rastreio_me],
+      ['Protocolo', e.protocolo],
+      ['Prazo informado', e.prazo_min != null ? e.prazo_min + ' a ' + e.prazo_max + ' dias úteis' : ''],
+      ['Valor do frete', e.preco != null ? Number(e.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : ''],
+      ['Tarefa automática', Object.keys(e.tarefas || {}).filter((k) => e.tarefas[k] !== 'carga_inicial').map((k) => ALERTA[k]).join(', ') || 'nenhuma']
+    ].filter(([, v]) => v);
+    return '<tr class="det"><td colspan="8"><div class="det-box"><div><div class="det-h">Linha do tempo</div><ol class="linha-tempo">' + tempo + '</ol>' +
+      (ev ? '' : '<div class="sub">carregando mudanças de status…</div>') + '</div>' +
+      '<div><div class="det-h">Detalhes</div><dl class="det-dl">' + dl.map(([k, v]) => '<dt>' + k + '</dt><dd>' + esc(String(v)) + '</dd>').join('') + '</dl>' +
+      '<p class="sub" style="margin-top:10px">O Melhor Envio informa só o status e as datas principais; as movimentações detalhadas da transportadora ficam no Melhor Rastreio.</p></div></div></td></tr>';
+  }
+
+  function renderLista() {
+    const lista = filtradas();
+    el('nLista').textContent = lista.length;
+    el('listaTit').textContent = ABAS[st.aba].nome;
+    const temFiltro = el('busca').value || el('fVinculo').value || el('fVend').value;
+    el('limpar').hidden = !temFiltro;
+    if (!lista.length) {
+      el('listaWrap').innerHTML = '<div class="empty">' + ic(st.aba === 'atencao' ? 'checkCircle' : 'truck') + '<div class="empty-title">' +
+        (!st.envios.length ? 'Nenhuma etiqueta lida ainda' : temFiltro ? 'Nada com esses filtros' : st.aba === 'atencao' ? 'Nenhum envio precisa de atenção' : 'Nada nesta lista') +
+        '</div><div class="empty-text">' + (!st.envios.length ? 'Depois que o token do Melhor Envio for configurado, as etiquetas aparecem aqui em até 20 minutos.' : 'Os envios com atraso ou problema na entrega aparecem em "Precisam de atenção".') + '</div></div>';
+      el('rodape').hidden = true;
+      return;
+    }
+    const ver = lista.slice(0, st.limite);
+    el('listaWrap').innerHTML = '<table class="table rt"><thead><tr><th>Status</th><th>Destinatário</th><th>NF</th><th>Coleta no Hub</th><th>Envio</th><th>Rastreio</th><th>Postado</th><th>Prazo / entrega</th></tr></thead><tbody>' +
+      ver.map((e) => {
+        const aberto = st.aberto === e.id;
+        return '<tr class="linha' + (aberto ? ' is-aberta' : '') + '" data-id="' + esc(e.id) + '" tabindex="0" aria-expanded="' + aberto + '">' +
+          '<td>' + stHtml(e) + '</td>' +
+          '<td><div class="dest">' + esc(e.destinatario || '—') + '</div><div class="sub">' + esc([e.cidade, e.uf].filter(Boolean).join(' / ')) + '</div></td>' +
+          '<td class="mono">' + esc(e.nf_numero || '—') + '</td>' +
+          '<td>' + coletaHtml(e) + '</td>' +
+          '<td><div>' + esc(e.transportadora || '—') + '</div><div class="sub">' + esc(e.servico || '') + '</div></td>' +
+          '<td>' + (e.rastreio ? '<span class="cod">' + esc(e.rastreio) + '<button type="button" class="icon-btn" data-copiar="' + esc(e.rastreio) + '" aria-label="Copiar código ' + esc(e.rastreio) + '" title="Copiar código">' + ic('copy') + '</button></span>' : '<span class="muted">—</span>') + '</td>' +
+          '<td class="quando">' + (e.postado_em ? dataCurta(e.postado_em) : '<span class="muted">—</span>') + '</td>' +
+          '<td>' + prazoHtml(e) + '</td></tr>' + (aberto ? detalheHtml(e) : '');
+      }).join('') + '</tbody></table>';
+    el('rodape').hidden = lista.length <= st.limite;
+    el('rodape').innerHTML = 'Mostrando ' + ver.length + ' de ' + lista.length + '<span class="spacer"></span><button type="button" class="btn btn-secondary btn-sm" id="maisBtn">Mostrar mais</button>';
+    const mais = el('maisBtn'); if (mais) mais.addEventListener('click', () => { st.limite += POR_PAGINA; renderLista(); });
+  }
+
+  function render() { renderResumo(); renderLista(); }
+
+  // ---------------- interações ----------------
+  el('resumo').addEventListener('click', (e) => { const b = e.target.closest('[data-aba]'); if (!b) return; st.aba = b.dataset.aba; st.limite = POR_PAGINA; render(); });
+  el('listaWrap').addEventListener('click', async (e) => {
+    const cp = e.target.closest('[data-copiar]');
+    if (cp) {
+      e.stopPropagation();
+      try { await navigator.clipboard.writeText(cp.dataset.copiar); HubUI.toast('Código ' + cp.dataset.copiar + ' copiado.'); }
+      catch (_) { HubUI.toast('Não foi possível copiar. Selecione o código e copie com Ctrl+C.', { error: true }); }
+      return;
+    }
+    if (e.target.closest('select, a, button, .det')) return;
+    const tr = e.target.closest('tr.linha');
+    if (!tr) return;
+    st.aberto = st.aberto === tr.dataset.id ? null : tr.dataset.id;
+    renderLista();
+    if (st.aberto && !st.eventos[st.aberto]) carregarEventos(st.aberto);
+  });
+  el('listaWrap').addEventListener('keydown', (e) => {
+    const tr = e.target.closest('tr.linha');
+    if (tr && e.target === tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); tr.click(); }
+  });
+  el('listaWrap').addEventListener('change', async (e) => {
+    const s = e.target.closest('[data-vincular]');
+    if (!s || !s.value) return;
+    const env = st.envios.find((x) => x.id === s.dataset.vincular);
+    const c = st.coletas[s.value];
+    s.disabled = true;
+    const { error } = await sb.from('me_envios').update({ coleta_id: s.value }).eq('id', env.id);
+    if (error) { console.error(error); s.disabled = false; s.value = ''; HubUI.toast('Não foi possível vincular.', { error: true }); return; }
+    env.coleta_id = s.value; env.coleta_manual = true;
+    renderLista();
+    HubUI.toast('Etiqueta vinculada à coleta de ' + c.cliente + '.');
+  });
+  el('busca').addEventListener('input', () => { st.limite = POR_PAGINA; renderLista(); });
+  ['fVinculo', 'fVend'].forEach((id) => el(id).addEventListener('change', () => { st.limite = POR_PAGINA; renderLista(); }));
+  el('limpar').addEventListener('click', () => { el('busca').value = ''; el('fVinculo').value = ''; el('fVend').value = ''; renderLista(); });
+  setInterval(renderSync, 60000);
+
+  HubAuth.requireAuth(() => {
+    el('fVend').innerHTML = '<option value="">Todas as vendedoras</option>' + HubAuth.profiles.map((p) => '<option value="' + p.id + '">' + esc(p.nome || p.id) + '</option>').join('');
+    el('appScreen').hidden = false;
+    carregar();
+    assinar();
+  }, 'coletas');
+})();
+</script>
+</body>
+</html>

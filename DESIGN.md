@@ -389,6 +389,11 @@ Firmes e discretos; o peso vem da cor, não do tamanho.
 - Detalhe (`dialog.ed`): etapas clicáveis (feitas em verde, atual em tinta), informações editáveis, checklist com quem marcou e quando, itens do PDF com "Recebido no ML" por SKU e diferença, recebimento, histórico gravado pelo banco e exclusão em dois cliques. Abre direto por `full.html#envio=<id>`.
 - A Lista de Compras ganhou o painel "Salvar no controle do Full" (vincula cada PDF ao envio pelo número ou cria um envio). O Início mostra "Próximas coletas do Full" (14 dias + atrasadas).
 
+### Rastreio Melhor Envio (`rastreio.html`, em Coletas)
+- Faixa de resumo clicável (Precisam de atenção em vermelho, Em trânsito, Aguardando postagem, Entregues, Todas) que também troca a lista.
+- Tabela com status em pílula (azul em trânsito, amarelo aguardando postagem, verde entregue, vermelho problema) e o motivo do alerta logo abaixo; coleta do Hub com avatar da vendedora ou select "Vincular a uma coleta…"; rastreio em mono com botão de copiar; prazo em vermelho com "N dias úteis de atraso".
+- Clicar na linha abre a linha do tempo (datas do Melhor Envio + problemas percebidos pelo Hub) e os detalhes. O Início mostra "Melhor Envio: atenção" só quando há alerta.
+
 ### Inputs / Fields
 - **Estrutura:** `.field` em coluna com gap de 6px; rótulo acima (13px 500 `--text-2`), `*` obrigatório em `--danger`, dica `.hint` 12px.
 - **Campo (`.input`, `.select`, `.textarea`):** 38px, branco, borda `--border-strong`, raio 8px, 14px. Placeholder `#8C949C`, sempre em sans.

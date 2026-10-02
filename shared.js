@@ -53,6 +53,7 @@ const HubIcons = (function () {
     mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
     lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
     tarefas: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8l1.5 1.5L12 7"/><path d="M8 14l1.5 1.5L12 13"/><path d="M14.5 8.5H17M14.5 14.5H17"/>',
+    copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',
     more: '<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
     message: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>',
     text: '<path d="M4 6h16M4 12h16M4 18h10"/>',
@@ -149,7 +150,10 @@ const HubShell = (function () {
       { key: 'tarefas', label: 'Tarefas', href: 'tarefas.html', icon: 'tarefas' }
     ] },
     { title: 'Operação', items: [
-      { key: 'coletas', label: 'Coletas', href: 'coletas.html', icon: 'coletas', modulo: 'coletas' },
+      { key: 'coletas', label: 'Coletas', href: 'coletas.html', icon: 'coletas', children: [
+        { key: 'coletas-dia', label: 'Coletas do dia', href: 'coletas.html', modulo: 'coletas' },
+        { key: 'rastreio', label: 'Rastreio Melhor Envio', href: 'rastreio.html', modulo: 'coletas' }
+      ] },
       { key: 'full', label: 'Full', href: 'full.html', icon: 'full', children: [
         { key: 'full-envios', label: 'Envios e calendário', href: 'full.html', modulo: 'full_envios' },
         { key: 'full-compras', label: 'Lista de Compras', href: 'full-lista-compras.html', modulo: 'full_compras' },

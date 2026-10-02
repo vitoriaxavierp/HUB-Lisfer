@@ -116,6 +116,8 @@
   .fl-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .fl-sub { font-size: var(--fs-xs); color: var(--text-3); margin-top: 3px; }
   .fl-sub.atr { color: var(--danger); font-weight: 600; }
+  .fl-ic { display: grid; place-items: center; height: 40px; color: var(--danger); }
+  .fl-ic svg { width: 20px; height: 20px; }
   /* ---------- tarefas ---------- */
   .tk-panel { margin-bottom: var(--s-6); }
   .tk-cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
@@ -297,6 +299,16 @@
         </section>
 
         <div class="home-side">
+          <section class="panel" aria-labelledby="meTitle" id="mePanel" hidden>
+            <div class="panel-head">
+              <h2 id="meTitle">Melhor Envio: atenção</h2>
+              <span class="count-pill" id="meCount" style="background:var(--danger-soft);color:var(--danger)">0</span>
+              <span class="spacer"></span>
+              <a class="btn btn-ghost btn-sm" href="rastreio.html">Ver rastreio</a>
+            </div>
+            <ul class="fl-list" id="meList"></ul>
+          </section>
+
           <section class="panel" aria-labelledby="flTitle" id="flPanel" hidden>
             <div class="panel-head">
               <h2 id="flTitle">Próximas coletas do Full</h2>
@@ -702,6 +714,24 @@
   // a tarefa feita some depois de 1 dia, e os "há X min" ficam em dia
   setInterval(() => { if (tk.carregado && !el('hubScreen').hidden) carregarTarefas(); }, 5 * 60 * 1000);
 
+  // ---------------- envios do Melhor Envio com atraso ou problema ----------------
+  async function loadMe() {
+    const ALERTA = { atrasado: 'passou do prazo', nao_entregue: 'não entregue', interrompido: 'entrega interrompida', suspenso: 'suspenso', sem_postar: 'pago e ainda não postado' };
+    const { data, error } = await sb.from('me_envios').select('id, destinatario, cidade, uf, nf_numero, alerta, prazo_entrega, transportadora, coleta_id')
+      .not('alerta', 'is', null).order('prazo_entrega', { ascending: true }).limit(50);
+    // tabela ainda não criada ou sem nada para avisar: o painel fica escondido
+    if (error || !data || !data.length) { el('mePanel').hidden = true; return; }
+    el('mePanel').hidden = false;
+    el('meCount').textContent = data.length;
+    const MAX = 5;
+    el('meList').innerHTML = data.slice(0, MAX).map((e) =>
+      '<li><a class="fl atr" href="rastreio.html"><span class="fl-d fl-ic">' + ic('alert') + '</span>' +
+      '<span><span class="fl-top"><strong style="font-size:var(--fs-sm)">' + esc(e.destinatario || 'Destinatário') + '</strong>' + (e.nf_numero ? '<span class="mono" style="font-size:var(--fs-xs);color:var(--text-3)">NF ' + esc(e.nf_numero) + '</span>' : '') + '</span>' +
+      '<div class="fl-sub atr">' + (ALERTA[e.alerta] || e.alerta) + (e.prazo_entrega && e.alerta === 'atrasado' ? ' · prazo ' + e.prazo_entrega.split('-').reverse().slice(0, 2).join('/') : '') +
+      (e.transportadora ? ' · ' + esc(e.transportadora) : '') + '</div></span></a></li>').join('') +
+      (data.length > MAX ? '<li><a class="more-line" href="rastreio.html">Mais ' + (data.length - MAX) + ' no rastreio</a></li>' : '');
+  }
+
   // ---------------- próximas coletas do Full ----------------
   async function loadFull() {
     const box = el('flList');
@@ -750,7 +780,7 @@
     el('homeGrid').style.gridTemplateColumns = podeColetas ? '' : 'minmax(0, 1fr)';
     el('semModulos').hidden = !el('homeGrid').hidden;
     renderTools();
-    if (podeColetas) loadToday();
+    if (podeColetas) { loadToday(); loadMe(); }
     if (podeImp) loadArrival();
     if (podeFull) loadFull();
     tk.me = user;
