@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tarefas — Hub Lisfer</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="hub.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js" integrity="sha384-WgXwGL6fUsYJWNaKJgVbrJKGRQwc1vieh2oy4kw9nXqpNDz3tdSsqEYUgeHD/NuF" crossorigin="anonymous"></script>
+<script src="config.js"></script>
+<script src="shared.js"></script>
+<style>
+  .abas { margin-bottom: var(--s-5); }
+  .abas button .count-pill { margin-left: 6px; height: 18px; }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .search { position: relative; width: 280px; max-width: 100%; }
+  .search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-3); pointer-events: none; }
+  .search .input { padding-left: 34px; }
+  .toolbar .select { width: auto; min-width: 170px; }
+  .toolbar .spacer { flex: 1; }
+
+  /* números do painel de controle */
+  .kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .kpi { padding: 16px 20px; border-left: 1px solid var(--border); }
+  .kpi:first-child { border-left: 0; }
+  .kpi-k { font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); }
+  .kpi-v { font-family: var(--font-display); font-size: 28px; font-weight: 800; line-height: 1.15; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .kpi-s { font-size: var(--fs-xs); color: var(--text-3); margin-top: 2px; }
+  .kpi.alerta .kpi-v { color: var(--danger); }
+  .kpi.bom .kpi-v { color: var(--success); }
+  @media (max-width: 1000px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .kpi { border-left: 0; border-top: 1px solid var(--border); } }
+
+  .pessoa { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+  .linha-pessoa { cursor: pointer; }
+  .linha-pessoa.is-sel td { background: var(--surface-3); }
+  .zero { color: var(--text-3); }
+  .n-alerta { color: var(--danger); font-weight: 700; }
+
+  /* tabela de tarefas */
+  .tt td { vertical-align: top; }
+  .tt .t-tit { font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; max-width: 46ch; }
+  .tt .t-det { font-size: var(--fs-xs); color: var(--text-2); margin-top: 2px; max-width: 60ch; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; }
+  .tt .fluxo { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .tt .fluxo svg { width: 14px; height: 14px; color: var(--text-3); }
+  .tt .quando { white-space: nowrap; color: var(--text-2); }
+  .tt .quando small { display: block; color: var(--text-3); font-size: var(--fs-xs); }
+  .st-atrasada { background: var(--danger-soft); color: var(--danger); }
+  .st-feita-atraso { background: var(--warning-soft); color: var(--warning-text); }
+  .tt .icon-btn { width: 28px; height: 28px; }
+  .tt .icon-btn svg { width: 14px; height: 14px; }
+  .tt-check {
+    width: 26px; height: 26px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; position: relative;
+    display: grid; place-items: center; background: var(--brand-soft);
+  }
+  .tt-check::before { content: ""; position: absolute; inset: 3px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--brand); }
+  .tt-check svg { width: 14px; height: 14px; color: #FFFFFF; opacity: 0; }
+  .tt-check:hover::before { box-shadow: inset 0 0 0 2px var(--success); }
+  .tt-check.is-done { background: var(--success); }
+  .tt-check.is-done::before { box-shadow: none; }
+  .tt-check.is-done svg { opacity: 1; }
+  .rodape-lista { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--border); font-size: var(--fs-sm); color: var(--text-3); }
+  .rodape-lista .spacer { flex: 1; }
+</style>
+</head>
+<body>
+
+<div class="app" id="appScreen" hidden>
+  <aside class="app-sidebar" id="appSidebar" data-active="tarefas"></aside>
+  <div class="app-scrim"></div>
+  <div class="app-main">
+    <main class="page">
+      <header class="page-header">
+        <div class="page-header-text">
+          <h1 class="page-title">Tarefas</h1>
+          <p class="page-desc" id="desc">Histórico das tarefas que você recebeu e das que você pediu, com quem pediu, prazo e quando foram concluídas.</p>
+        </div>
+        <div class="page-actions">
+          <a class="btn btn-secondary" href="index.html" id="voltarInicio">Ver no Início</a>
+        </div>
+      </header>
+
+      <div class="segmented abas" role="group" aria-label="O que ver" id="abas">
+        <button type="button" data-aba="recebidas">Recebidas<span class="count-pill" id="nRec">–</span></button>
+        <button type="button" data-aba="enviadas">Enviadas<span class="count-pill" id="nEnv">–</span></button>
+        <button type="button" data-aba="painel" id="abaPainel" hidden>Painel de controle</button>
+      </div>
+
+      <div class="stack">
+        <div class="alert alert-danger" id="erroBox" role="alert" hidden><span id="icErro"></span><span id="erroMsg"></span></div>
+
+        <!-- painel de controle (masters) -->
+        <section class="panel" id="kpiPanel" aria-label="Resumo da equipe" hidden><div class="kpis" id="kpis"></div></section>
+        <section class="panel" id="pessoasPanel" aria-labelledby="pessoasTit" hidden>
+          <div class="panel-head"><h2 id="pessoasTit">Por pessoa</h2><span class="panel-sub">Clique numa pessoa para ver só as tarefas dela.</span></div>
+          <div class="table-wrap" id="pessoasWrap"></div>
+        </section>
+
+        <section class="panel" aria-labelledby="listaTit">
+          <div class="panel-head">
+            <h2 id="listaTit">Tarefas</h2><span class="count-pill" id="nLista">0</span>
+            <span class="spacer"></span>
+            <button type="button" class="btn btn-ghost btn-sm" id="exportar"><span id="icDown"></span>Baixar planilha (CSV)</button>
+          </div>
+          <div class="panel-body" style="padding-bottom:12px">
+            <div class="toolbar">
+              <label class="search"><span id="icSearch"></span><span class="sr-only">Buscar</span>
+                <input class="input" type="search" id="busca" placeholder="Buscar na tarefa ou nos detalhes" autocomplete="off"></label>
+              <select class="select" id="fStatus" aria-label="Situação">
+                <option value="">Todas as situações</option>
+                <option value="aberta">Abertas (no prazo)</option>
+                <option value="atrasada">Atrasadas</option>
+                <option value="pendentes">Abertas + atrasadas</option>
+                <option value="feita">Feitas</option>
+                <option value="feita-atraso">Feitas com atraso</option>
+              </select>
+              <select class="select" id="fDe" aria-label="Pedida por"></select>
+              <select class="select" id="fPara" aria-label="Para quem"></select>
+              <select class="select" id="fPeriodo" aria-label="Período">
+                <option value="7">Criadas nos últimos 7 dias</option>
+                <option value="30" selected>Criadas nos últimos 30 dias</option>
+                <option value="90">Criadas nos últimos 90 dias</option>
+                <option value="0">Desde o início</option>
+              </select>
+              <span class="spacer"></span>
+              <button type="button" class="btn btn-ghost btn-sm" id="limpar" hidden>Limpar filtros</button>
+            </div>
+          </div>
+          <div class="table-wrap" id="listaWrap">
+            <div class="skeleton-row"><span class="skeleton" style="height:12px;width:40%"></span><span class="skeleton" style="height:12px;width:15%;margin-left:auto"></span></div>
+            <div class="skeleton-row"><span class="skeleton" style="height:12px;width:32%"></span><span class="skeleton" style="height:12px;width:12%;margin-left:auto"></span></div>
+          </div>
+          <div class="rodape-lista" id="rodape" hidden></div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+(function () {
+  const el = (id) => document.getElementById(id);
+  const ic = HubIcons.svg;
+  const esc = HubUI.escapeHtml;
+  const UM_DIA = 86400000;
+  const POR_PAGINA = 100;
+
+  el('icErro').outerHTML = ic('alertCircle');
+  el('icSearch').outerHTML = ic('search');
+  el('icDown').outerHTML = ic('download');
+
+  const st = { me: null, master: false, todas: [], aba: 'recebidas', limite: POR_PAGINA, confirmar: null };
+
+  // ---------------- utilidades ----------------
+  const hojeISO = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const isoDia = (iso) => { const d = new Date(iso); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const nome = (id) => HubAuth.nomeDe(id) || (id ? 'Conta removida' : '—');
+  function iniciais(n) {
+    const p = String(n || '').trim().split(/[\s@._-]+/).filter(Boolean);
+    if (!p.length) return '?';
+    return ((p[0][0] || '') + (p.length > 1 ? p[p.length - 1][0] : (p[0][1] || ''))).toUpperCase();
+  }
+  const av = (id) => '<span class="av-k k-' + HubAuth.corDe(id) + '" aria-hidden="true">' + esc(iniciais(nome(id))) + '</span>';
+  const dataHora = (iso) => iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  const dataCurta = (s) => { const [y, m, d] = s.split('-'); return d + '/' + m + '/' + y.slice(2); };
+  function duracao(ms) {
+    if (ms == null || ms < 0) return '—';
+    const h = ms / 3600000;
+    if (h < 1) return Math.max(1, Math.round(ms / 60000)) + ' min';
+    if (h < 24) return h.toFixed(h < 10 ? 1 : 0).replace('.', ',') + ' h';
+    const d = h / 24;
+    return d.toFixed(d < 10 ? 1 : 0).replace('.', ',') + (d < 1.95 ? ' dia' : ' dias');
+  }
+
+  // situação de cada tarefa
+  function situacao(t) {
+    const hoje = hojeISO();
+    if (t.feita_em) return t.prazo && isoDia(t.feita_em) > t.prazo ? 'feita-atraso' : 'feita';
+    return t.prazo && t.prazo < hoje ? 'atrasada' : 'aberta';
+  }
+  const SIT = {
+    aberta: { txt: 'Aberta', cls: 'badge badge-pending', dot: true },
+    atrasada: { txt: 'Atrasada', cls: 'badge st-atrasada', dot: false },
+    feita: { txt: 'Feita', cls: 'badge badge-success', dot: false },
+    'feita-atraso': { txt: 'Feita com atraso', cls: 'badge st-feita-atraso', dot: false }
+  };
+  const selo = (s) => '<span class="' + SIT[s].cls + '">' + (SIT[s].dot ? '<span class="dot"></span>' : '') + SIT[s].txt + '</span>';
+  const pendente = (t) => !t.feita_em;
+  const atrasada = (t) => situacao(t) === 'atrasada';
+
+  // ---------------- dados ----------------
+  async function carregar() {
+    const { data, error } = await sb.from('tarefas').select('*').order('criado_em', { ascending: false }).limit(5000);
+    if (error) {
+      console.error(error);
+      el('erroMsg').textContent = /tarefas|does not exist|schema cache/i.test(error.message || '')
+        ? 'As tarefas ainda não foram criadas no banco. Uma master precisa rodar o arquivo supabase/tarefas.sql no Supabase.'
+        : 'Não foi possível carregar as tarefas. Recarregue a página.';
+      el('erroBox').hidden = false;
+      el('listaWrap').innerHTML = '';
+      return;
+    }
+    el('erroBox').hidden = true;
+    st.todas = data || [];
+    render();
+  }
+  let tRec = null;
+  function assinar() {
+    sb.channel('tarefas-historico')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tarefas' }, () => { clearTimeout(tRec); tRec = setTimeout(carregar, 300); })
+      .subscribe();
+  }
+
+  // ---------------- abas e filtros ----------------
+  function base() {
+    if (st.aba === 'recebidas') return st.todas.filter((t) => t.para_id === st.me.id);
+    if (st.aba === 'enviadas') return st.todas.filter((t) => t.de_id === st.me.id);
+    return st.todas;
+  }
+  function opcoesPessoas(sel, rotulo, atual) {
+    sel.innerHTML = '<option value="">' + rotulo + '</option>' + HubAuth.profiles.map((p) =>
+      '<option value="' + p.id + '"' + (p.id === atual ? ' selected' : '') + '>' + esc(p.nome || p.id) + (p.id === st.me.id ? ' (você)' : '') + '</option>').join('');
+  }
+  function montarFiltros() {
+    const de = el('fDe').value, para = el('fPara').value;
+    opcoesPessoas(el('fDe'), 'Pedidas por qualquer pessoa', de);
+    opcoesPessoas(el('fPara'), 'Para qualquer pessoa', para);
+    // em Recebidas não faz sentido filtrar "para"; em Enviadas, "pedidas por"
+    el('fPara').hidden = st.aba === 'recebidas';
+    el('fDe').hidden = st.aba === 'enviadas';
+    if (st.aba === 'recebidas') el('fPara').value = '';
+    if (st.aba === 'enviadas') el('fDe').value = '';
+  }
+  function filtradas() {
+    const termo = el('busca').value.trim().toLowerCase();
+    const s = el('fStatus').value, de = el('fDe').value, para = el('fPara').value;
+    const dias = Number(el('fPeriodo').value);
+    const desde = dias ? Date.now() - dias * UM_DIA : 0;
+    return base().filter((t) => {
+      const sit = situacao(t);
+      // tarefa ainda pendente aparece mesmo que tenha sido criada antes do período
+      if (desde && new Date(t.criado_em).getTime() < desde && !pendente(t)) return false;
+      if (s === 'pendentes' ? !pendente(t) : s && sit !== s) return false;
+      if (de && t.de_id !== de) return false;
+      if (para && t.para_id !== para) return false;
+      if (termo && !(t.titulo.toLowerCase().includes(termo) || (t.detalhes || '').toLowerCase().includes(termo))) return false;
+      return true;
+    }).sort((a, b) => {
+      // pendentes primeiro (atrasadas no topo), depois as feitas mais recentes
+      const pa = pendente(a), pb = pendente(b);
+      if (pa !== pb) return pa ? -1 : 1;
+      if (pa) {
+        const aa = atrasada(a), ab = atrasada(b);
+        if (aa !== ab) return aa ? -1 : 1;
+        return (a.prazo || '9999').localeCompare(b.prazo || '9999') || String(a.criado_em).localeCompare(String(b.criado_em));
+      }
+      return String(b.feita_em).localeCompare(String(a.feita_em));
+    });
+  }
+
+  // ---------------- desenho ----------------
+  function render() {
+    const rec = st.todas.filter((t) => t.para_id === st.me.id && pendente(t)).length;
+    const env = st.todas.filter((t) => t.de_id === st.me.id && pendente(t)).length;
+    el('nRec').textContent = rec; el('nRec').title = rec + ' abertas para você';
+    el('nEnv').textContent = env; el('nEnv').title = env + ' abertas que você pediu';
+    el('abas').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.aba === st.aba)));
+    el('desc').textContent = st.aba === 'painel'
+      ? 'Tudo o que está acontecendo na equipe: quem pediu o quê para quem, o que está pendente, atrasado e concluído.'
+      : 'Histórico das tarefas que você recebeu e das que você pediu, com quem pediu, prazo e quando foram concluídas.';
+    el('kpiPanel').hidden = el('pessoasPanel').hidden = st.aba !== 'painel';
+    el('listaTit').textContent = st.aba === 'recebidas' ? 'Tarefas que você recebeu' : st.aba === 'enviadas' ? 'Tarefas que você pediu' : 'Todas as tarefas da equipe';
+    if (st.aba === 'painel') { renderKpis(); renderPessoas(); }
+    renderLista();
+    const temFiltro = el('busca').value || el('fStatus').value || el('fDe').value || el('fPara').value || el('fPeriodo').value !== '30';
+    el('limpar').hidden = !temFiltro;
+  }
+
+  function renderKpis() {
+    const todas = st.todas;
+    const abertas = todas.filter(pendente);
+    const atr = abertas.filter(atrasada);
+    const sete = Date.now() - 7 * UM_DIA, trinta = Date.now() - 30 * UM_DIA;
+    const feitas7 = todas.filter((t) => t.feita_em && new Date(t.feita_em).getTime() >= sete);
+    const feitas30 = todas.filter((t) => t.feita_em && new Date(t.feita_em).getTime() >= trinta);
+    const tempos = feitas30.map((t) => new Date(t.feita_em) - new Date(t.criado_em)).filter((x) => x >= 0).sort((a, b) => a - b);
+    const mediana = tempos.length ? tempos[Math.floor(tempos.length / 2)] : null;
+    const comPrazo = feitas30.filter((t) => t.prazo);
+    const noPrazo = comPrazo.filter((t) => situacao(t) === 'feita').length;
+    const semVisto = todas.filter((t) => t.feita_em && !t.ciente_em && t.de_id !== t.para_id).length;
+    const k = (rotulo, valor, sub, cls) => '<div class="kpi' + (cls ? ' ' + cls : '') + '"><div class="kpi-k">' + rotulo + '</div><div class="kpi-v">' + valor + '</div><div class="kpi-s">' + sub + '</div></div>';
+    el('kpis').innerHTML =
+      k('Abertas agora', abertas.length, abertas.length ? 'com ' + new Set(abertas.map((t) => t.para_id)).size + ' pessoa(s)' : 'nada pendente') +
+      k('Atrasadas', atr.length, atr.length ? 'passaram do prazo sem check' : 'nenhuma fora do prazo', atr.length ? 'alerta' : '') +
+      k('Feitas em 7 dias', feitas7.length, feitas30.length + ' em 30 dias' + (semVisto ? ' · ' + semVisto + ' sem o "visto" de quem pediu' : ''), feitas7.length ? 'bom' : '') +
+      k('Tempo típico para concluir', duracao(mediana), tempos.length ? 'mediana das feitas em 30 dias' : 'sem tarefas feitas em 30 dias') +
+      k('Cumpridas no prazo', comPrazo.length ? Math.round(noPrazo / comPrazo.length * 100) + '%' : '—', comPrazo.length ? noPrazo + ' de ' + comPrazo.length + ' com prazo (30 dias)' : 'nenhuma com prazo em 30 dias');
+  }
+
+  function renderPessoas() {
+    const trinta = Date.now() - 30 * UM_DIA;
+    const linhas = HubAuth.profiles.map((p) => {
+      const rec = st.todas.filter((t) => t.para_id === p.id);
+      const abertas = rec.filter(pendente);
+      const atr = abertas.filter(atrasada);
+      const feitas30 = rec.filter((t) => t.feita_em && new Date(t.feita_em).getTime() >= trinta);
+      const tempos = feitas30.map((t) => new Date(t.feita_em) - new Date(t.criado_em)).filter((x) => x >= 0).sort((a, b) => a - b);
+      const pediu = st.todas.filter((t) => t.de_id === p.id && t.para_id !== p.id);
+      const maisAntiga = abertas.map((t) => t.criado_em).sort()[0];
+      return { p, abertas: abertas.length, atr: atr.length, feitas30: feitas30.length, tempo: tempos.length ? tempos[Math.floor(tempos.length / 2)] : null,
+        pediuAbertas: pediu.filter(pendente).length, pediuTotal: pediu.length, maisAntiga, total: rec.length + pediu.length };
+    }).filter((l) => l.total).sort((a, b) => b.atr - a.atr || b.abertas - a.abertas || b.feitas30 - a.feitas30);
+    if (!linhas.length) { el('pessoasWrap').innerHTML = '<div class="empty"><div class="empty-title">Ninguém com tarefas ainda</div><div class="empty-text">Quando alguém pedir uma tarefa no Início, ela aparece aqui.</div></div>'; return; }
+    const n = (v, alerta) => v ? (alerta ? '<span class="n-alerta">' + v + '</span>' : v) : '<span class="zero">0</span>';
+    const sel = el('fPara').value;
+    el('pessoasWrap').innerHTML = '<table class="table"><thead><tr><th>Pessoa</th><th class="num">Abertas com ela</th><th class="num">Atrasadas</th><th class="num">Feitas (30 dias)</th><th class="num">Tempo típico</th><th class="num">Aberta há mais tempo</th><th class="num">Pediu (abertas / total)</th></tr></thead><tbody>' +
+      linhas.map((l) => '<tr class="linha-pessoa' + (sel === l.p.id ? ' is-sel' : '') + '" data-pessoa="' + l.p.id + '" tabindex="0" aria-label="Ver as tarefas de ' + esc(l.p.nome || '') + '">' +
+        '<td><span class="pessoa">' + av(l.p.id) + esc(l.p.nome || l.p.id) + '</span></td>' +
+        '<td class="num">' + n(l.abertas) + '</td><td class="num">' + n(l.atr, true) + '</td><td class="num">' + n(l.feitas30) + '</td>' +
+        '<td class="num">' + duracao(l.tempo) + '</td><td class="num">' + (l.maisAntiga ? duracao(Date.now() - new Date(l.maisAntiga)) : '—') + '</td>' +
+        '<td class="num">' + l.pediuAbertas + ' / ' + l.pediuTotal + '</td></tr>').join('') + '</tbody></table>';
+  }
+
+  function renderLista() {
+    const lista = filtradas();
+    el('nLista').textContent = lista.length;
+    if (!lista.length) {
+      const vazioBase = !base().length;
+      el('listaWrap').innerHTML = '<div class="empty">' + ic('tarefas') + '<div class="empty-title">' +
+        (vazioBase ? (st.aba === 'recebidas' ? 'Você ainda não recebeu tarefas' : st.aba === 'enviadas' ? 'Você ainda não pediu tarefas' : 'Nenhuma tarefa na equipe ainda') : 'Nada com esses filtros') +
+        '</div><div class="empty-text">' + (vazioBase ? 'As tarefas são criadas no Início, no painel "Tarefas".' : 'Mude a situação, a pessoa ou o período.') + '</div></div>';
+      el('rodape').hidden = true;
+      return;
+    }
+    const ver = lista.slice(0, st.limite);
+    const colQuem = st.aba === 'recebidas' ? '<th>Pedida por</th>' : st.aba === 'enviadas' ? '<th>Para</th>' : '<th>De → Para</th>';
+    el('listaWrap').innerHTML = '<table class="table tt"><thead><tr>' + (st.aba === 'recebidas' ? '<th style="width:44px"><span class="sr-only">Feita</span></th>' : '') +
+      '<th>Tarefa</th>' + colQuem + '<th>Situação</th><th>Prazo</th><th>Criada</th><th>Concluída</th><th class="num" title="Feitas: quanto tempo levou. Abertas: há quanto tempo estão esperando.">Tempo</th>' + (st.aba === 'enviadas' ? '<th><span class="sr-only">Ações</span></th>' : '') + '</tr></thead><tbody>' +
+      ver.map((t) => {
+        const sit = situacao(t);
+        const quem = st.aba === 'recebidas' ? '<span class="fluxo">' + av(t.de_id) + esc(nome(t.de_id)) + '</span>'
+          : st.aba === 'enviadas' ? '<span class="fluxo">' + av(t.para_id) + esc(nome(t.para_id)) + '</span>'
+          : '<span class="fluxo">' + av(t.de_id) + esc(nome(t.de_id)) + ic('chevronRight') + av(t.para_id) + esc(nome(t.para_id)) + '</span>';
+        const visto = t.feita_em && t.de_id !== t.para_id ? (t.ciente_em ? '<small>visto por quem pediu ' + dataHora(t.ciente_em) + '</small>' : '<small>ainda não visto por quem pediu</small>') : '';
+        const fezOutro = t.feita_em && t.feita_por && t.feita_por !== t.para_id ? '<small>marcada por ' + esc(nome(t.feita_por)) + '</small>' : '';
+        const conf = st.confirmar === t.id;
+        return '<tr>' +
+          (st.aba === 'recebidas' ? '<td><button type="button" class="tt-check' + (t.feita_em ? ' is-done' : '') + '" data-check="' + t.id + '" aria-pressed="' + !!t.feita_em + '" aria-label="' + (t.feita_em ? 'Desmarcar ' : 'Marcar como feita: ') + esc(t.titulo) + '" title="' + (t.feita_em ? 'Desfazer' : 'Marcar como feita') + '">' + ic('check') + '</button></td>' : '') +
+          '<td><div class="t-tit">' + esc(t.titulo) + '</div>' + (t.detalhes ? '<div class="t-det" title="' + esc(t.detalhes) + '">' + esc(t.detalhes) + '</div>' : '') + '</td>' +
+          '<td>' + quem + '</td>' +
+          '<td>' + selo(sit) + '</td>' +
+          '<td class="quando">' + (t.prazo ? dataCurta(t.prazo) : '<span class="zero">sem prazo</span>') + '</td>' +
+          '<td class="quando">' + dataHora(t.criado_em) + '</td>' +
+          '<td class="quando">' + (t.feita_em ? dataHora(t.feita_em) + fezOutro + visto : '<span class="zero">—</span>') + '</td>' +
+          '<td class="num">' + (t.feita_em ? duracao(new Date(t.feita_em) - new Date(t.criado_em)) : '<span class="zero" title="aberta há ' + duracao(Date.now() - new Date(t.criado_em)) + '">há ' + duracao(Date.now() - new Date(t.criado_em)) + '</span>') + '</td>' +
+          (st.aba === 'enviadas' ? '<td class="num">' + (pendente(t) ? '<button type="button" class="icon-btn danger' + (conf ? ' is-confirming' : '') + '" data-excluir="' + t.id + '" aria-label="' + (conf ? 'Confirmar exclusão' : 'Excluir tarefa ' + esc(t.titulo)) + '" title="' + (conf ? 'Clique de novo para excluir' : 'Excluir tarefa') + '">' + ic('trash') + (conf ? '<span>Confirmar</span>' : '') + '</button>' : '') + '</td>' : '') +
+          '</tr>';
+      }).join('') + '</tbody></table>';
+    el('rodape').hidden = lista.length <= st.limite;
+    el('rodape').innerHTML = 'Mostrando ' + ver.length + ' de ' + lista.length + '<span class="spacer"></span><button type="button" class="btn btn-secondary btn-sm" id="maisBtn">Mostrar mais</button>';
+    const mais = el('maisBtn'); if (mais) mais.addEventListener('click', () => { st.limite += POR_PAGINA; renderLista(); });
+  }
+
+  // ---------------- ações ----------------
+  el('listaWrap').addEventListener('click', async (e) => {
+    const chk = e.target.closest('[data-check]');
+    const exc = e.target.closest('[data-excluir]');
+    if (chk) {
+      const t = st.todas.find((x) => x.id === chk.dataset.check);
+      const fazer = !t.feita_em;
+      chk.disabled = true;
+      const { error } = await sb.from('tarefas').update({ feita_em: fazer ? new Date().toISOString() : null }).eq('id', t.id);
+      if (error) { console.error(error); HubUI.toast('Não foi possível salvar. Tente de novo.', { error: true }); chk.disabled = false; return; }
+      HubUI.toast(fazer ? 'Tarefa marcada como feita.' : 'Tarefa reaberta.');
+      await carregar();
+    }
+    if (exc) {
+      const id = exc.dataset.excluir;
+      if (st.confirmar !== id) {
+        st.confirmar = id; renderLista();
+        setTimeout(() => { if (st.confirmar === id) { st.confirmar = null; renderLista(); } }, 3000);
+        return;
+      }
+      st.confirmar = null;
+      const { error } = await sb.from('tarefas').delete().eq('id', id);
+      if (error) { console.error(error); HubUI.toast('Não foi possível excluir.', { error: true }); return; }
+      HubUI.toast('Tarefa excluída.');
+      await carregar();
+    }
+  });
+  function filtrarPessoa(id) {
+    el('fPara').value = el('fPara').value === id ? '' : id;
+    st.limite = POR_PAGINA;
+    render();
+    el('listaTit').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  el('pessoasWrap').addEventListener('click', (e) => { const tr = e.target.closest('[data-pessoa]'); if (tr) filtrarPessoa(tr.dataset.pessoa); });
+  el('pessoasWrap').addEventListener('keydown', (e) => { const tr = e.target.closest('[data-pessoa]'); if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); filtrarPessoa(tr.dataset.pessoa); } });
+
+  function trocarAba(aba) {
+    if (aba === 'painel' && !st.master) aba = 'recebidas';
+    st.aba = aba; st.limite = POR_PAGINA; st.confirmar = null;
+    history.replaceState(null, '', '#' + aba);
+    montarFiltros();
+    render();
+  }
+  el('abas').addEventListener('click', (e) => { const b = e.target.closest('[data-aba]'); if (b) trocarAba(b.dataset.aba); });
+  ['busca'].forEach((id) => el(id).addEventListener('input', () => { st.limite = POR_PAGINA; render(); }));
+  ['fStatus', 'fDe', 'fPara', 'fPeriodo'].forEach((id) => el(id).addEventListener('change', () => { st.limite = POR_PAGINA; render(); }));
+  el('limpar').addEventListener('click', () => {
+    el('busca').value = ''; el('fStatus').value = ''; el('fDe').value = ''; el('fPara').value = ''; el('fPeriodo').value = '30';
+    st.limite = POR_PAGINA; render();
+  });
+
+  // planilha do que está na tela (com os filtros aplicados)
+  el('exportar').addEventListener('click', () => {
+    const lista = filtradas();
+    if (!lista.length) { HubUI.toast('Nada para baixar com esses filtros.', { error: true }); return; }
+    const NOME_SIT = { aberta: 'Aberta', atrasada: 'Atrasada', feita: 'Feita', 'feita-atraso': 'Feita com atraso' };
+    // evita que o Excel trate texto começando com = + - @ como fórmula
+    const cel = (v) => { let s = v == null ? '' : String(v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; };
+    const linhas = [['Tarefa', 'Detalhes', 'Pedida por', 'Para', 'Situação', 'Prazo', 'Criada em', 'Concluída em', 'Marcada por', 'Visto por quem pediu em', 'Levou (horas)']].concat(lista.map((t) => [
+      t.titulo, t.detalhes || '', nome(t.de_id), nome(t.para_id), NOME_SIT[situacao(t)], t.prazo ? dataCurta(t.prazo) : '',
+      dataHora(t.criado_em), t.feita_em ? dataHora(t.feita_em) : '', t.feita_por ? nome(t.feita_por) : '', t.ciente_em ? dataHora(t.ciente_em) : '',
+      t.feita_em ? ((new Date(t.feita_em) - new Date(t.criado_em)) / 3600000).toFixed(1).replace('.', ',') : ''
+    ]));
+    const csv = '﻿' + linhas.map((l) => l.map(cel).join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'tarefas-' + st.aba + '-' + hojeISO() + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    HubUI.toast(lista.length + (lista.length === 1 ? ' tarefa exportada.' : ' tarefas exportadas.'));
+  });
+
+  HubAuth.requireAuth((user) => {
+    st.me = user;
+    st.master = !!(HubAuth.acesso && HubAuth.acesso.is_master);
+    el('abaPainel').hidden = !st.master;
+    el('appScreen').hidden = false;
+    const pedida = (location.hash || '').slice(1);
+    st.aba = ['recebidas', 'enviadas', 'painel'].indexOf(pedida) !== -1 ? pedida : (st.master ? 'painel' : 'recebidas');
+    if (st.aba === 'painel' && !st.master) st.aba = 'recebidas';
+    montarFiltros();
+    carregar();
+    assinar();
+  });
+})();
+</script>
+</body>
+</html>

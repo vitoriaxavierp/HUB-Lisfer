@@ -379,6 +379,7 @@ Firmes e discretos; o peso vem da cor, não do tamanho.
 - Painel `.tk-panel` no topo do Início, para todas as pessoas: aparece para quem tem o módulo "Agendar tarefas" ou tem alguma tarefa.
 - **Para você:** cada tarefa tem o mesmo círculo de "feito" das Coletas (anel amarelo → check verde com pop). Prazo em pílula: neutro, amarelo ("vence hoje/amanhã") ou vermelho ("atrasada"). Tarefa feita fica riscada por 1 dia e depois some.
 - **Você pediu:** avatar de quem recebeu, selo "Aberta" ou linha verde "Fulana concluiu…" com o botão "Ok, visto" (arquiva). Tarefa aberta pode ser excluída em dois cliques.
+- **Página Tarefas (`tarefas.html`, no menu logo abaixo de Início):** abas Recebidas / Enviadas (todas as pessoas) e Painel de controle (só masters). O painel tem 5 números (abertas, atrasadas em vermelho, feitas em 7 dias em verde, tempo típico, % no prazo), a tabela "Por pessoa" (clicar filtra a lista) e a lista completa com De → Para, situação (Aberta, Atrasada, Feita, Feita com atraso), prazo, datas, tempo e "visto". Filtros por texto, situação, pessoa e período; exporta CSV do que está filtrado.
 - Chegada de tarefa nova e conclusão do que você pediu viram toast em tempo real. "Nova tarefa" é botão secundário no cabeçalho do painel (o preto continua sendo "Nova coleta").
 
 ### Inputs / Fields
