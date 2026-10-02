@@ -69,6 +69,7 @@
   .c-metr .v { display: block; font-weight: 700; font-size: var(--fs-md); font-variant-numeric: tabular-nums; }
   .c-metr .s { display: block; font-size: var(--fs-2xs); color: var(--text-3); font-variant-numeric: tabular-nums; }
   .c-erro { padding: 0 16px 16px; }
+  .parcial-tag { display: inline-flex; align-items: center; gap: 5px; margin-left: 8px; font-size: var(--fs-2xs); font-weight: 600; color: var(--warning-text); background: var(--warning-soft); border-radius: var(--r-pill); padding: 1px 7px; vertical-align: 2px; white-space: nowrap; }
 
   /* detalhe */
   .tabs { display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid var(--border); overflow-x: auto; }
@@ -164,7 +165,7 @@
   const LIDER = { platinum: 'MercadoLíder Platinum', gold: 'MercadoLíder Gold', silver: 'MercadoLíder' };
   const QUEM = { seller: 'Vendedor', buyer: 'Comprador', meli: 'Mercado Livre', mediator: 'Mercado Livre' };
 
-  const st = { periodo: 'mes', resumo: {}, rep: {}, cobertura: {}, sync: {}, conta: null, aba: 'faturamento', soReputacao: true };
+  const st = { periodo: 'mes', resumo: {}, rep: {}, cobertura: {}, sync: {}, conta: null, aba: 'faturamento', soReputacao: true, soVendedor: true };
 
   el('icAtualizar').outerHTML = ic('refresh');
   el('icErro').outerHTML = ic('alertCircle');
@@ -240,6 +241,19 @@
     if (st.conta) abrir(st.conta, st.aba, true);
   }
 
+  function diasDoPeriodo() {
+    const p = periodo(st.periodo);
+    const out = [];
+    for (let d = new Date(p.de + 'T12:00:00'); iso(d) <= p.ate; d.setDate(d.getDate() + 1)) out.push(iso(d));
+    return out;
+  }
+  // { lidos, total } de dias do período já lidos para a conta
+  function leitura(conta) {
+    const lidos = ((st.sync['vendas:' + conta] || {}).valor || {}).dias || {};
+    const dias = diasDoPeriodo();
+    return { lidos: dias.filter((d) => lidos[d]).length, total: dias.length };
+  }
+
   // ---------------- topo ----------------
   function renderSync() {
     const ex = st.sync.execucao;
@@ -250,7 +264,7 @@
     if (!ex) { line.innerHTML = '<span class="dot"></span>Aguardando a primeira leitura do serviço de dados.'; return; }
     const min = Math.max(0, Math.round((Date.now() - ex.valor.em) / 60000));
     line.innerHTML = '<span class="dot"></span>Vendas atualizadas há ' + (min < 1 ? 'menos de 1 min' : min + ' min') +
-      (completo ? '' : ' · carregando histórico (' + Math.min(...diasLidos) + ' de 61 dias lidos em todas as contas)');
+      (completo ? '' : ' · carregando histórico: ' + CONTAS.map((c, i) => c.nome + ' ' + Math.min(61, diasLidos[i]) + '/61').join(' · '));
   }
 
   function renderTotal() {
@@ -258,8 +272,11 @@
     const soma = (lista, campo) => lista.reduce((s, c) => s + Number((st.resumo[c.conta] || {})[campo] || 0), 0);
     const fat = soma(CONTAS, 'faturamento'), ped = soma(CONTAS, 'pedidos');
     const lis = CONTAS.filter((c) => c.empresa === 'Lisfer'), lal = CONTAS.filter((c) => c.empresa === 'Lalfer');
+    const incompletas = CONTAS.filter((c) => { const l = leitura(c.conta); return l.lidos < l.total; });
+    const aviso = incompletas.length ? '<span class="parcial-tag" title="Ainda lendo o histórico de: ' + esc(incompletas.map((c) => c.nome).join(', ')) + '">parcial</span>' : '';
     el('totalBox').innerHTML =
-      '<div class="t-cell main"><div class="t-k">Faturamento total · ' + esc(p.rotulo) + '</div><div class="t-v">' + brl(fat) + '</div><div class="t-s">' + dataBR(p.de) + ' a ' + dataBR(p.ate) + ' · pedidos pagos</div></div>' +
+      '<div class="t-cell main"><div class="t-k">Faturamento total · ' + esc(p.rotulo) + aviso + '</div><div class="t-v">' + brl(fat) + '</div><div class="t-s">' + dataBR(p.de) + ' a ' + dataBR(p.ate) + ' · pedidos pagos' +
+        (incompletas.length ? ' · ainda lendo o histórico de ' + incompletas.length + (incompletas.length === 1 ? ' conta' : ' contas') : '') + '</div></div>' +
       '<div class="t-cell"><div class="t-k">Pedidos</div><div class="t-v">' + int(ped) + '</div></div>' +
       '<div class="t-cell"><div class="t-k">Ticket médio</div><div class="t-v">' + (ped ? brl(fat / ped) : '—') + '</div></div>' +
       '<div class="t-cell"><div class="t-k">Lisfer (2 contas)</div><div class="t-v">' + brl0(soma(lis, 'faturamento')) + '</div><div class="t-s">' + (fat ? pct(soma(lis, 'faturamento') / fat, 0) + ' do total' : '') + '</div></div>' +
@@ -277,12 +294,14 @@
       const v = st.resumo[c.conta] || {};
       const [nivel, nomeNivel] = NIVEIS[r.nivel] || [0, r.ok === false ? 'Reputação indisponível' : '—'];
       const ticket = v.pedidos ? Number(v.faturamento) / Number(v.pedidos) : null;
+      const lt = leitura(c.conta);
+      const parcial = lt.lidos < lt.total ? '<span class="parcial-tag">' + lt.lidos + ' de ' + lt.total + ' dias lidos</span>' : '';
       return '<section class="panel conta' + (st.conta === c.conta ? ' is-ativa' : '') + '">' +
         '<button type="button" class="c-top" data-conta="' + c.conta + '" data-aba="faturamento" aria-label="Ver detalhes de ' + esc(c.nome) + '">' +
           '<div class="c-nome"><h2>' + esc(c.nome) + '</h2><span class="chev">' + ic('chevronRight') + '</span></div>' +
           '<div class="c-nick">' + esc(r.apelido || c.empresa) + '</div>' +
           '<div class="c-fat">' + brl(v.faturamento) + '</div>' +
-          '<div class="c-sub">' + int(v.pedidos) + ' pedidos · ticket ' + brl(ticket) + '</div>' +
+          '<div class="c-sub">' + int(v.pedidos) + ' pedidos · ticket ' + brl(ticket) + parcial + '</div>' +
           '<div class="termo" role="img" aria-label="Termômetro: ' + esc(nomeNivel) + '">' + [1, 2, 3, 4, 5].map((i) => '<span class="' + (i === nivel ? 'on' : '') + '"></span>').join('') + '</div>' +
           '<div class="c-nivel">' + esc(nomeNivel) + (r.mercadolider ? ' · ' + esc(LIDER[r.mercadolider] || r.mercadolider) : '') + '</div>' +
         '</button>' +
@@ -323,7 +342,7 @@
     const [a, rc, ca] = await Promise.all([
       sb.from('ml_envios').select('shipment_id', { count: 'exact', head: true }).eq('conta', conta).eq('sla_status', 'delayed').gte('dia_venda', d60),
       sb.from('ml_reclamacoes').select('reclamacao', { count: 'exact', head: true }).eq('conta', conta).gte('data', d60).eq('afeta_reputacao', true),
-      sb.from('ml_cancelamentos').select('pedido', { count: 'exact', head: true }).eq('conta', conta).gte('data', d60)
+      sb.from('ml_cancelamentos').select('pedido', { count: 'exact', head: true }).eq('conta', conta).gte('data', d60).eq('quem', 'seller')
     ]);
     el('n-atrasos').textContent = a.count ?? '–';
     el('n-reclamacoes').textContent = rc.count ?? '–';
@@ -412,14 +431,18 @@
 
   async function abaCancelamentos(conta) {
     const r = st.rep[conta] || {};
-    const { data, error } = await sb.from('ml_cancelamentos').select('*').eq('conta', conta).gte('data', menosDias(60)).order('data', { ascending: false }).limit(500);
+    let q = sb.from('ml_cancelamentos').select('*').eq('conta', conta).gte('data', menosDias(60)).order('data', { ascending: false }).limit(500);
+    if (st.soVendedor) q = q.eq('quem', 'seller');
+    const { data, error } = await q;
     if (error) throw error;
-    const doVendedor = (data || []).filter((c) => c.quem === 'seller').length;
+    const { count: doVendedor } = await sb.from('ml_cancelamentos').select('pedido', { count: 'exact', head: true }).eq('conta', conta).gte('data', menosDias(60)).eq('quem', 'seller');
     const intro = '<div class="det-intro"><div class="mini"><div><div class="k">ML conta (60 dias)</div><div class="v">' + int(r.cancelamentos && r.cancelamentos.quantidade) + '</div></div>' +
       '<div><div class="k">Taxa oficial</div><div class="v">' + (r.cancelamentos ? pct(r.cancelamentos.taxa) : '—') + '</div></div>' +
       '<div><div class="k">Cancelados pelo vendedor</div><div class="v">' + int(doVendedor) + '</div></div></div>' +
-      '<div class="alert alert-info">' + ic('info') + '<span><strong>Cancelamentos que pesam:</strong> para a reputação, o ML conta os cancelamentos por responsabilidade do vendedor (ex.: sem estoque, etiqueta não impressa). A lista abaixo mostra todos, com quem cancelou.</span></div></div>';
-    if (!data || !data.length) { el('detCorpo').innerHTML = intro + vazio('Nenhum cancelamento', 'Últimos 60 dias.'); return; }
+      '<div class="alert alert-info">' + ic('info') + '<span><strong>Cancelamentos que pesam:</strong> para a reputação, o ML conta os cancelamentos por responsabilidade do vendedor (ex.: sem estoque, etiqueta não impressa). Desmarque o filtro para ver também os cancelados pelo comprador ou pelo ML.</span></div></div>' +
+      '<div class="det-tools"><label class="check"><input type="checkbox" id="soVend"' + (st.soVendedor ? ' checked' : '') + '> Só os cancelados pelo vendedor</label></div>';
+    const ligar = () => { const cb = el('soVend'); if (cb) cb.addEventListener('change', () => { st.soVendedor = cb.checked; abrir(conta, 'cancelamentos', true); }); };
+    if (!data || !data.length) { el('detCorpo').innerHTML = intro + vazio(st.soVendedor ? 'Nenhum cancelamento pelo vendedor' : 'Nenhum cancelamento', 'Últimos 60 dias.'); ligar(); return; }
     el('detCorpo').innerHTML = intro +
       '<div class="table-scroll"><table class="table"><thead><tr><th>Data</th><th>Pedido</th><th>Produto</th><th>Quem cancelou</th><th>Motivo</th><th class="num">Valor</th></tr></thead><tbody>' +
       data.map((c) => '<tr><td>' + dataBR(c.data) + '</td><td class="mono">' + linkPedido(c.pedido) + '</td>' +
@@ -427,6 +450,7 @@
         '<td>' + (c.quem === 'seller' ? '<span class="badge badge-danger">Vendedor</span>' : esc(QUEM[c.quem] || c.quem || '—')) + '</td>' +
         '<td>' + esc(c.motivo || '—') + '</td><td class="num">' + brl(c.valor) + '</td></tr>').join('') +
       '</tbody></table></div>';
+    ligar();
   }
 
   // ---------------- eventos ----------------

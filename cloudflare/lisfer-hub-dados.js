@@ -128,16 +128,21 @@ async function rodar(env) {
   const orcamentoEnvios = ctx.orcamento - limiteVendas;
   ctx.orcamento = limiteVendas;
   const lote = { dias: [], skus: [], envios: [], limpar: [] };
-  for (const conta of ORDEM) {
-    const chave = "vendas:" + conta;
-    const st = estado[chave] || { dias: {} };
-    estado[chave] = st;
-    for (let i = 0; i <= DIAS; i++) {
+  // dia a dia, as 4 contas juntas, do mais recente para o mais antigo: assim
+  // o mês atual fica completo para todas antes do histórico mais antigo
+  ORDEM.forEach((conta) => { if (!estado["vendas:" + conta]) estado["vendas:" + conta] = { dias: {} }; });
+  const contaFalhou = new Set();
+  for (let i = 0; i <= DIAS; i++) {
+    if (ctx.parar || ctx.orcamento < 2) break;
+    const dia = somarDias(hoje, -i);
+    for (const conta of ORDEM) {
       if (ctx.parar || ctx.orcamento < 2) break;
-      const dia = somarDias(hoje, -i);
+      if (contaFalhou.has(conta)) continue;
+      const chave = "vendas:" + conta;
+      const st = estado[chave];
       if (!precisaLer(dia, hoje, st.dias[dia])) continue;
       const lido = await lerDia(ctx, conta, dia);
-      if (!lido) break;
+      if (!lido) { contaFalhou.add(conta); continue; }
       lote.dias.push(lido.dia);
       lote.skus.push(...lido.skus);
       lote.envios.push(...lido.envios);
@@ -145,9 +150,12 @@ async function rodar(env) {
       st.dias[dia] = Date.now();
       alterado.add(chave);
     }
-    // esquece dias que saíram da janela
-    Object.keys(st.dias).forEach((d) => { if (idadeDias(d, hoje) > DIAS + 2) { delete st.dias[d]; alterado.add(chave); } });
   }
+  // esquece dias que saíram da janela
+  ORDEM.forEach((conta) => {
+    const chave = "vendas:" + conta;
+    Object.keys(estado[chave].dias).forEach((d) => { if (idadeDias(d, hoje) > DIAS + 2) { delete estado[chave].dias[d]; alterado.add(chave); } });
+  });
   await gravarVendas(env, lote);
   ctx.log.push("vendas: " + lote.dias.length + " dia(s) lido(s)");
 
