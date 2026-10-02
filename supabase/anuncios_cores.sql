@@ -17,3 +17,12 @@ where cor is null;
 
 -- avisa a API do Supabase que a tabela ganhou uma coluna nova
 notify pgrst, 'reload schema';
+
+-- cor de cada pessoa nos avatares (escolhida pelas masters em Usuários e acessos;
+-- a permissão de edição é a mesma do nome, do nomes.sql)
+alter table public.profiles add column if not exists cor text;
+alter table public.profiles drop constraint if exists profiles_cor_check;
+alter table public.profiles add constraint profiles_cor_check
+  check (cor is null or cor in ('cinza', 'amarelo', 'azul', 'roxo', 'turquesa', 'laranja', 'rosa', 'verde'));
+
+notify pgrst, 'reload schema';

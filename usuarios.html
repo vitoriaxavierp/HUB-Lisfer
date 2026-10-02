@@ -25,6 +25,20 @@
   .u-nome { font-weight: 600; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .u-nome .icon-btn { width: 24px; height: 24px; }
   .u-nome .icon-btn svg { width: 13px; height: 13px; }
+  .u-cell { display: flex; align-items: flex-start; gap: 10px; }
+  .u-cell > div { min-width: 0; }
+  .av-btn { border: 0; padding: 0; cursor: pointer; width: 32px; height: 32px; font-size: var(--fs-xs); margin-top: 1px; transition: box-shadow var(--t-fast) ease; }
+  .av-btn:hover, .av-btn[aria-expanded="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--k); }
+  .perm td:first-child { min-width: 300px; }
+  .cor-pick { display: flex; gap: 7px; align-items: center; margin-top: 8px; flex-wrap: nowrap; }
+  .cor-pick .swatch-u {
+    width: 22px; height: 22px; border: 0; padding: 0; border-radius: 50%; cursor: pointer;
+    background: var(--k); color: var(--k-on); display: grid; place-items: center;
+  }
+  .cor-pick .swatch-u svg { width: 12px; height: 12px; opacity: 0; }
+  .cor-pick .swatch-u[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--k); }
+  .cor-pick .swatch-u[aria-pressed="true"] svg { opacity: 1; }
+  .cor-hint { display: block; margin-top: 4px; }
   .tag-email { font-size: var(--fs-2xs); font-weight: 600; color: var(--warning-text); background: var(--warning-soft); border-radius: var(--r-pill); padding: 1px 7px; }
   .nome-edit { display: flex; gap: 6px; align-items: center; margin-bottom: 2px; }
   .nome-edit .input { height: 32px; width: 220px; }
@@ -104,6 +118,13 @@
   let usuarios = [];
   let meuId = null;
   let editandoNome = null;
+  let editandoCor = null;
+  const NOME_COR = { cinza: 'Cinza', amarelo: 'Amarelo', azul: 'Azul', roxo: 'Roxo', turquesa: 'Turquesa', laranja: 'Laranja', rosa: 'Rosa', verde: 'Verde' };
+  function iniciais(nome) {
+    const p = String(nome || '').trim().split(/[\s@._-]+/).filter(Boolean);
+    if (!p.length) return '?';
+    return ((p[0][0] || '') + (p.length > 1 ? p[p.length - 1][0] : (p[0][1] || ''))).toUpperCase();
+  }
 
   el('icSearch').outerHTML = ic('search');
   el('icInfo').outerHTML = ic('info');
@@ -165,8 +186,17 @@
         : '<div class="u-nome"><span>' + esc(u.nome || '—') + '</span>' + (u.id === meuId ? '<span class="muted" style="font-weight:400">(você)</span>' : '') +
           (nomeDoEmail ? '<span class="tag-email" title="Ainda está com o nome tirado do e-mail">nome do e-mail</span>' : '') +
           '<button type="button" class="icon-btn" data-nome="' + u.id + '" aria-label="Editar nome de ' + esc(u.email || '') + '" title="Editar nome">' + ic('pencil') + '</button></div>';
-      return '<tr class="' + cls + '"><td>' + nomeCel +
-        '<div class="u-mail">' + esc(u.email || '') + '</div><div class="u-meta">' + quando(u.ultimo_acesso) + '</div></td>' + cells + '<td class="num">' + acoes + '</td></tr>';
+      const cor = HubAuth.corDe(u.id);
+      const quem = esc(u.nome || u.email || '');
+      const avatarCel = '<button type="button" class="av-k av-btn k-' + cor + '" data-cor-de="' + u.id + '" aria-expanded="' + (editandoCor === u.id) +
+        '" aria-label="Cor de ' + quem + ': ' + NOME_COR[cor] + '. Trocar cor" title="Trocar a cor">' + esc(iniciais(u.nome || u.email)) + '</button>';
+      const corPick = editandoCor === u.id
+        ? '<div class="cor-pick" role="group" aria-label="Cor de ' + quem + '">' + HubAuth.cores.map((c) =>
+            '<button type="button" class="swatch-u k-' + c + '" data-cor="' + c + '" data-user="' + u.id + '" aria-pressed="' + (c === cor) + '" aria-label="' + NOME_COR[c] + '" title="' + NOME_COR[c] + '">' + ic('check') + '</button>').join('') +
+          '</div><span class="hint cor-hint">Cor da pessoa nos avatares do Hub (ex.: quadro de anúncios).</span>'
+        : '';
+      return '<tr class="' + cls + '"><td><div class="u-cell">' + avatarCel + '<div>' + nomeCel +
+        '<div class="u-mail">' + esc(u.email || '') + '</div><div class="u-meta">' + quando(u.ultimo_acesso) + '</div>' + corPick + '</div></div></td>' + cells + '<td class="num">' + acoes + '</td></tr>';
     }).join('');
     el('tableWrap').innerHTML = '<table class="table perm">' + head + '<tbody>' + rows + '</tbody></table>';
     if (editandoNome) {
@@ -230,6 +260,10 @@
     salvar(u.id, HubModulos.map((m) => m.key).filter((k) => set.has(k)), cb.closest('.switch'));
   });
   el('tableWrap').addEventListener('click', (e) => {
+    const abrirCor = e.target.closest('[data-cor-de]');
+    if (abrirCor) { editandoCor = editandoCor === abrirCor.dataset.corDe ? null : abrirCor.dataset.corDe; render(); const b = el('tableWrap').querySelector('[data-cor-de="' + abrirCor.dataset.corDe + '"]'); if (b) b.focus(); return; }
+    const corBtn = e.target.closest('[data-cor]');
+    if (corBtn) { salvarCor(corBtn.dataset.user, corBtn.dataset.cor); return; }
     const editar = e.target.closest('[data-nome]');
     const salvarBtn = e.target.closest('[data-nome-salvar]');
     if (editar) { editandoNome = editar.dataset.nome; render(); return; }
@@ -246,6 +280,26 @@
     if (e.key === 'Enter') { e.preventDefault(); salvarNome(inp.dataset.nomeInput); }
     if (e.key === 'Escape') { editandoNome = null; render(); }
   });
+  async function salvarCor(userId, cor) {
+    const u = usuarios.find((x) => x.id === userId);
+    const antiga = HubAuth.corDe(userId);
+    const salva = (HubAuth.profiles.find((x) => x.id === userId) || {}).cor;
+    if (!u || cor === salva) { editandoCor = null; render(); return; }
+    HubAuth.definirCor(userId, cor);
+    editandoCor = null;
+    render();
+    const { data, error } = await sb.from('profiles').update({ cor: cor }).eq('id', userId).select('id');
+    if (error || !data || !data.length) {
+      console.error(error);
+      HubAuth.definirCor(userId, antiga);
+      render();
+      const faltaColuna = error && /'cor' column|column "?cor"? does not exist/i.test(error.message || '');
+      HubUI.toast(faltaColuna ? 'Falta rodar o supabase/anuncios_cores.sql no Supabase.' : 'Não foi possível salvar a cor.', { error: true, duration: 6000 });
+      return;
+    }
+    HubUI.toast('Cor de ' + (u.nome || u.email) + ': ' + NOME_COR[cor] + '.');
+    const b = el('tableWrap').querySelector('[data-cor-de="' + userId + '"]'); if (b) b.focus();
+  }
   el('busca').addEventListener('input', render);
 
   HubAuth.requireAuth((user) => {

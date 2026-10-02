@@ -301,7 +301,9 @@ const HubAuth = (function () {
   let acesso = null;
 
   async function loadProfiles() {
-    const { data, error } = await sb.from('profiles').select('id, nome').order('nome', { ascending: true });
+    let { data, error } = await sb.from('profiles').select('id, nome, cor').order('nome', { ascending: true });
+    // antes do anuncios_cores.sql a coluna "cor" não existe: carrega sem ela
+    if (error) ({ data, error } = await sb.from('profiles').select('id, nome').order('nome', { ascending: true }));
     if (error) { console.error(error); return; }
     profilesList = data || [];
     profilesById = {};
@@ -326,6 +328,20 @@ const HubAuth = (function () {
   function pode(modulo) {
     if (!acesso) return false;
     return acesso.is_master || acesso.modulos.indexOf(modulo) !== -1;
+  }
+
+  // cor da pessoa nos avatares: a escolhida em Usuários e acessos, ou uma fixa calculada pelo id
+  const CORES_PESSOA = ['amarelo', 'azul', 'roxo', 'turquesa', 'laranja', 'rosa', 'verde', 'cinza'];
+  function corDe(id) {
+    const p = profilesList.find((x) => x.id === id);
+    if (p && CORES_PESSOA.indexOf(p.cor) !== -1) return p.cor;
+    let i = 0;
+    for (const ch of String(id || '')) i = (i * 31 + ch.charCodeAt(0)) >>> 0;
+    return CORES_PESSOA[i % CORES_PESSOA.length];
+  }
+  function definirCor(id, cor) {
+    const p = profilesList.find((x) => x.id === id);
+    if (p) p.cor = cor;
   }
 
   function nomeDe(id) {
@@ -371,6 +387,9 @@ const HubAuth = (function () {
     get profiles() { return profilesList; },
     get acesso() { return acesso; },
     nomeDe: nomeDe,
+    corDe: corDe,
+    definirCor: definirCor,
+    cores: CORES_PESSOA,
     pode: pode,
     carregarAcesso: carregarAcesso,
     requireAuth: requireAuth,

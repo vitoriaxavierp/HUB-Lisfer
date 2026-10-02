@@ -25,17 +25,6 @@
   .toolbar .spacer { flex: 1; }
   .toolbar-meta { font-size: var(--fs-sm); color: var(--text-3); }
 
-  /* cores de apoio do quadro: só para separar listas e pessoas.
-     --k = cor forte (faixa, ponto, avatar), --k-soft = fundo claro, --k-text = texto sobre o fundo claro */
-  .k-cinza    { --k: #6B7480; --k-soft: #E6E9ED; --k-text: #3E464F; --k-on: #FFFFFF; }
-  .k-amarelo  { --k: var(--brand); --k-soft: var(--brand-soft); --k-text: var(--brand-text); --k-on: var(--brand-ink); }
-  .k-azul     { --k: #2563D9; --k-soft: #E4ECFB; --k-text: #1A4FAF; --k-on: #FFFFFF; }
-  .k-roxo     { --k: #7048D1; --k-soft: #EEE9FB; --k-text: #5634A8; --k-on: #FFFFFF; }
-  .k-turquesa { --k: #0E8584; --k-soft: #DCF2F1; --k-text: #0A6564; --k-on: #FFFFFF; }
-  .k-laranja  { --k: #D9620F; --k-soft: #FDEBDD; --k-text: #A54809; --k-on: #FFFFFF; }
-  .k-rosa     { --k: #C2387A; --k-soft: #FBE6EF; --k-text: #9C2860; --k-on: #FFFFFF; }
-  .k-verde    { --k: #1F8A43; --k-soft: #E2F2E7; --k-text: var(--success); --k-on: #FFFFFF; }
-
   /* ---------- quadro ---------- */
   .kb {
     display: flex; align-items: flex-start; gap: 12px;
@@ -379,13 +368,8 @@
     if (n.includes('revis')) return 'roxo';
     return 'cinza';
   }
-  // cada pessoa tem sempre a mesma cor no avatar (fica fácil achar os cartões de alguém)
-  const CORES_PESSOA = ['amarelo', 'azul', 'roxo', 'turquesa', 'laranja', 'rosa', 'verde', 'cinza'];
-  function corDaPessoa(id) {
-    let i = 0;
-    for (const ch of String(id)) i = (i * 31 + ch.charCodeAt(0)) >>> 0;
-    return CORES_PESSOA[i % CORES_PESSOA.length];
-  }
+  // cada pessoa tem sempre a mesma cor no avatar (escolhida em Usuários e acessos)
+  const corDaPessoa = (id) => HubAuth.corDe(id);
   const ORDEM_PRIO = { urgente: 0, alta: 1, normal: 2 };
 
   const st = {
