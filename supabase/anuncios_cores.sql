@@ -14,3 +14,6 @@ update public.anuncios_colunas set cor = case
   when lower(nome) like '%revis%' then 'roxo'
   else 'cinza' end
 where cor is null;
+
+-- avisa a API do Supabase que a tabela ganhou uma coluna nova
+notify pgrst, 'reload schema';

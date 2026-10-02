@@ -758,7 +758,7 @@
       const cor = CORES.filter((c) => c !== 'cinza').find((c) => usadas.indexOf(c) === -1) || 'cinza';
       let { error } = await sb.from('anuncios_colunas').insert({ nome, ordem, cor });
       // antes do anuncios_cores.sql a coluna "cor" não existe: cria sem cor
-      if (error && /cor/i.test(error.message || '')) ({ error } = await sb.from('anuncios_colunas').insert({ nome, ordem }));
+      if (error && /'cor' column|column "?cor"? does not exist/i.test(error.message || '')) ({ error } = await sb.from('anuncios_colunas').insert({ nome, ordem }));
       done();
       if (error) { console.error(error); HubUI.toast('Não foi possível criar a lista.', { error: true }); return; }
       HubUI.toast('Lista ' + nome + ' criada.');
@@ -951,7 +951,8 @@
       const { error } = await sb.from('anuncios_colunas').update({ cor }).eq('id', col.id);
       if (error) {
         console.error(error); col.cor = antiga; renderJa(); desenharMenu(col);
-        HubUI.toast(/cor/i.test(error.message || '') ? 'Falta rodar o supabase/anuncios_cores.sql no Supabase.' : 'Não foi possível trocar a cor.', { error: true });
+        const faltaColuna = /'cor' column|column "?cor"? does not exist|anuncios_colunas\.cor/i.test(error.message || '');
+        HubUI.toast(faltaColuna ? 'Falta rodar o supabase/anuncios_cores.sql no Supabase.' : 'Não foi possível trocar a cor: ' + (error.message || 'erro desconhecido'), { error: true });
       }
     }));
     menu.querySelector('[data-a="concluida"]').addEventListener('change', async (e) => {
