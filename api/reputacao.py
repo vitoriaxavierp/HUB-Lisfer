@@ -54,14 +54,27 @@ def _consultar(conta):
     qs = urllib.parse.urlencode({"conta": conta["conta"], "caminho": f"/users/{conta['user_id']}"})
     req = urllib.request.Request(
         f"{WORKER_URL}?{qs}",
-        headers={"CF-Access-Client-Id": cid, "CF-Access-Client-Secret": secret, "Accept": "application/json"},
+        headers={
+            "CF-Access-Client-Id": cid,
+            "CF-Access-Client-Secret": secret,
+            "Accept": "application/json",
+            # a Cloudflare bloqueia o User-Agent padrao do Python (erro 1010)
+            "User-Agent": "HubLisfer/1.0 (+https://www.lisferferramentas.com.br)",
+        },
     )
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:
             corpo = json.loads(resp.read() or b"{}")
     except urllib.error.HTTPError as e:
-        print(f"[reputacao] conta {conta['conta']}: HTTP {e.code}")
-        return {**base, "ok": False, "erro": "O serviço do Mercado Livre recusou a consulta (HTTP %d)." % e.code}
+        trecho = e.read(400).decode("utf-8", "replace")
+        print(f"[reputacao] conta {conta['conta']}: HTTP {e.code} {trecho[:120]!r}")
+        if "1010" in trecho:
+            motivo = "A Cloudflare bloqueou o servidor do Hub (erro 1010)."
+        elif "Cloudflare Access" in trecho:
+            motivo = "O Cloudflare Access não aceitou a credencial do Hub."
+        else:
+            motivo = "O serviço do Mercado Livre recusou a consulta (HTTP %d)." % e.code
+        return {**base, "ok": False, "erro": motivo}
     except json.JSONDecodeError:
         # o Access devolve uma página de login (HTML) quando o token não é aceito
         return {**base, "ok": False, "erro": "O Cloudflare Access não aceitou a credencial do Hub."}
