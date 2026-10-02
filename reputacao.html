@@ -274,9 +274,19 @@
     const lis = CONTAS.filter((c) => c.empresa === 'Lisfer'), lal = CONTAS.filter((c) => c.empresa === 'Lalfer');
     const incompletas = CONTAS.filter((c) => { const l = leitura(c.conta); return l.lidos < l.total; });
     const aviso = incompletas.length ? '<span class="parcial-tag" title="Ainda lendo o histórico de: ' + esc(incompletas.map((c) => c.nome).join(', ')) + '">parcial</span>' : '';
+    if (incompletas.length) {
+      // enquanto o histórico não termina, não mostra um total que não é o total
+      const lidos = CONTAS.reduce((s, c) => s + leitura(c.conta).lidos, 0);
+      const total = CONTAS.reduce((s, c) => s + leitura(c.conta).total, 0);
+      el('totalBox').innerHTML =
+        '<div class="t-cell main" style="grid-column:1 / -1"><div class="t-k">Faturamento total · ' + esc(p.rotulo) + '</div>' +
+        '<div class="t-v" style="font-size:var(--fs-xl)">Carregando o histórico… ' + pct(total ? lidos / total : 0, 0) + '</div>' +
+        '<div class="t-s">O total aparece quando as 4 contas tiverem todos os dias do período lidos (' + esc(incompletas.map((c) => c.nome + ' ' + leitura(c.conta).lidos + '/' + leitura(c.conta).total).join(' · ')) + '). ' +
+        (st.periodo === 'd60' ? 'O mês atual já pode estar completo: use "Mês atual".' : '') + '</div></div>';
+      return;
+    }
     el('totalBox').innerHTML =
-      '<div class="t-cell main"><div class="t-k">Faturamento total · ' + esc(p.rotulo) + aviso + '</div><div class="t-v">' + brl(fat) + '</div><div class="t-s">' + dataBR(p.de) + ' a ' + dataBR(p.ate) + ' · pedidos pagos' +
-        (incompletas.length ? ' · ainda lendo o histórico de ' + incompletas.length + (incompletas.length === 1 ? ' conta' : ' contas') : '') + '</div></div>' +
+      '<div class="t-cell main"><div class="t-k">Faturamento total · ' + esc(p.rotulo) + aviso + '</div><div class="t-v">' + brl(fat) + '</div><div class="t-s">' + dataBR(p.de) + ' a ' + dataBR(p.ate) + ' · valor dos produtos em pedidos pagos, sem frete</div></div>' +
       '<div class="t-cell"><div class="t-k">Pedidos</div><div class="t-v">' + int(ped) + '</div></div>' +
       '<div class="t-cell"><div class="t-k">Ticket médio</div><div class="t-v">' + (ped ? brl(fat / ped) : '—') + '</div></div>' +
       '<div class="t-cell"><div class="t-k">Lisfer (2 contas)</div><div class="t-v">' + brl0(soma(lis, 'faturamento')) + '</div><div class="t-s">' + (fat ? pct(soma(lis, 'faturamento') / fat, 0) + ' do total' : '') + '</div></div>' +
@@ -300,7 +310,7 @@
         '<button type="button" class="c-top" data-conta="' + c.conta + '" data-aba="faturamento" aria-label="Ver detalhes de ' + esc(c.nome) + '">' +
           '<div class="c-nome"><h2>' + esc(c.nome) + '</h2><span class="chev">' + ic('chevronRight') + '</span></div>' +
           '<div class="c-nick">' + esc(r.apelido || c.empresa) + '</div>' +
-          '<div class="c-fat">' + brl(v.faturamento) + '</div>' +
+          '<div class="c-fat"' + (lt.lidos < lt.total ? ' style="color:var(--text-3)" title="Parcial: ainda lendo o histórico"' : '') + '>' + brl(v.faturamento) + '</div>' +
           '<div class="c-sub">' + int(v.pedidos) + ' pedidos · ticket ' + brl(ticket) + parcial + '</div>' +
           '<div class="termo" role="img" aria-label="Termômetro: ' + esc(nomeNivel) + '">' + [1, 2, 3, 4, 5].map((i) => '<span class="' + (i === nivel ? 'on' : '') + '"></span>').join('') + '</div>' +
           '<div class="c-nivel">' + esc(nomeNivel) + (r.mercadolider ? ' · ' + esc(LIDER[r.mercadolider] || r.mercadolider) : '') + '</div>' +
