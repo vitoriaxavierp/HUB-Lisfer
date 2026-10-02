@@ -25,6 +25,17 @@
   .toolbar .spacer { flex: 1; }
   .toolbar-meta { font-size: var(--fs-sm); color: var(--text-3); }
 
+  /* cores de apoio do quadro: só para separar listas e pessoas.
+     --k = cor forte (faixa, ponto, avatar), --k-soft = fundo claro, --k-text = texto sobre o fundo claro */
+  .k-cinza    { --k: #6B7480; --k-soft: #E6E9ED; --k-text: #3E464F; --k-on: #FFFFFF; }
+  .k-amarelo  { --k: var(--brand); --k-soft: var(--brand-soft); --k-text: var(--brand-text); --k-on: var(--brand-ink); }
+  .k-azul     { --k: #2563D9; --k-soft: #E4ECFB; --k-text: #1A4FAF; --k-on: #FFFFFF; }
+  .k-roxo     { --k: #7048D1; --k-soft: #EEE9FB; --k-text: #5634A8; --k-on: #FFFFFF; }
+  .k-turquesa { --k: #0E8584; --k-soft: #DCF2F1; --k-text: #0A6564; --k-on: #FFFFFF; }
+  .k-laranja  { --k: #D9620F; --k-soft: #FDEBDD; --k-text: #A54809; --k-on: #FFFFFF; }
+  .k-rosa     { --k: #C2387A; --k-soft: #FBE6EF; --k-text: #9C2860; --k-on: #FFFFFF; }
+  .k-verde    { --k: #1F8A43; --k-soft: #E2F2E7; --k-text: var(--success); --k-on: #FFFFFF; }
+
   /* ---------- quadro ---------- */
   .kb {
     display: flex; align-items: flex-start; gap: 12px;
@@ -34,11 +45,16 @@
   .kl {
     flex: none; width: 272px; display: flex; flex-direction: column;
     max-height: calc(100vh - 250px); min-height: 0;
-    background: var(--surface-3); border-radius: var(--r-lg);
+    position: relative; background: var(--surface-3); border-radius: var(--r-lg);
     transition: opacity var(--t-fast) ease;
   }
+  /* faixa de cor no topo da lista */
+  .kl[data-id]::before {
+    content: ""; position: absolute; inset: 0 0 auto; height: 4px;
+    border-radius: var(--r-lg) var(--r-lg) 0 0; background: var(--k, var(--border-strong));
+  }
   .kl.is-dragging { opacity: 0.45; }
-  .kl-head { display: flex; align-items: center; gap: 6px; padding: 10px 8px 6px 12px; cursor: grab; }
+  .kl-head { display: flex; align-items: center; gap: 6px; padding: 13px 8px 6px 12px; cursor: grab; }
   .kl-head:active { cursor: grabbing; }
   .kl-name {
     flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px;
@@ -48,9 +64,10 @@
   }
   .kl-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .kl-name:hover { background: rgba(17, 19, 21, 0.06); }
-  .kl-name svg { width: 14px; height: 14px; color: var(--success); flex: none; }
+  .kl-name svg { width: 14px; height: 14px; color: var(--k, var(--success)); flex: none; }
+  .kl-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; background: var(--k); box-shadow: 0 0 0 3px var(--k-soft); }
   .kl-rename { flex: 1; height: 30px; font-weight: 600; }
-  .kl-head .count-pill { background: rgba(17, 19, 21, 0.07); }
+  .kl-head .count-pill { background: var(--k-soft, rgba(17, 19, 21, 0.07)); color: var(--k-text, var(--text-2)); }
   .kl-head .icon-btn { width: 28px; height: 28px; }
   .kl-head .icon-btn:hover, .kl-head .icon-btn[aria-expanded="true"] { background: rgba(17, 19, 21, 0.08); color: var(--text); }
   .kl-cards {
@@ -111,7 +128,7 @@
   .av {
     display: inline-grid; place-items: center; flex: none;
     width: 24px; height: 24px; border-radius: 50%;
-    background: var(--brand); color: var(--brand-ink);
+    background: var(--k, var(--brand)); color: var(--k-on, var(--brand-ink));
     font-size: var(--fs-2xs); font-weight: 700; letter-spacing: 0.02em;
   }
   .av-lg { width: 32px; height: 32px; font-size: var(--fs-xs); }
@@ -131,6 +148,7 @@
   /* menu da lista */
   .kmenu {
     position: fixed; z-index: 60; width: 260px; padding: 6px;
+    max-height: calc(100vh - 16px); overflow-y: auto;
     background: var(--surface); border-radius: var(--r-md);
     box-shadow: var(--shadow-lg);
   }
@@ -147,6 +165,17 @@
   .kmenu .kmi svg { width: 16px; height: 16px; flex: none; }
   .kmenu .check { padding: 8px 10px; width: 100%; align-items: flex-start; }
   .kmenu .check small { display: block; color: var(--text-3); font-size: var(--fs-xs); margin-top: 2px; }
+  .kmenu-sub { font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); padding: 6px 10px 4px; }
+  .swatches { display: flex; justify-content: space-between; padding: 2px 10px 8px; }
+  .swatch {
+    width: 24px; height: 24px; min-width: 0; padding: 0; flex: none; border: 0; border-radius: var(--r-sm); cursor: pointer;
+    background: var(--k); display: grid; place-items: center; color: var(--k-on);
+    transition: transform var(--t-fast) ease;
+  }
+  .swatch:hover { transform: scale(1.08); }
+  .swatch svg { width: 14px; height: 14px; opacity: 0; }
+  .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--k); }
+  .swatch[aria-pressed="true"] svg { opacity: 1; }
   .kmenu hr { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
   .kmenu-note { font-size: var(--fs-xs); color: var(--text-3); padding: 0 10px 6px; }
 
@@ -173,6 +202,7 @@
   .cd-title:focus { outline: none; background: var(--surface); border-color: var(--ink); box-shadow: 0 0 0 3px rgba(17, 19, 21, 0.12); }
   .cd-where { font-size: var(--fs-sm); color: var(--text-3); margin-top: 2px; }
   .cd-where strong { color: var(--text-2); font-weight: 600; }
+  .cd-where .kl-dot { display: inline-block; width: 8px; height: 8px; margin: 0 5px 0 2px; vertical-align: 1px; box-shadow: none; }
   .cd-body { display: grid; grid-template-columns: minmax(0, 1fr) 200px; gap: 24px; padding: 0 24px 24px; }
   .cd-sec { margin-top: 20px; }
   .cd-sec:first-child { margin-top: 0; }
@@ -336,6 +366,26 @@
   const esc = HubUI.escapeHtml;
   const PRONTOS_VISIVEIS = 12;
   const NOME_PRIO = { urgente: 'Urgente', alta: 'Alta', normal: 'Normal' };
+  const CORES = ['cinza', 'amarelo', 'azul', 'roxo', 'turquesa', 'laranja', 'rosa', 'verde'];
+  const NOME_COR = { cinza: 'Cinza', amarelo: 'Amarelo', azul: 'Azul', roxo: 'Roxo', turquesa: 'Turquesa', laranja: 'Laranja', rosa: 'Rosa', verde: 'Verde' };
+  // cor da lista: a escolhida, ou uma padrão pelo nome (antes de rodar o anuncios_cores.sql)
+  function corDa(col) {
+    if (!col) return 'cinza';
+    if (CORES.indexOf(col.cor) !== -1) return col.cor;
+    const n = String(col.nome || '').toLowerCase();
+    if (col.concluida) return 'verde';
+    if (n.startsWith('pendente')) return 'amarelo';
+    if (n.includes('andamento')) return 'azul';
+    if (n.includes('revis')) return 'roxo';
+    return 'cinza';
+  }
+  // cada pessoa tem sempre a mesma cor no avatar (fica fácil achar os cartões de alguém)
+  const CORES_PESSOA = ['amarelo', 'azul', 'roxo', 'turquesa', 'laranja', 'rosa', 'verde', 'cinza'];
+  function corDaPessoa(id) {
+    let i = 0;
+    for (const ch of String(id)) i = (i * 31 + ch.charCodeAt(0)) >>> 0;
+    return CORES_PESSOA[i % CORES_PESSOA.length];
+  }
   const ORDEM_PRIO = { urgente: 0, alta: 1, normal: 2 };
 
   const st = {
@@ -384,7 +434,7 @@
   }
   const avatar = (id, cls) => {
     const nome = HubAuth.nomeDe(id);
-    return nome ? '<span class="av' + (cls ? ' ' + cls : '') + '" title="' + esc(nome) + '" aria-label="' + esc(nome) + '">' + esc(iniciais(nome)) + '</span>' : '';
+    return nome ? '<span class="av k-' + corDaPessoa(id) + (cls ? ' ' + cls : '') + '" title="' + esc(nome) + '" aria-label="' + esc(nome) + '">' + esc(iniciais(nome)) + '</span>' : '';
   };
   const dataHora = (iso) => iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
   const dia = (iso) => iso ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
@@ -615,7 +665,7 @@
 
   function listaEl(col, f, porNome) {
     const sec = document.createElement('section');
-    sec.className = 'kl';
+    sec.className = 'kl k-' + corDa(col);
     sec.dataset.id = col.id;
     sec.setAttribute('aria-label', col.nome);
     const todos = st.cards.filter((a) => colunaDo(a) === col.id);
@@ -642,7 +692,7 @@
       setTimeout(() => { inp.focus(); inp.select(); }, 0);
     } else {
       head.innerHTML =
-        '<button type="button" class="kl-name" data-a="renomear" title="Clique para renomear">' + (col.concluida ? ic('checkCircle') : '') + '<span>' + esc(col.nome) + '</span></button>' +
+        '<button type="button" class="kl-name" data-a="renomear" title="Clique para renomear">' + (col.concluida ? ic('checkCircle') : '<span class="kl-dot" aria-hidden="true"></span>') + '<span>' + esc(col.nome) + '</span></button>' +
         '<span class="count-pill">' + (f.ativo ? lista.length + '/' + todos.length : todos.length) + '</span>' +
         '<button type="button" class="icon-btn" data-a="menu" aria-haspopup="menu" aria-expanded="false" aria-label="Ações da lista ' + esc(col.nome) + '">' + ic('more') + '</button>';
       head.querySelector('[data-a="renomear"]').addEventListener('click', () => { st.renomeando = col.id; render(); });
@@ -703,7 +753,12 @@
       if (!nome) { inp.focus(); return; }
       const ordem = st.colunas.length ? Math.max.apply(null, st.colunas.map((c) => c.ordem)) + 1000 : 1000;
       const done = HubUI.busy(btn, 'Criando…');
-      const { error } = await sb.from('anuncios_colunas').insert({ nome, ordem });
+      // lista nova ganha a próxima cor que ainda não está em uso
+      const usadas = st.colunas.map(corDa);
+      const cor = CORES.filter((c) => c !== 'cinza').find((c) => usadas.indexOf(c) === -1) || 'cinza';
+      let { error } = await sb.from('anuncios_colunas').insert({ nome, ordem, cor });
+      // antes do anuncios_cores.sql a coluna "cor" não existe: cria sem cor
+      if (error && /cor/i.test(error.message || '')) ({ error } = await sb.from('anuncios_colunas').insert({ nome, ordem }));
       done();
       if (error) { console.error(error); HubUI.toast('Não foi possível criar a lista.', { error: true }); return; }
       HubUI.toast('Lista ' + nome + ' criada.');
@@ -850,7 +905,7 @@
     desenharMenu(col);
     menu.hidden = false;
     const r = botao.getBoundingClientRect();
-    menu.style.top = Math.min(r.bottom + 6, window.innerHeight - menu.offsetHeight - 8) + 'px';
+    menu.style.top = Math.max(8, Math.min(r.bottom + 6, window.innerHeight - menu.offsetHeight - 8)) + 'px';
     menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - menu.offsetWidth - 8)) + 'px';
     const primeiroItem = menu.querySelector('button:not(:disabled), input');
     if (primeiroItem) primeiroItem.focus();
@@ -867,6 +922,10 @@
       '<button type="button" class="kmi" role="menuitem" data-a="esq"' + (i <= 0 ? ' disabled' : '') + '>' + ic('chevronLeft') + 'Mover para a esquerda</button>' +
       '<button type="button" class="kmi" role="menuitem" data-a="dir"' + (i >= st.colunas.length - 1 ? ' disabled' : '') + '>' + ic('chevronRight') + 'Mover para a direita</button>' +
       '<hr>' +
+      '<div class="kmenu-sub" id="corTit">Cor da lista</div>' +
+      '<div class="swatches" role="group" aria-labelledby="corTit">' + CORES.map((c) =>
+        '<button type="button" class="swatch k-' + c + '" data-cor="' + c + '" aria-pressed="' + (corDa(col) === c) + '" aria-label="' + NOME_COR[c] + '" title="' + NOME_COR[c] + '">' + ic('check') + '</button>').join('') + '</div>' +
+      '<hr>' +
       '<label class="check"><input type="checkbox" data-a="concluida"' + (col.concluida ? ' checked' : '') + '><span>Lista de prontos<small>Cartões que entram aqui ganham a data de conclusão e saem da contagem de abertos.</small></span></label>' +
       '<hr>' +
       '<button type="button" class="kmi danger' + (confirmarExclusaoLista ? ' is-confirming' : '') + '" role="menuitem" data-a="excluir"' + (podeExcluir ? '' : ' disabled') + '>' + ic('trash') + (confirmarExclusaoLista ? 'Clique de novo para excluir' : 'Excluir lista') + '</button>' +
@@ -882,6 +941,19 @@
     };
     menu.querySelector('[data-a="esq"]').addEventListener('click', () => lado(-1));
     menu.querySelector('[data-a="dir"]').addEventListener('click', () => lado(1));
+    menu.querySelectorAll('[data-cor]').forEach((b) => b.addEventListener('click', async () => {
+      const cor = b.dataset.cor;
+      if (cor === col.cor) return;
+      const antiga = col.cor;
+      col.cor = cor;
+      renderJa(); desenharMenu(col);
+      const n = menu.querySelector('[data-cor="' + cor + '"]'); if (n) n.focus();
+      const { error } = await sb.from('anuncios_colunas').update({ cor }).eq('id', col.id);
+      if (error) {
+        console.error(error); col.cor = antiga; renderJa(); desenharMenu(col);
+        HubUI.toast(/cor/i.test(error.message || '') ? 'Falta rodar o supabase/anuncios_cores.sql no Supabase.' : 'Não foi possível trocar a cor.', { error: true });
+      }
+    }));
     menu.querySelector('[data-a="concluida"]').addEventListener('change', async (e) => {
       const v = e.target.checked;
       col.concluida = v;
@@ -965,7 +1037,7 @@
     el('cdMarca').innerHTML = marcaHtml(a.sku);
     el('cdPrioTag').innerHTML = a.prioridade ? '<span class="prio prio-' + a.prioridade + '">' + NOME_PRIO[a.prioridade] + '</span>' : '';
     setSeLivre('cdTitulo', a.produto);
-    el('cdLista').textContent = col ? col.nome : '—';
+    el('cdLista').innerHTML = col ? '<span class="kl-dot k-' + corDa(col) + '" aria-hidden="true"></span>' + esc(col.nome) : '—';
     el('cdResp').innerHTML = '<option value="">Sem responsável</option>' +
       HubAuth.profiles.map((p) => '<option value="' + p.id + '"' + (p.id === a.responsavel_id ? ' selected' : '') + '>' + esc(p.nome || p.id) + '</option>').join('');
     el('cdColuna').innerHTML = st.colunas.map((c) => '<option value="' + c.id + '"' + (col && c.id === col.id ? ' selected' : '') + '>' + esc(c.nome) + '</option>').join('');
